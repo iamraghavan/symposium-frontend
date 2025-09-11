@@ -48,16 +48,13 @@ export default function EventDetailPage({
   useEffect(() => {
     if (event) {
       setFormattedDate(
-        format(parseISO(event.date), "EEEE, MMMM d, yyyy 'at' h:mm a zzz", {
-          timeZone: "UTC",
-        })
+        format(parseISO(event.date), "EEEE, MMMM d, yyyy 'at' h:mm a zzz")
       );
       const newFormattedDates: Record<string, string> = {};
       event.participants.forEach((user) => {
         newFormattedDates[user.id] = format(
           parseISO(user.registeredAt),
-          "PP",
-          { timeZone: "UTC" }
+          "PP"
         );
       });
       setFormattedRegistrationDates(newFormattedDates);
@@ -73,6 +70,7 @@ export default function EventDetailPage({
   const totalPrizes = winners.reduce((acc, winner) => acc + winner.prizeAmount, 0);
 
   return (
+    <div className="container py-12">
     <Tabs defaultValue="details" className="w-full">
       <TabsList className="grid w-full grid-cols-4">
         <TabsTrigger value="details">Details</TabsTrigger>
@@ -248,5 +246,6 @@ export default function EventDetailPage({
         </Card>
       </TabsContent>
     </Tabs>
+    </div>
   );
 }
