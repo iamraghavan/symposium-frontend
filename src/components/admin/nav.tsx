@@ -49,8 +49,10 @@ export function AdminNav() {
     const userData = localStorage.getItem("loggedInUser");
     if (userData) {
       setUser(JSON.parse(userData));
+    } else {
+      router.push('/login');
     }
-  }, []);
+  }, [router]);
 
   const handleLogout = () => {
     localStorage.removeItem("loggedInUser");
