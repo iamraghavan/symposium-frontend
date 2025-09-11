@@ -31,19 +31,40 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import type { LoggedInUser, Event } from "@/lib/types";
 
-import { events } from "@/lib/data";
+import { events as allEvents } from "@/lib/data";
 import { parseISO, format } from "date-fns";
 import { Users, Calendar as CalendarIcon, PlusCircle, Globe, Video, Smartphone } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
+import { useRouter } from "next/navigation";
 
 export default function AdminEventsPage() {
+  const router = useRouter();
+  const [user, setUser] = useState<LoggedInUser | null>(null);
+  const [events, setEvents] = useState<Event[]>([]);
   const [paymentType, setPaymentType] = useState("free");
   const [eventMode, setEventMode] = useState("offline");
   const [date, setDate] = useState<Date>();
   const [formattedDates, setFormattedDates] = useState<Record<string, string>>({});
+
+   useEffect(() => {
+    const userData = localStorage.getItem("loggedInUser");
+    if (userData) {
+      const parsedUser = JSON.parse(userData) as LoggedInUser;
+      setUser(parsedUser);
+      if (parsedUser.role === 'superadmin') {
+        setEvents(allEvents);
+      } else if (parsedUser.role === 'department' && parsedUser.departmentId) {
+        setEvents(allEvents.filter(event => event.department.id === parsedUser.departmentId));
+      }
+    } else {
+      router.push('/login');
+    }
+  }, [router]);
+
 
   useEffect(() => {
     const newFormattedDates: Record<string, string> = {};
@@ -54,11 +75,17 @@ export default function AdminEventsPage() {
       );
     });
     setFormattedDates(newFormattedDates);
-  }, []);
+  }, [events]);
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight font-headline">Events</h2>
+          <p className="text-muted-foreground">
+            {user?.role === 'superadmin' ? 'Manage all events across the college.' : 'Manage events for your department.'}
+          </p>
+        </div>
         <Dialog>
           <DialogTrigger asChild>
             <Button>
