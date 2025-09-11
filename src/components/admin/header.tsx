@@ -1,3 +1,4 @@
+
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
@@ -30,12 +31,14 @@ export function AdminHeader() {
   const router = useRouter();
   const title = pathToTitle[pathname] || "Event Details";
   const [user, setUser] = useState<LoggedInUser | null>(null);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     const userData = localStorage.getItem("loggedInUser");
     if (userData) {
       setUser(JSON.parse(userData));
     }
+    setIsClient(true);
   }, []);
 
   const handleLogout = () => {
@@ -43,6 +46,10 @@ export function AdminHeader() {
     router.push("/");
   };
   
+  if (!isClient) {
+    return null;
+  }
+
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
       <div className="md:hidden">
