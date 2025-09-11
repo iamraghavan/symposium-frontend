@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -34,7 +35,7 @@ import { Calendar, Users, Trophy, DollarSign, Edit } from "lucide-react";
 import React, { useEffect, useState } from "react";
 
 export default function EventDetailPage({
-  params,
+  params: { eventId },
 }: {
   params: { eventId: string };
 }) {
@@ -43,7 +44,7 @@ export default function EventDetailPage({
     Record<string, string>
   >({});
 
-  const event = events.find((e) => e.id === params.eventId);
+  const event = events.find((e) => e.id === eventId);
 
   useEffect(() => {
     if (event) {

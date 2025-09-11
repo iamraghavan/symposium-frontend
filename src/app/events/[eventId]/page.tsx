@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from "next/image";
@@ -28,12 +29,12 @@ import { Calendar, Users, Trophy, DollarSign, MapPin, Ticket } from "lucide-reac
 import React, { useEffect, useState } from "react";
 
 export default function EventDetailPage({
-  params,
+  params: { eventId },
 }: {
   params: { eventId: string };
 }) {
   const [formattedDate, setFormattedDate] = useState("");
-  const event = events.find((e) => e.id === params.eventId);
+  const event = events.find((e) => e.id === eventId);
 
   useEffect(() => {
     if (event) {
