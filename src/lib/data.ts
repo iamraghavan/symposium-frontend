@@ -1,10 +1,10 @@
 import type { Department, Event, User, Winner } from "@/lib/types";
 
 export const departments: Department[] = [
-  { id: "cse", name: "Computer Science" },
-  { id: "ece", name: "Electronics & Communication" },
-  { id: "mech", name: "Mechanical Engineering" },
-  { id: "civil", name: "Civil Engineering" },
+  { id: "cse", name: "Computer Science", head: { name: "Dr. Alan Turing", email: "alan.t@example.com" } },
+  { id: "ece", name: "Electronics & Communication", head: { name: "Dr. Marie Curie", email: "marie.c@example.com" } },
+  { id: "mech", name: "Mechanical Engineering", head: { name: "Dr. James Watt", email: "james.w@example.com" } },
+  { id: "civil", name: "Civil Engineering", head: { name: "Dr. John Smeaton", email: "john.s@example.com" } },
 ];
 
 export const users: User[] = [

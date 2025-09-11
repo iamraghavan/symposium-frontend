@@ -1,6 +1,10 @@
 export type Department = {
   id: string;
   name: string;
+  head?: {
+    name: string;
+    email: string;
+  }
 };
 
 export type User = {
