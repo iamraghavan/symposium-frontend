@@ -5,7 +5,6 @@ import {
   SidebarInset,
 } from "@/components/ui/sidebar";
 import { AdminNav } from "@/components/admin/nav";
-import { AdminHeader } from "@/components/admin/header";
 
 export default function AdminLayout({
   children,
@@ -18,7 +17,6 @@ export default function AdminLayout({
         <AdminNav />
       </Sidebar>
       <SidebarInset>
-        <AdminHeader />
         <main className="p-4 lg:p-6">{children}</main>
       </SidebarInset>
     </SidebarProvider>
