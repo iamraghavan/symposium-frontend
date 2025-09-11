@@ -25,7 +25,8 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
 import { events, winners as allWinners } from "@/lib/data";
-import { format, parseISO } from "date-fns";
+import { parseISO } from "date-fns";
+import { format } from "date-fns-tz";
 import { notFound } from "next/navigation";
 import { Calendar, Users, Trophy, DollarSign, Edit } from "lucide-react";
 
@@ -68,7 +69,7 @@ export default function EventDetailPage({
           <CardContent className="space-y-4">
             <div className="flex items-center gap-4 text-sm">
                 <Calendar className="h-5 w-5 text-muted-foreground" />
-                <span>{format(parseISO(event.date), "EEEE, MMMM d, yyyy 'at' h:mm a")}</span>
+                <span>{format(parseISO(event.date), "EEEE, MMMM d, yyyy 'at' h:mm a zzz", { timeZone: 'UTC' })}</span>
             </div>
             <div className="flex items-center gap-4 text-sm">
                 <Users className="h-5 w-5 text-muted-foreground" />
@@ -116,7 +117,7 @@ export default function EventDetailPage({
                       </div>
                     </TableCell>
                     <TableCell>{user.college}</TableCell>
-                    <TableCell>{format(parseISO(user.registeredAt), "PP")}</TableCell>
+                    <TableCell>{format(parseISO(user.registeredAt), "PP", { timeZone: 'UTC' })}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

@@ -33,7 +33,8 @@ import {
 } from "@/components/ui/popover";
 
 import { events } from "@/lib/data";
-import { format, parseISO } from "date-fns";
+import { parseISO } from "date-fns";
+import { format } from "date-fns-tz";
 import { Users, Calendar as CalendarIcon, PlusCircle, Globe, Video, Smartphone } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -221,7 +222,7 @@ export default function EventsPage() {
               </div>
               <CardDescription className="flex items-center gap-2 text-sm">
                 <CalendarIcon className="h-4 w-4" />
-                {format(parseISO(event.date), "MMMM d, yyyy 'at' h:mm a")}
+                {format(parseISO(event.date), "MMMM d, yyyy 'at' h:mm a zzz", { timeZone: 'UTC' })}
               </CardDescription>
             </CardHeader>
             <CardContent className="flex-grow">
@@ -246,5 +247,3 @@ export default function EventsPage() {
     </div>
   );
 }
-
-    
