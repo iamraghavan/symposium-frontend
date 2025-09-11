@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -30,13 +31,15 @@ export function Header() {
               <Link href="/">Explore Events</Link>
            </Button>
            <Button variant="outline" asChild>
-             <Link href="/login">Log in</Link>
+             <Link href="/auth/login">Log in</Link>
            </Button>
            <Button asChild>
-             <Link href="/signup">Sign up</Link>
+             <Link href="/auth/signup">Sign up</Link>
            </Button>
         </div>
       </div>
     </header>
   );
 }
+
+    

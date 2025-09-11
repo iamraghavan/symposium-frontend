@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -35,7 +36,7 @@ export default function LoginPage() {
         title: "Login Successful",
         description: `Welcome, Super Admin ${user.name}!`,
       });
-      router.push("/admin");
+      router.push("/portal/dashboard");
       return;
     }
 
@@ -50,7 +51,7 @@ export default function LoginPage() {
         title: "Login Successful",
         description: `Welcome, ${department.head.name}!`,
       });
-      router.push("/admin");
+      router.push("/portal/dashboard");
     } else {
       toast({
         variant: "destructive",
@@ -138,3 +139,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+    

@@ -1,3 +1,4 @@
+
 import Link from "next/link";
 import { AppWindow, ArrowRight, Facebook, Twitter, Youtube, Instagram, MessageCircle } from "lucide-react";
 import { Button } from "../ui/button";
@@ -29,8 +30,8 @@ export function Footer() {
             <div className="space-y-4">
                 <h3 className="font-bold text-white">Your Account</h3>
                 <ul className="space-y-2">
-                    <li><Link href="/signup" className="hover:text-white transition-colors">Sign up</Link></li>
-                    <li><Link href="/login" className="hover:text-white transition-colors">Log in</Link></li>
+                    <li><Link href="/auth/signup" className="hover:text-white transition-colors">Sign up</Link></li>
+                    <li><Link href="/auth/login" className="hover:text-white transition-colors">Log in</Link></li>
                     <li><Link href="#" className="hover:text-white transition-colors">Help</Link></li>
                 </ul>
             </div>
@@ -94,3 +95,5 @@ export function Footer() {
     </footer>
   );
 }
+
+    

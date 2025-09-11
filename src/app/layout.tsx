@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { Metadata } from 'next';
@@ -20,7 +21,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const pathname = usePathname();
-  const isAdminPage = pathname.startsWith('/admin');
+  const isPortalPage = pathname.startsWith('/portal');
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -33,12 +34,14 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased bg-background text-foreground">
         <div className="flex flex-col min-h-screen">
-          {!isAdminPage && <Header />}
+          {!isPortalPage && <Header />}
           <main className="flex-1">{children}</main>
-          {!isAdminPage && <Footer />}
+          {!isPortalPage && <Footer />}
         </div>
         <Toaster />
       </body>
     </html>
   );
 }
+
+    

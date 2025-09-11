@@ -1,3 +1,4 @@
+
 "use client"
 import {
   SidebarProvider,
@@ -6,7 +7,7 @@ import {
 } from "@/components/ui/sidebar";
 import { AdminNav } from "@/components/admin/nav";
 
-export default function AdminLayout({
+export default function PortalLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -22,3 +23,5 @@ export default function AdminLayout({
     </SidebarProvider>
   );
 }
+
+    

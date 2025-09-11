@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -35,16 +36,28 @@ import {
 import { events, users } from "@/lib/data";
 import { format, parseISO } from "date-fns";
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import type { LoggedInUser } from "@/lib/types";
+
 
 const totalParticipants = new Set(events.flatMap(event => event.participants.map(p => p.id))).size;
 const totalRevenue = events.reduce((acc, event) => acc + event.participants.length * event.registrationFee, 0);
 
 export default function AdminDashboardPage() {
+  const router = useRouter();
+  const [user, setUser] = useState<LoggedInUser | null>(null);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
+    const userData = localStorage.getItem("loggedInUser");
+    if (userData) {
+      setUser(JSON.parse(userData));
+    } else {
+      router.push('/auth/login');
+    }
     setIsClient(true);
-  }, []);
+  }, [router]);
+
 
   const registrationData = [
     { date: "2024-08-01", users: 2 },
@@ -195,3 +208,5 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+
+    

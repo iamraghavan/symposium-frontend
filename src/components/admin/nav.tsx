@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -34,10 +35,10 @@ import { Button } from "../ui/button";
 import type { LoggedInUser } from "@/lib/types";
 
 const allMenuItems = [
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/events", label: "Events", icon: Calendar },
-  { href: "/admin/departments", label: "Departments", icon: Building2, requiredRole: "superadmin" },
-  { href: "/admin/finance", label: "Finance", icon: Banknote, requiredRole: "superadmin" },
+  { href: "/portal/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/portal/events", label: "Events", icon: Calendar },
+  { href: "/portal/departments", label: "Departments", icon: Building2, requiredRole: "superadmin" },
+  { href: "/portal/finance", label: "Finance", icon: Banknote, requiredRole: "superadmin" },
 ];
 
 export function AdminNav() {
@@ -50,7 +51,7 @@ export function AdminNav() {
     if (userData) {
       setUser(JSON.parse(userData));
     } else {
-      router.push('/login');
+      router.push('/auth/login');
     }
   }, [router]);
 
@@ -80,7 +81,7 @@ export function AdminNav() {
             <SidebarMenuItem key={item.href}>
               <SidebarMenuButton
                 asChild
-                isActive={pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href))}
+                isActive={pathname === item.href || (item.href !== "/portal/dashboard" && pathname.startsWith(item.href))}
                 tooltip={item.label}
               >
                 <Link href={item.href}>
@@ -141,3 +142,5 @@ export function AdminNav() {
     </>
   );
 }
+
+    

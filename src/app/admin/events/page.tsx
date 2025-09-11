@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from "next/image";
@@ -62,7 +63,7 @@ export default function AdminEventsPage() {
         setEvents(allEvents.filter(event => event.department.id === parsedUser.departmentId));
       }
     } else {
-      router.push('/login');
+      router.push('/auth/login');
     }
   }, [router]);
 
@@ -297,7 +298,7 @@ export default function AdminEventsPage() {
                 </span>
               </div>
               <Button asChild variant="default" size="sm">
-                <Link href={`/admin/events/${event.id}`}>View Details</Link>
+                <Link href={`/portal/events/${event.id}`}>View Details</Link>
               </Button>
             </CardFooter>
           </Card>
@@ -306,3 +307,5 @@ export default function AdminEventsPage() {
     </div>
   );
 }
+
+    

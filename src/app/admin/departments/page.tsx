@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -64,12 +65,12 @@ export default function AdminDepartmentsPage() {
     if (userData) {
         const parsedUser = JSON.parse(userData) as LoggedInUser;
         if (parsedUser.role !== 'superadmin') {
-            router.push('/admin');
+            router.push('/portal/dashboard');
         } else {
             setUser(parsedUser);
         }
     } else {
-        router.push('/login');
+        router.push('/auth/login');
     }
   }, [router]);
 
@@ -280,3 +281,5 @@ export default function AdminDepartmentsPage() {
     </>
   );
 }
+
+    

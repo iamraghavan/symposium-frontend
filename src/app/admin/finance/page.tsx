@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -15,12 +16,12 @@ export default function AdminFinancePage() {
     if (userData) {
       const parsedUser = JSON.parse(userData) as LoggedInUser;
       if (parsedUser.role !== 'superadmin') {
-        router.push('/admin');
+        router.push('/portal/dashboard');
       } else {
         setUser(parsedUser);
       }
     } else {
-      router.push('/login');
+      router.push('/auth/login');
     }
   }, [router]);
   
@@ -42,3 +43,5 @@ export default function AdminFinancePage() {
     </div>
   );
 }
+
+    
