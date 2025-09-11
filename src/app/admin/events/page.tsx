@@ -34,8 +34,9 @@ import {
 import type { LoggedInUser, Event } from "@/lib/types";
 
 import { events as allEvents } from "@/lib/data";
-import { parseISO, format } from "date-fns";
-import { Users, Calendar as CalendarIcon, PlusCircle, Globe, Video, Smartphone } from "lucide-react";
+import { parseISO } from "date-fns";
+import { format } from "date-fns-tz";
+import { Users, Calendar as CalendarIcon, PlusCircle, Globe, Video, Smartphone, Upload } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
@@ -71,7 +72,8 @@ export default function AdminEventsPage() {
     events.forEach((event) => {
       newFormattedDates[event.id] = format(
         parseISO(event.date),
-        "MMMM d, yyyy 'at' h:mm a"
+        "MMMM d, yyyy 'at' h:mm a zzz",
+        { timeZone: 'UTC' }
       );
     });
     setFormattedDates(newFormattedDates);
@@ -120,6 +122,25 @@ export default function AdminEventsPage() {
                   placeholder="A brief description of the event."
                   className="col-span-3"
                 />
+              </div>
+               <div className="grid grid-cols-4 items-start gap-4">
+                <Label htmlFor="thumbnail" className="text-right pt-2">
+                  Event Thumbnail
+                </Label>
+                <div className="col-span-3">
+                  <div className="relative">
+                     <Upload className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="thumbnail"
+                      type="file"
+                      className="pl-8"
+                      accept="image/*"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Upload an image less than 1MB.
+                  </p>
+                </div>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="datetime" className="text-right">
