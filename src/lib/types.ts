@@ -4,7 +4,7 @@ export type Department = {
   head?: {
     name: string;
     email: string;
-  }
+  };
 };
 
 export type User = {
@@ -41,3 +41,10 @@ export type Financials = {
   totalPrizes: number;
   netIncome: number;
 }
+
+export type LoggedInUser = {
+  name: string;
+  email: string;
+  role: 'superadmin' | 'department';
+  departmentId?: string;
+};

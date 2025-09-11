@@ -1,8 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   SidebarHeader,
   SidebarContent,
@@ -31,16 +31,33 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "../ui/button";
+import type { LoggedInUser } from "@/lib/types";
 
-const menuItems = [
+const allMenuItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/events", label: "Events", icon: Calendar },
-  { href: "/admin/departments", label: "Departments", icon: Building2 },
-  { href: "/admin/finance", label: "Finance", icon: Banknote },
+  { href: "/admin/departments", label: "Departments", icon: Building2, requiredRole: "superadmin" },
+  { href: "/admin/finance", label: "Finance", icon: Banknote, requiredRole: "superadmin" },
 ];
 
 export function AdminNav() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [user, setUser] = useState<LoggedInUser | null>(null);
+
+  useEffect(() => {
+    const userData = localStorage.getItem("loggedInUser");
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("loggedInUser");
+    router.push("/");
+  };
+  
+  const menuItems = allMenuItems.filter(item => !item.requiredRole || item.requiredRole === user?.role);
 
   return (
     <>
@@ -84,16 +101,16 @@ export function AdminNav() {
                 <div className="flex gap-2 items-center">
                   <Avatar className="w-8 h-8">
                     <AvatarImage
-                      src="https://picsum.photos/seed/admin/40/40"
-                      alt="Admin"
+                      src={`https://picsum.photos/seed/${user?.name || 'admin'}/40/40`}
+                      alt={user?.name || 'Admin'}
                       data-ai-hint="person"
                     />
-                    <AvatarFallback>AD</AvatarFallback>
+                    <AvatarFallback>{user?.name?.charAt(0) || 'A'}</AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col items-start group-data-[collapsible=icon]:hidden">
-                    <span className="text-sm font-medium text-sidebar-foreground">Admin</span>
+                    <span className="text-sm font-medium text-sidebar-foreground">{user?.name || 'Admin'}</span>
                     <span className="text-xs text-sidebar-foreground/70">
-                      admin@school.edu
+                      {user?.email || ''}
                     </span>
                   </div>
                 </div>
@@ -112,7 +129,7 @@ export function AdminNav() {
               <span>Support</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
               <span>Log out</span>
             </DropdownMenuItem>

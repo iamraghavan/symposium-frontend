@@ -1,6 +1,7 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
@@ -14,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LifeBuoy, LogOut, Search, Settings } from "lucide-react";
 import { Input } from "../ui/input";
+import type { LoggedInUser } from "@/lib/types";
 
 const pathToTitle: { [key: string]: string } = {
   "/admin": "Dashboard",
@@ -24,7 +26,22 @@ const pathToTitle: { [key: string]: string } = {
 
 export function AdminHeader() {
   const pathname = usePathname();
+  const router = useRouter();
   const title = pathToTitle[pathname] || "Event Details";
+  const [user, setUser] = useState<LoggedInUser | null>(null);
+
+  useEffect(() => {
+    const userData = localStorage.getItem("loggedInUser");
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+  }, []);
+  
+  const handleLogout = () => {
+    localStorage.removeItem("loggedInUser");
+    router.push("/");
+  };
+
 
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
@@ -53,8 +70,8 @@ export function AdminHeader() {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="relative h-9 w-9 rounded-full">
             <Avatar className="h-9 w-9">
-              <AvatarImage src="https://picsum.photos/seed/admin/40/40" alt="Admin" data-ai-hint="person" />
-              <AvatarFallback>AD</AvatarFallback>
+              <AvatarImage src={`https://picsum.photos/seed/${user?.name || 'admin'}/40/40`} alt={user?.name || 'Admin'} data-ai-hint="person" />
+              <AvatarFallback>{user?.name?.charAt(0) || 'A'}</AvatarFallback>
             </Avatar>
           </Button>
         </DropdownMenuTrigger>
@@ -70,7 +87,7 @@ export function AdminHeader() {
             <span>Support</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>
+          <DropdownMenuItem onClick={handleLogout}>
             <LogOut className="mr-2 h-4 w-4" />
             <span>Log out</span>
           </DropdownMenuItem>

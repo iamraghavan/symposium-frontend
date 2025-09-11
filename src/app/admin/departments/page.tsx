@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Card,
   CardHeader,
@@ -49,12 +50,28 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { departments as initialDepartments } from "@/lib/data";
-import type { Department } from "@/lib/types";
+import type { Department, LoggedInUser } from "@/lib/types";
 
 export default function AdminDepartmentsPage() {
+  const router = useRouter();
+  const [user, setUser] = useState<LoggedInUser | null>(null);
   const [departments, setDepartments] = useState<Department[]>(initialDepartments);
   const [isNewDepartmentDialogOpen, setIsNewDepartmentDialogOpen] = useState(false);
   const [editingDepartment, setEditingDepartment] = useState<Department | null>(null);
+
+  useEffect(() => {
+    const userData = localStorage.getItem("loggedInUser");
+    if (userData) {
+        const parsedUser = JSON.parse(userData) as LoggedInUser;
+        if (parsedUser.role !== 'superadmin') {
+            router.push('/admin');
+        } else {
+            setUser(parsedUser);
+        }
+    } else {
+        router.push('/login');
+    }
+  }, [router]);
 
   const handleCreateDepartment = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -91,6 +108,10 @@ export default function AdminDepartmentsPage() {
   const handleDeleteDepartment = (departmentId: string) => {
     setDepartments(departments.filter(d => d.id !== departmentId));
   };
+
+  if (user?.role !== 'superadmin') {
+    return null; // or a loading spinner while redirecting
+  }
 
 
   return (

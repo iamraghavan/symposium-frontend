@@ -16,6 +16,9 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { departments } from "@/lib/data";
 
+const SUPERADMIN_EMAIL = "web@egspec.org";
+const SUPERADMIN_NAME = "Raghavan";
+
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -24,14 +27,28 @@ export default function LoginPage() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    const departmentHead = departments.find(
+
+    if (name.toLowerCase() === SUPERADMIN_NAME.toLowerCase() && email.toLowerCase() === SUPERADMIN_EMAIL.toLowerCase()) {
+      const user = { name: SUPERADMIN_NAME, email: SUPERADMIN_EMAIL, role: 'superadmin' };
+      localStorage.setItem('loggedInUser', JSON.stringify(user));
+      toast({
+        title: "Login Successful",
+        description: `Welcome, Super Admin ${user.name}!`,
+      });
+      router.push("/admin");
+      return;
+    }
+
+    const department = departments.find(
       (dept) => dept.head?.name.toLowerCase() === name.toLowerCase() && dept.head?.email.toLowerCase() === email.toLowerCase()
     );
 
-    if (departmentHead) {
+    if (department && department.head) {
+       const user = { name: department.head.name, email: department.head.email, role: 'department', departmentId: department.id };
+       localStorage.setItem('loggedInUser', JSON.stringify(user));
       toast({
         title: "Login Successful",
-        description: `Welcome, ${departmentHead.head.name}!`,
+        description: `Welcome, ${department.head.name}!`,
       });
       router.push("/admin");
     } else {
@@ -48,9 +65,9 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm">
         <form onSubmit={handleLogin}>
           <CardHeader>
-            <CardTitle className="text-2xl font-headline">Department Login</CardTitle>
+            <CardTitle className="text-2xl font-headline">Admin Login</CardTitle>
             <CardDescription>
-              Enter your credentials to access your department dashboard.
+              Enter your credentials to access the admin dashboard.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4">
@@ -59,7 +76,7 @@ export default function LoginPage() {
               <Input
                 id="name"
                 type="text"
-                placeholder="Dr. Alan Turing"
+                placeholder="e.g. Raghavan"
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -70,7 +87,7 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="alan.t@example.com"
+                placeholder="e.g. web@egspec.org"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
