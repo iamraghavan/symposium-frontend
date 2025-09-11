@@ -82,7 +82,7 @@ export default function LoginPage() {
               <Input
                 id="name"
                 type="text"
-                placeholder="e.g. Raghavan"
+                placeholder="Username"
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -93,7 +93,7 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="e.g. web@egspec.org"
+                placeholder="Mail ID"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
