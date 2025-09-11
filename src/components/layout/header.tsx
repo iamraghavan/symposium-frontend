@@ -26,9 +26,15 @@ export function Header() {
         </div>
 
         <div className="flex flex-1 items-center justify-end space-x-2">
-           <Button variant="ghost">Explore Events</Button>
-           <Button variant="outline">Log in</Button>
-           <Button>Sign up</Button>
+           <Button variant="ghost" asChild>
+              <Link href="/">Explore Events</Link>
+           </Button>
+           <Button variant="outline" asChild>
+             <Link href="/login">Log in</Link>
+           </Button>
+           <Button asChild>
+             <Link href="/signup">Sign up</Link>
+           </Button>
         </div>
       </div>
     </header>
