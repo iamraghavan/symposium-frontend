@@ -35,10 +35,11 @@ import { Calendar, Users, Trophy, DollarSign, Edit } from "lucide-react";
 import React, { useEffect, useState } from "react";
 
 export default function EventDetailPage({
-  params: { eventId },
+  params,
 }: {
   params: { eventId: string };
 }) {
+  const { eventId } = params;
   const [formattedDate, setFormattedDate] = useState("");
   const [formattedRegistrationDates, setFormattedRegistrationDates] = useState<
     Record<string, string>

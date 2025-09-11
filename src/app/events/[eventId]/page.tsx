@@ -29,10 +29,11 @@ import { Calendar, Users, Trophy, DollarSign, MapPin, Ticket } from "lucide-reac
 import React, { useEffect, useState } from "react";
 
 export default function EventDetailPage({
-  params: { eventId },
+  params,
 }: {
   params: { eventId: string };
 }) {
+  const { eventId } = params;
   const [formattedDate, setFormattedDate] = useState("");
   const event = events.find((e) => e.id === eventId);
 
