@@ -34,19 +34,30 @@ import {
 } from "lucide-react";
 import { events, users } from "@/lib/data";
 import { format, parseISO } from "date-fns";
-
-const registrationData = [
-  { date: "2024-08-01", users: 2 },
-  { date: "2024-08-02", users: 2 },
-  { date: "2024-08-03", users: 1 },
-  { date: "2024-08-04", users: 2 },
-  { date: "2024-08-05", users: 1 },
-];
+import React, { useEffect, useState } from "react";
 
 const totalParticipants = new Set(events.flatMap(event => event.participants.map(p => p.id))).size;
 const totalRevenue = events.reduce((acc, event) => acc + event.participants.length * event.registrationFee, 0);
 
 export default function DashboardPage() {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  const registrationData = [
+    { date: "2024-08-01", users: 2 },
+    { date: "2024-08-02", users: 2 },
+    { date: "2024-08-03", users: 1 },
+    { date: "2024-08-04", users: 2 },
+    { date: "2024-08-05", users: 1 },
+  ];
+
+  if (!isClient) {
+    return null; // or a loading spinner
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

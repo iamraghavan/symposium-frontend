@@ -36,7 +36,7 @@ import { events } from "@/lib/data";
 import { parseISO } from "date-fns";
 import { format } from "date-fns-tz";
 import { Users, Calendar as CalendarIcon, PlusCircle, Globe, Video, Smartphone } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 
@@ -44,6 +44,19 @@ export default function EventsPage() {
   const [paymentType, setPaymentType] = useState("free");
   const [eventMode, setEventMode] = useState("offline");
   const [date, setDate] = useState<Date>();
+  const [formattedDates, setFormattedDates] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const newFormattedDates: Record<string, string> = {};
+    events.forEach((event) => {
+      newFormattedDates[event.id] = format(
+        parseISO(event.date),
+        "MMMM d, yyyy 'at' h:mm a zzz",
+        { timeZone: "UTC" }
+      );
+    });
+    setFormattedDates(newFormattedDates);
+  }, []);
 
   return (
     <div className="flex flex-col gap-6">
@@ -222,7 +235,7 @@ export default function EventsPage() {
               </div>
               <CardDescription className="flex items-center gap-2 text-sm">
                 <CalendarIcon className="h-4 w-4" />
-                {format(parseISO(event.date), "MMMM d, yyyy 'at' h:mm a zzz", { timeZone: 'UTC' })}
+                {formattedDates[event.id] || "Loading..."}
               </CardDescription>
             </CardHeader>
             <CardContent className="flex-grow">
