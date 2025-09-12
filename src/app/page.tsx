@@ -16,28 +16,37 @@ import {
   Carousel,
   CarouselContent,
   CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
 } from "@/components/ui/carousel";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Badge } from '@/components/ui/badge';
 import { events as allEvents } from '@/lib/data';
 import { format, parseISO } from 'date-fns';
 import { useEffect, useState } from 'react';
-import { Calendar, Users, ArrowRight, ArrowRightCircle, Lightbulb, Network, Code, Users2, Globe, FileText } from 'lucide-react';
+import { Calendar, Users, ArrowRight, ArrowRightCircle, Lightbulb, Network, Code, Users2, Globe, FileText, Ticket } from 'lucide-react';
 import type { Event } from '@/lib/types';
 
 export default function HomePage() {
   const [onlineEvents, setOnlineEvents] = useState<Event[]>([]);
   const [offlineEvents, setOfflineEvents] = useState<Event[]>([]);
-  const [formattedDates, setFormattedDates] = useState<Record<string, string>>({});
+  const [formattedDates, setFormattedDates] = useState<Record<string, {date: string, time: string}>>({});
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+
 
   useEffect(() => {
-    const newFormattedDates: Record<string, string> = {};
+    const newFormattedDates: Record<string, {date: string, time: string}> = {};
     allEvents.forEach((event) => {
-      newFormattedDates[event.id] = format(
-        parseISO(event.date),
-        "MMMM d, yyyy 'at' h:mm a"
-      );
+      const parsedDate = parseISO(event.date);
+      newFormattedDates[event.id] = {
+        date: format(parsedDate, "MMMM d, yyyy"),
+        time: format(parsedDate, "h:mm a"),
+      };
     });
     setFormattedDates(newFormattedDates);
 
@@ -47,51 +56,56 @@ export default function HomePage() {
   }, []);
 
   const EventCard = ({ event }: { event: Event }) => (
-      <Card
-        key={event.id}
-        className="flex flex-col overflow-hidden h-full"
-      >
-        <div className="relative h-48 w-full">
-          <Image
-            src={event.imageUrl}
-            alt={event.name}
-            fill
-            className="object-cover"
-            data-ai-hint={event.imageHint}
-          />
-           <Badge className="absolute top-2 right-2" variant={event.mode === 'online' ? 'default' : 'secondary'}>
-              {event.mode === 'online' ? 'Online' : 'Offline'}
-          </Badge>
-        </div>
-        <CardHeader>
-          <div className="flex justify-between items-start">
-            <CardTitle className="font-headline text-xl mb-1">
-              {event.name}
-            </CardTitle>
-            <Badge variant="secondary">{event.department.name}</Badge>
+      <DialogTrigger asChild>
+        <Card
+          key={event.id}
+          className="flex flex-col overflow-hidden h-full hover:shadow-lg transition-shadow duration-300 cursor-pointer"
+          onClick={() => setSelectedEvent(event)}
+        >
+          <div className="relative h-48 w-full">
+            <Image
+              src={event.imageUrl}
+              alt={event.name}
+              fill
+              className="object-cover"
+              data-ai-hint={event.imageHint}
+            />
+            <Badge className="absolute top-2 right-2" variant={event.mode === 'online' ? 'default' : 'secondary'}>
+                {event.mode === 'online' ? 'Online' : 'Offline'}
+            </Badge>
           </div>
-          <CardDescription className="flex items-center gap-2 text-sm">
-            <Calendar className="h-4 w-4" />
-            {formattedDates[event.id] || 'Loading...'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex-grow">
-          <p className="text-sm text-muted-foreground">
-            {event.description}
-          </p>
-        </CardContent>
-        <CardFooter className="flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <Users className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">
-              {event.participants.length} Participants
-            </span>
-          </div>
-          <Button asChild variant="default" size="sm">
-            <Link href={`/events/${event.id}`}>View Details</Link>
-          </Button>
-        </CardFooter>
-      </Card>
+          <CardHeader>
+            <div className="flex justify-between items-start">
+              <CardTitle className="font-headline text-xl mb-1">
+                {event.name}
+              </CardTitle>
+              <Badge variant="secondary">{event.department.name}</Badge>
+            </div>
+            <CardDescription className="flex items-center gap-2 text-sm">
+              <Calendar className="h-4 w-4" />
+              {formattedDates[event.id]?.date} at {formattedDates[event.id]?.time}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex-grow">
+            <p className="text-sm text-muted-foreground line-clamp-2">
+              {event.description}
+            </p>
+          </CardContent>
+          <CardFooter className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">
+                {event.participants.length} Participants
+              </span>
+            </div>
+            <Button asChild variant="default" size="sm" onClick={(e) => e.stopPropagation()}>
+               <Link href={`/events/${event.id}`}>
+                {event.registrationFee === 0 ? 'Free' : `$${event.registrationFee}`}
+               </Link>
+            </Button>
+          </CardFooter>
+        </Card>
+      </DialogTrigger>
   );
 
   const ViewAllCard = () => (
@@ -109,7 +123,7 @@ export default function HomePage() {
 
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <Dialog>
       <main className="flex-1">
         <section className="relative h-[70vh] flex items-center justify-center text-center bg-gradient-to-r from-primary/80 to-accent/80 text-primary-foreground">
           <div className="container px-4 md:px-6 grid md:grid-cols-2 gap-8 items-center">
@@ -221,64 +235,70 @@ export default function HomePage() {
         </section>
 
         <section className="py-12 md:py-20 space-y-12">
-          <div className="container px-4 md:px-6">
+          <div className="container">
              <h2 className="text-3xl font-bold font-headline tracking-tight mb-8 text-center">
                 Upcoming Online Events
             </h2>
           </div>
-          <Carousel
-            opts={{
-                align: "start",
-            }}
-            className="w-full"
-            >
-            <CarouselContent>
-                {onlineEvents.slice(0, 5).map((event) => (
-                <CarouselItem key={event.id} className="md:basis-1/2 lg:basis-1/4">
-                    <div className="p-1 h-full">
-                    <EventCard event={event} />
-                    </div>
-                </CarouselItem>
-                ))}
-                <CarouselItem className="md:basis-1/2 lg:basis-1/4">
-                    <div className="p-1 h-full">
-                    <ViewAllCard />
-                    </div>
-                </CarouselItem>
-            </CarouselContent>
-          </Carousel>
+          <div className='w-full'>
+            <Carousel
+              opts={{
+                  align: "start",
+                  dragFree: true,
+              }}
+              className="w-full"
+              >
+              <CarouselContent>
+                  {onlineEvents.slice(0, 5).map((event) => (
+                  <CarouselItem key={event.id} className="md:basis-1/2 lg:basis-1/4">
+                      <div className="p-1 h-full">
+                      <EventCard event={event} />
+                      </div>
+                  </CarouselItem>
+                  ))}
+                  <CarouselItem className="md:basis-1/2 lg:basis-1/4">
+                      <div className="p-1 h-full">
+                      <ViewAllCard />
+                      </div>
+                  </CarouselItem>
+              </CarouselContent>
+            </Carousel>
+          </div>
           {onlineEvents.length === 0 && (
               <div className="text-center col-span-full py-12 container">
                   <p className="text-muted-foreground">No online events scheduled at the moment.</p>
               </div>
           )}
           
-           <div className="container px-4 md:px-6">
+           <div className="container">
              <h2 className="text-3xl font-bold font-headline tracking-tight mb-8 text-center">
                 Upcoming Offline Events
             </h2>
            </div>
-            <Carousel
-            opts={{
-                align: "start",
-            }}
-            className="w-full"
-            >
-            <CarouselContent>
-                {offlineEvents.slice(0,5).map((event) => (
-                <CarouselItem key={event.id} className="md:basis-1/2 lg:basis-1/4">
-                    <div className="p-1 h-full">
-                    <EventCard event={event} />
-                    </div>
-                </CarouselItem>
-                ))}
-                <CarouselItem className="md:basis-1/2 lg:basis-1/4">
-                    <div className="p-1 h-full">
-                    <ViewAllCard />
-                    </div>
-                </CarouselItem>
-            </CarouselContent>
-            </Carousel>
+            <div className='w-full'>
+              <Carousel
+              opts={{
+                  align: "start",
+                  dragFree: true,
+              }}
+              className="w-full"
+              >
+              <CarouselContent>
+                  {offlineEvents.slice(0,5).map((event) => (
+                  <CarouselItem key={event.id} className="md:basis-1/2 lg:basis-1/4">
+                      <div className="p-1 h-full">
+                      <EventCard event={event} />
+                      </div>
+                  </CarouselItem>
+                  ))}
+                  <CarouselItem className="md:basis-1/2 lg:basis-1/4">
+                      <div className="p-1 h-full">
+                      <ViewAllCard />
+                      </div>
+                  </CarouselItem>
+              </CarouselContent>
+              </Carousel>
+            </div>
             {offlineEvents.length === 0 && (
                 <div className="text-center col-span-full py-12 container">
                     <p className="text-muted-foreground">No offline events scheduled at the moment.</p>
@@ -330,6 +350,39 @@ export default function HomePage() {
           </div>
         </section>
       </main>
-    </div>
+      
+      {selectedEvent && (
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-headline text-2xl">{selectedEvent.name}</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4 text-sm">
+            <div className="flex items-center gap-2"><span className="font-semibold w-24">Date:</span> <span>{formattedDates[selectedEvent.id]?.date}</span></div>
+            <div className="flex items-center gap-2"><span className="font-semibold w-24">Time:</span> <span>{formattedDates[selectedEvent.id]?.time}</span></div>
+            <div className="flex items-center gap-2"><span className="font-semibold w-24">Venue:</span> <span>{selectedEvent.mode === 'online' ? 'Online' : 'EGS Pillay Engineering College'}</span></div>
+             <div className="flex items-start gap-2">
+                <span className="font-semibold w-24 shrink-0">Description:</span> 
+                <p className="text-muted-foreground">{selectedEvent.description}</p>
+            </div>
+            <div className="flex items-center gap-2"><span className="font-semibold w-24">Conducted By:</span> <span>{selectedEvent.department.name}</span></div>
+            <div className="flex items-center gap-2"><span className="font-semibold w-24">Price:</span> <span>{selectedEvent.registrationFee === 0 ? 'Free' : `$${selectedEvent.registrationFee}`}</span></div>
+          </div>
+           <div className="flex justify-between items-center pt-4 border-t">
+              <p className="text-xs text-muted-foreground">For technical support, email us at web@egspec.org</p>
+              <div className="flex gap-2">
+                <Button>
+                  <Ticket className="mr-2 h-4 w-4" />
+                  Register
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link href={`/events/${selectedEvent.id}`}>View Full Details</Link>
+                </Button>
+              </div>
+           </div>
+        </DialogContent>
+      )}
+    </Dialog>
   );
 }
+
+    
