@@ -38,11 +38,11 @@ import type { LoggedInUser } from "@/lib/types";
 
 const allMenuItems = [
   { href: "/", label: "Home", icon: Home },
-  { href: "/portal/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/portal/events", label: "Events", icon: Calendar },
-  { href: "/portal/registered-users", label: "Users", icon: Users },
-  { href: "/portal/departments", label: "Departments", icon: Building2, requiredRole: "superadmin" },
-  { href: "/portal/finance", label: "Finance", icon: Banknote, requiredRole: "superadmin" },
+  { href: "/u/s/portal/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/u/s/portal/events", label: "Events", icon: Calendar },
+  { href: "/u/s/portal/registered-users", label: "Users", icon: Users },
+  { href: "/u/s/portal/departments", label: "Departments", icon: Building2, requiredRole: "superadmin" },
+  { href: "/u/s/portal/finance", label: "Finance", icon: Banknote, requiredRole: "superadmin" },
 ];
 
 export function AdminNav() {
@@ -85,7 +85,7 @@ export function AdminNav() {
             <SidebarMenuItem key={item.href}>
               <SidebarMenuButton
                 asChild
-                isActive={pathname === item.href || (item.href !== "/portal/dashboard" && item.href !== "/" && pathname.startsWith(item.href))}
+                isActive={pathname === item.href || (item.href !== "/u/s/portal/dashboard" && item.href !== "/" && pathname.startsWith(item.href))}
                 tooltip={item.label}
               >
                 <Link href={item.href}>

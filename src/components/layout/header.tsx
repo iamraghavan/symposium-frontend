@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -94,7 +95,7 @@ export function Header() {
                         </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => router.push('/portal/dashboard')}>
+                    <DropdownMenuItem onClick={() => router.push('/u/s/portal/dashboard')}>
                       <Settings className="mr-2 h-4 w-4" />
                       <span>Dashboard</span>
                     </DropdownMenuItem>

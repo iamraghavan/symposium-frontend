@@ -37,7 +37,7 @@ export default function LoginPage() {
         title: "Login Successful",
         description: `Welcome, Super Admin ${user.name}!`,
       });
-      router.push("/portal/dashboard");
+      router.push("/u/s/portal/dashboard");
       return;
     }
 
@@ -52,7 +52,7 @@ export default function LoginPage() {
         title: "Login Successful",
         description: `Welcome, ${department.head.name}!`,
       });
-      router.push("/portal/dashboard");
+      router.push("/u/s/portal/dashboard");
     } else {
       toast({
         variant: "destructive",
