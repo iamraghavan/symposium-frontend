@@ -30,16 +30,13 @@ import { Separator } from "@/components/ui/separator";
 import { events, winners as allWinners } from "@/lib/data";
 import { parseISO } from "date-fns";
 import { format } from "date-fns-tz";
-import { notFound } from "next/navigation";
+import { notFound, useParams } from "next/navigation";
 import { Calendar, Users, Trophy, DollarSign, Edit } from "lucide-react";
 import React, { useEffect, useState } from "react";
 
-export default function EventDetailPage({
-  params,
-}: {
-  params: { eventId: string };
-}) {
-  const { eventId } = params;
+export default function EventDetailPage() {
+  const params = useParams();
+  const eventId = params.eventId as string;
   const [formattedDate, setFormattedDate] = useState("");
   const [formattedRegistrationDates, setFormattedRegistrationDates] = useState<
     Record<string, string>
