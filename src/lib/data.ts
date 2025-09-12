@@ -216,4 +216,9 @@ export const winners: Winner[] = [
   { id: "winner-3", eventId: "event-2", position: 1, user: users[6], prizeAmount: 750 },
 ];
 
-    
+export const initialDb = {
+    departments,
+    users,
+    events,
+    winners
+}

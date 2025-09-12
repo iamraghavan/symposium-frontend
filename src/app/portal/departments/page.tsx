@@ -50,13 +50,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { departments as initialDepartments } from "@/lib/data";
 import type { Department, LoggedInUser } from "@/lib/types";
+import { createDepartment, updateDepartment, deleteDepartment, getDepartments } from "./actions";
+import { useToast } from "@/hooks/use-toast";
+
 
 export default function AdminDepartmentsPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [user, setUser] = useState<LoggedInUser | null>(null);
-  const [departments, setDepartments] = useState<Department[]>(initialDepartments);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [isNewDepartmentDialogOpen, setIsNewDepartmentDialogOpen] = useState(false);
   const [editingDepartment, setEditingDepartment] = useState<Department | null>(null);
 
@@ -72,42 +75,76 @@ export default function AdminDepartmentsPage() {
     } else {
         router.push('/auth/login');
     }
+    
+    const fetchDepartments = async () => {
+        const fetchedDepartments = await getDepartments();
+        setDepartments(fetchedDepartments);
+    }
+    fetchDepartments();
   }, [router]);
 
-  const handleCreateDepartment = (event: React.FormEvent<HTMLFormElement>) => {
+  const refreshDepartments = async () => {
+    const fetchedDepartments = await getDepartments();
+    setDepartments(fetchedDepartments);
+  }
+
+  const handleCreateDepartment = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    const newDepartment: Department = {
-      id: `dept-${Date.now()}`,
-      name: formData.get("name") as string,
-      head: {
-        name: formData.get("headName") as string,
-        email: formData.get("headEmail") as string,
-      }
-    };
-    setDepartments([...departments, newDepartment]);
-    setIsNewDepartmentDialogOpen(false);
+    try {
+      await createDepartment(formData);
+      setIsNewDepartmentDialogOpen(false);
+      await refreshDepartments();
+       toast({
+        title: "Success",
+        description: "Department created successfully.",
+      });
+    } catch(error) {
+         toast({
+            variant: "destructive",
+            title: "Error",
+            description: (error as Error).message,
+        });
+    }
   };
   
-  const handleUpdateDepartment = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleUpdateDepartment = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!editingDepartment) return;
     
     const formData = new FormData(event.currentTarget);
-    const updatedDepartment: Department = {
-      ...editingDepartment,
-      name: formData.get("name") as string,
-      head: {
-        name: formData.get("headName") as string,
-        email: formData.get("headEmail") as string,
-      }
-    };
-    setDepartments(departments.map(d => d.id === updatedDepartment.id ? updatedDepartment : d));
-    setEditingDepartment(null);
+    try {
+        await updateDepartment(editingDepartment.id, formData);
+        setEditingDepartment(null);
+        await refreshDepartments();
+        toast({
+            title: "Success",
+            description: "Department updated successfully.",
+        });
+    } catch(error) {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: (error as Error).message,
+        });
+    }
   };
 
-  const handleDeleteDepartment = (departmentId: string) => {
-    setDepartments(departments.filter(d => d.id !== departmentId));
+  const handleDeleteDepartment = async (departmentId: string) => {
+    try {
+        await deleteDepartment(departmentId);
+        await refreshDepartments();
+         toast({
+            title: "Success",
+            description: "Department deleted successfully.",
+        });
+    } catch(error) {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: (error as Error).message,
+        });
+    }
   };
 
   if (user?.role !== 'superadmin') {
@@ -147,6 +184,12 @@ export default function AdminDepartmentsPage() {
                     Department Name
                   </Label>
                   <Input id="name" name="name" className="col-span-3" required />
+                </div>
+                 <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="id" className="text-right">
+                    Department ID
+                  </Label>
+                  <Input id="id" name="id" placeholder="e.g. cse, ece" className="col-span-3" required />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="headName" className="text-right">
