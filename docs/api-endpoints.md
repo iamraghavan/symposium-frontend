@@ -20,7 +20,7 @@ This document outlines the backend API endpoints required to support the Symposi
   - **Response**: `{ "token": "...", "user": { ... } }`
   
 - **`POST /api/register`**: Handles new user registration for event participants.
-  - **Request Body**: `{ "name": "...", "email": "...", "college": "..." }`
+  - **Request Body**: `{ "name": "...", "email": "...", "password": "...", "college": "..." }`
   - **Response**: `{ "user": { ... } }`
 
 ---
@@ -99,3 +99,4 @@ This document outlines the backend API endpoints required to support the Symposi
   - **Response**: `{ "revenue": ..., "prizes": ..., "netIncome": ... }`
 
 ---
+
