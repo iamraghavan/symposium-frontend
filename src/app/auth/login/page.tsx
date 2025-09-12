@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { departments } from "@/lib/data";
+import { GoogleIcon } from "@/components/ui/icons";
 
 const SUPERADMIN_EMAIL = "web@egspec.org";
 const SUPERADMIN_NAME = "Raghavan";
@@ -117,21 +118,7 @@ export default function LoginPage() {
         </div>
          <CardContent>
           <Button variant="outline" className="w-full" onClick={handleGoogleLogin}>
-            <svg
-                className="mr-2 h-4 w-4"
-                aria-hidden="true"
-                focusable="false"
-                data-prefix="fab"
-                data-icon="google"
-                role="img"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 488 512"
-              >
-                <path
-                  fill="currentColor"
-                  d="M488 261.8C488 403.3 381.5 512 244 512 111.8 512 0 400.2 0 261.8S111.8 11.6 244 11.6c60.3 0 115.2 22.1 158.1 58.5l-65.8 63.9C308.2 110.1 278.3 97.4 244 97.4c-83.8 0-152.3 68.5-152.3 152.9s68.5 152.9 152.3 152.9c98.2 0 130.3-71.1 133.5-108.7H244V261.8h244z"
-                ></path>
-            </svg>
+            <GoogleIcon className="mr-2 h-4 w-4" />
             Sign in with Google
           </Button>
         </CardContent>
