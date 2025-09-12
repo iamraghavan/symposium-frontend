@@ -78,7 +78,7 @@ export function Footer() {
         </div>
 
         <div className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-gray-700 text-sm">
-            <div className="flex flex-wrap gap-x-4 gap-y-2 items-center justify-center">
+            <div className="flex flex-wrap gap-x-4 gap-y-2 items-center justify-center text-center">
                  <p>&copy; {new Date().getFullYear()} Symposium Central</p>
                 <Link href="#" className="hover:text-white transition-colors">Terms of Service</Link>
                 <Link href="#" className="hover:text-white transition-colors">Privacy Policy</Link>

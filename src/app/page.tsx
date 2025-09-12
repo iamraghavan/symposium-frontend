@@ -23,7 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { events as allEvents } from '@/lib/data';
 import { format, parseISO } from 'date-fns';
 import { useEffect, useState } from 'react';
-import { Calendar, Users, Search, ArrowRight } from 'lucide-react';
+import { Calendar, Users, Search, ArrowRight, ArrowRightCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import type { Event } from '@/lib/types';
 
@@ -93,6 +93,19 @@ export default function HomePage() {
           </Button>
         </CardFooter>
       </Card>
+  );
+
+  const ViewAllCard = () => (
+     <Card className="flex flex-col h-full items-center justify-center bg-muted/50 hover:bg-muted transition-colors">
+      <CardContent className="flex flex-col items-center justify-center text-center p-6">
+        <ArrowRightCircle className="h-12 w-12 text-primary mb-4" />
+        <h3 className="text-xl font-bold font-headline mb-2">Explore More</h3>
+        <p className="text-muted-foreground mb-4">You've seen the highlights. Discover all the events we have to offer.</p>
+        <Button asChild>
+          <Link href="/events">View All Events</Link>
+        </Button>
+      </CardContent>
+    </Card>
   )
 
 
@@ -142,18 +155,22 @@ export default function HomePage() {
             <Carousel
               opts={{
                 align: "start",
-                loop: true,
               }}
               className="w-full"
             >
               <CarouselContent>
-                {onlineEvents.map((event) => (
+                {onlineEvents.slice(0, 5).map((event) => (
                   <CarouselItem key={event.id} className="md:basis-1/2 lg:basis-1/3">
                     <div className="p-1 h-full">
                        <EventCard event={event} />
                     </div>
                   </CarouselItem>
                 ))}
+                 <CarouselItem className="md:basis-1/2 lg:basis-1/3">
+                    <div className="p-1 h-full">
+                       <ViewAllCard />
+                    </div>
+                  </CarouselItem>
               </CarouselContent>
               <CarouselPrevious className="hidden sm:flex" />
               <CarouselNext className="hidden sm:flex" />
@@ -171,18 +188,22 @@ export default function HomePage() {
              <Carousel
               opts={{
                 align: "start",
-                loop: true,
               }}
               className="w-full"
             >
               <CarouselContent>
-                {offlineEvents.map((event) => (
+                {offlineEvents.slice(0,5).map((event) => (
                   <CarouselItem key={event.id} className="md:basis-1/2 lg:basis-1/3">
                      <div className="p-1 h-full">
                        <EventCard event={event} />
                     </div>
                   </CarouselItem>
                 ))}
+                <CarouselItem className="md:basis-1/2 lg:basis-1/3">
+                    <div className="p-1 h-full">
+                       <ViewAllCard />
+                    </div>
+                </CarouselItem>
               </CarouselContent>
               <CarouselPrevious className="hidden sm:flex"/>
               <CarouselNext className="hidden sm:flex"/>

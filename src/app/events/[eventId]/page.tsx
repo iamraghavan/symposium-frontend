@@ -23,16 +23,13 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
 import { events, winners as allWinners } from "@/lib/data";
-import { parseISO, format } from "date-fns";
+import { parseISO } from "date-fns";
+import { format } from 'date-fns-tz';
 import { notFound } from "next/navigation";
 import { Calendar, Users, Trophy, DollarSign, MapPin, Ticket } from "lucide-react";
 import React, { useEffect, useState } from "react";
 
-export default function EventDetailPage({
-  params,
-}: {
-  params: { eventId: string };
-}) {
+export default function EventDetailPage({ params }: { params: { eventId: string } }) {
   const { eventId } = params;
   const [formattedDate, setFormattedDate] = useState("");
   const event = events.find((e) => e.id === eventId);
@@ -40,7 +37,7 @@ export default function EventDetailPage({
   useEffect(() => {
     if (event) {
       setFormattedDate(
-        format(parseISO(event.date), "EEEE, MMMM d, yyyy 'at' h:mm a")
+        format(parseISO(event.date), "EEEE, MMMM d, yyyy 'at' h:mm a", { timeZone: 'UTC' })
       );
     }
   }, [event]);
