@@ -15,18 +15,18 @@ export function Footer() {
   return (
     <footer className="bg-gray-900 text-gray-300">
       <div className="container mx-auto px-6 py-12">
-        <div className="flex flex-wrap justify-between items-center pb-8 border-b border-gray-700">
+        <div className="flex flex-col md:flex-row flex-wrap justify-between items-center gap-6 pb-8 border-b border-gray-700 text-center md:text-left">
             <div className="flex items-center gap-2">
                 <AppWindow className="h-8 w-8 text-primary" />
                 <span className="font-headline text-2xl font-bold text-white">Symposium Central</span>
-                 <span className="font-headline text-2xl text-white">The people platform</span>
+                 <span className="font-headline text-2xl text-white hidden sm:inline">The people platform</span>
             </div>
             <Link href="#" className="text-lg font-semibold text-white hover:text-primary transition-colors flex items-center gap-2">
                 Create your own Meetup group. Get Started <ArrowRight className="h-5 w-5" />
             </Link>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 py-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 py-10">
             <div className="space-y-4">
                 <h3 className="font-bold text-white">Your Account</h3>
                 <ul className="space-y-2">
@@ -56,7 +56,7 @@ export function Footer() {
                     <li><Link href="#" className="hover:text-white transition-colors">Podcast</Link></li>
                 </ul>
             </div>
-            <div className="lg:col-span-2 lg:justify-self-end space-y-8">
+            <div className="sm:col-span-2 md:col-span-4 lg:col-span-2 lg:justify-self-end space-y-8">
                 <div className="bg-gray-800 p-4 rounded-lg">
                     <h3 className="font-bold text-white mb-4">Follow us</h3>
                     <div className="flex space-x-4">
@@ -78,7 +78,7 @@ export function Footer() {
         </div>
 
         <div className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-gray-700 text-sm">
-            <div className="flex flex-wrap gap-x-4 gap-y-2 items-center">
+            <div className="flex flex-wrap gap-x-4 gap-y-2 items-center justify-center">
                  <p>&copy; {new Date().getFullYear()} Symposium Central</p>
                 <Link href="#" className="hover:text-white transition-colors">Terms of Service</Link>
                 <Link href="#" className="hover:text-white transition-colors">Privacy Policy</Link>
@@ -95,5 +95,3 @@ export function Footer() {
     </footer>
   );
 }
-
-    
