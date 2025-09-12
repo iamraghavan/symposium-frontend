@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { GoogleIcon } from "@/components/ui/icons";
+import GoogleIcon from '@mui/icons-material/Google';
 
 export default function SignupPage() {
   
