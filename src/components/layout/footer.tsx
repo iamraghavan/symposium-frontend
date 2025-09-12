@@ -77,18 +77,13 @@ export function Footer() {
             </div>
         </div>
 
-        <div className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-gray-700 text-sm">
+        <div className="flex flex-col md:flex-row justify-center items-center pt-8 border-t border-gray-700 text-sm">
             <div className="flex flex-wrap gap-x-4 gap-y-2 items-center justify-center text-center">
                  <p>&copy; {new Date().getFullYear()} Symposium Central</p>
                 <Link href="#" className="hover:text-white transition-colors">Terms of Service</Link>
                 <Link href="#" className="hover:text-white transition-colors">Privacy Policy</Link>
                 <Link href="#" className="hover:text-white transition-colors">Cookie Policy</Link>
                 <Link href="#" className="hover:text-white transition-colors">Help</Link>
-            </div>
-            <div className="mt-4 md:mt-0">
-                <p className="flex items-center gap-1">
-                    Made with <span className="text-red-500">❤️</span> by Vibe Coder
-                </p>
             </div>
         </div>
       </div>
