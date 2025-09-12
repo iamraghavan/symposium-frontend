@@ -32,6 +32,13 @@ import { useEffect, useState } from 'react';
 import { Calendar, Users, ArrowRight, ArrowRightCircle, Lightbulb, Network, Code, Users2, Globe, FileText, Ticket } from 'lucide-react';
 import type { Event } from '@/lib/types';
 
+const GoogleCalendarIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor" {...props}>
+    <path d="M7 11h2v2H7v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/>
+  </svg>
+);
+
+
 export default function HomePage() {
   const [onlineEvents, setOnlineEvents] = useState<Event[]>([]);
   const [offlineEvents, setOfflineEvents] = useState<Event[]>([]);
@@ -141,13 +148,14 @@ export default function HomePage() {
                 <Calendar className="inline-block mr-2 h-5 w-5" />
                 September 15-20, 2024, at EGSPEC Campus
               </p>
-              <div className="mt-8 flex gap-4">
+              <div className="mt-8 flex items-center gap-6">
                 <Button size="lg">
                   Register Now
                 </Button>
-                 <Button size="lg" variant="outline" className="text-white border-white">
-                  Add to calendar
-                </Button>
+                <Link href="#" className="flex items-center gap-2 text-white hover:underline">
+                  <GoogleCalendarIcon className="h-6 w-6" />
+                  <span>Add to calendar</span>
+                </Link>
               </div>
             </div>
             <div className="hidden md:block">
