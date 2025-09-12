@@ -48,7 +48,7 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between">
+      <div className="flex h-16 w-full items-center justify-between px-3">
         <div className="flex items-center gap-4">
             <Link href="/" className="flex items-center gap-2 font-bold">
             <AppWindow className="h-6 w-6 text-primary" />
@@ -149,12 +149,16 @@ export function Header() {
                       <Button onClick={handleLogout}>Log out</Button>
                     ) : (
                       <>
-                        <Button variant="outline" asChild>
-                          <Link href="/auth/login">Log in</Link>
-                        </Button>
-                        <Button asChild>
-                          <Link href="/auth/signup">Sign up</Link>
-                        </Button>
+                        <SheetClose asChild>
+                            <Button variant="outline" asChild>
+                                <Link href="/auth/login">Log in</Link>
+                            </Button>
+                        </SheetClose>
+                         <SheetClose asChild>
+                            <Button asChild>
+                                <Link href="/auth/signup">Sign up</Link>
+                            </Button>
+                        </SheetClose>
                       </>
                     )}
                   </div>
