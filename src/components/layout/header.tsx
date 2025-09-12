@@ -47,18 +47,19 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center">
-        <div className="mr-auto flex items-center">
-          <Link href="/" className="flex items-center gap-2 font-bold mr-6">
+      <div className="container flex h-16 items-center justify-between">
+        <div className="flex items-center">
+          <Link href="/" className="flex items-center gap-2 font-bold">
             <AppWindow className="h-6 w-6 text-primary" />
             <span className="font-headline text-lg">Symposium Central</span>
           </Link>
-          <nav className="hidden md:flex items-center gap-6 text-sm">
-             <Link href="/events" className="text-muted-foreground transition-colors hover:text-foreground">Explore Events</Link>
-             <Link href="/#about-event" className="text-muted-foreground transition-colors hover:text-foreground">About</Link>
-             <Link href="/code-of-conduct" className="text-muted-foreground transition-colors hover:text-foreground">Code of Conduct</Link>
-          </nav>
         </div>
+
+        <nav className="hidden md:flex items-center justify-center gap-6 text-sm">
+           <Link href="/events" className="text-muted-foreground transition-colors hover:text-foreground">Explore Events</Link>
+           <Link href="/#about-event" className="text-muted-foreground transition-colors hover:text-foreground">About</Link>
+           <Link href="/code-of-conduct" className="text-muted-foreground transition-colors hover:text-foreground">Code of Conduct</Link>
+        </nav>
 
         <div className="flex items-center justify-end gap-2 md:gap-4">
            <div className="relative w-full max-w-sm hidden sm:block">
@@ -143,12 +144,18 @@ export function Header() {
                   </SheetClose>
                 </nav>
                  <div className="flex flex-col gap-2 pt-4 border-t">
-                    <Button variant="outline" asChild>
-                      <Link href="/auth/login">Log in</Link>
-                    </Button>
-                    <Button asChild>
-                      <Link href="/auth/signup">Sign up</Link>
-                    </Button>
+                    {isClient && user ? (
+                      <Button onClick={handleLogout}>Log out</Button>
+                    ) : (
+                      <>
+                        <Button variant="outline" asChild>
+                          <Link href="/auth/login">Log in</Link>
+                        </Button>
+                        <Button asChild>
+                          <Link href="/auth/signup">Sign up</Link>
+                        </Button>
+                      </>
+                    )}
                   </div>
               </div>
             </SheetContent>
