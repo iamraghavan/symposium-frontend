@@ -153,7 +153,7 @@ export default function HomePage() {
           <div className="container mx-auto px-4">
              <div className="grid md:grid-cols-2 gap-12 items-center">
                 <div>
-                    <Image src="https://images.unsplash.com/photo-1562774053-6257c34e07DF?q=80&w=1965&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" 
+                    <Image src="https://egspec.blob.core.windows.net/egspec-assets/engineering_college.webp" 
                            alt="EGS Pillay Engineering College"
                            width={600}
                            height={400}
@@ -337,5 +337,3 @@ export default function HomePage() {
   );
 }
 
-
-    
