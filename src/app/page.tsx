@@ -233,13 +233,13 @@ export default function HomePage() {
             >
               <CarouselContent>
                 {onlineEvents.slice(0, 5).map((event) => (
-                  <CarouselItem key={event.id} className="md:basis-1/2 lg:basis-1/3">
+                  <CarouselItem key={event.id} className="md:basis-1/2 lg:basis-1/4">
                     <div className="p-1 h-full">
                        <EventCard event={event} />
                     </div>
                   </CarouselItem>
                 ))}
-                 <CarouselItem className="md:basis-1/2 lg:basis-1/3">
+                 <CarouselItem className="md:basis-1/2 lg:basis-1/4">
                     <div className="p-1 h-full">
                        <ViewAllCard />
                     </div>
@@ -266,13 +266,13 @@ export default function HomePage() {
             >
               <CarouselContent>
                 {offlineEvents.slice(0,5).map((event) => (
-                  <CarouselItem key={event.id} className="md:basis-1/2 lg:basis-1/3">
+                  <CarouselItem key={event.id} className="md:basis-1/2 lg:basis-1/4">
                      <div className="p-1 h-full">
                        <EventCard event={event} />
                     </div>
                   </CarouselItem>
                 ))}
-                <CarouselItem className="md:basis-1/2 lg:basis-1/3">
+                <CarouselItem className="md:basis-1/2 lg:basis-1/4">
                     <div className="p-1 h-full">
                        <ViewAllCard />
                     </div>
@@ -337,3 +337,5 @@ export default function HomePage() {
   );
 }
 
+
+    
