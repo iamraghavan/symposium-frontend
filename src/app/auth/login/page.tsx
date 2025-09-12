@@ -72,7 +72,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm">
         <form onSubmit={handleLogin}>
           <CardHeader>
-            <CardTitle className="text-2xl font-headline">Admin Login</CardTitle>
+            <CardTitle className="text-2xl font-headline">Login</CardTitle>
             <CardDescription>
               Enter your credentials to access the admin dashboard.
             </CardDescription>
