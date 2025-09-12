@@ -23,8 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { events as allEvents } from '@/lib/data';
 import { format, parseISO } from 'date-fns';
 import { useEffect, useState } from 'react';
-import { Calendar, Users, Search, ArrowRight, ArrowRightCircle, Lightbulb, Network, Code, Users2, Globe, FileText } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { Calendar, Users, ArrowRight, ArrowRightCircle, Lightbulb, Network, Code, Users2, Globe, FileText } from 'lucide-react';
 import type { Event } from '@/lib/types';
 
 export default function HomePage() {
@@ -337,5 +336,6 @@ export default function HomePage() {
     </div>
   );
 }
+
 
     
