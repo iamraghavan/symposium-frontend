@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { AppWindow, Menu, Search, Settings, LifeBuoy, LogOut } from "lucide-react";
+import { AppWindow, Menu, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -23,6 +23,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import React, { useEffect, useState } from "react";
 import type { LoggedInUser } from "@/lib/types";
 import { useRouter } from "next/navigation";
+import { LifeBuoy, LogOut, Settings } from "lucide-react";
 
 
 export function Header() {
@@ -48,12 +49,14 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 font-bold">
-          <AppWindow className="h-6 w-6 text-primary" />
-          <span className="font-headline text-lg hidden sm:inline-block">Symposium Central</span>
-        </Link>
+        <div className="flex items-center gap-4">
+            <Link href="/" className="flex items-center gap-2 font-bold">
+            <AppWindow className="h-6 w-6 text-primary" />
+            <span className="font-headline text-lg hidden sm:inline-block">Symposium Central</span>
+            </Link>
+        </div>
 
-        <nav className="hidden md:flex items-center justify-center gap-6 text-sm">
+        <nav className="hidden md:flex items-center gap-6 text-sm">
            <Link href="/events" className="text-muted-foreground transition-colors hover:text-foreground">Explore Events</Link>
            <Link href="/#about-event" className="text-muted-foreground transition-colors hover:text-foreground">About</Link>
            <Link href="/code-of-conduct" className="text-muted-foreground transition-colors hover:text-foreground">Code of Conduct</Link>
