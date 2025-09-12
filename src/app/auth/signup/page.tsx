@@ -14,8 +14,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import GoogleIcon from '@mui/icons-material/Google';
+import { useState } from 'react';
+import { Combobox } from '@/components/ui/combobox';
+import collegeData from '@/lib/colleges.json';
+
+const colleges = collegeData.colleges.map(c => ({
+    value: c.college.toLowerCase(),
+    label: c.college,
+}));
 
 export default function SignupPage() {
+  const [collegeValue, setCollegeValue] = useState("");
   
   const handleGoogleSignup = () => {
     // Placeholder for Google Sign-up logic
@@ -51,7 +60,14 @@ export default function SignupPage() {
           </div>
           <div className="grid gap-2">
             <Label htmlFor="college">College</Label>
-            <Input id="college" placeholder="Your College Name" required />
+            <Combobox 
+                items={colleges}
+                value={collegeValue}
+                onChange={setCollegeValue}
+                placeholder="Select college..."
+                searchPlaceholder="Search colleges..."
+                noResultsMessage="No college found."
+            />
           </div>
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
@@ -81,3 +97,4 @@ export default function SignupPage() {
     </div>
   );
 }
+

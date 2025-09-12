@@ -1,0 +1,32 @@
+{
+    "colleges": [
+        {
+            "university": "Anna University, Chennai (Id: U-0439)",
+            "college": "Edayathangudy G.S.Pillay Engineering College (Id: C-24989)",
+            "college_type": "Affiliated College",
+            "state": "Tamil Nadu",
+            "district": "Nagapattinam"
+        },
+        {
+            "university": "Anna University, Chennai (Id: U-0439)",
+            "college": "A.V.C. College of Engineering (Id: C-24979)",
+            "college_type": "Affiliated College",
+            "state": "Tamil Nadu",
+            "district": "Nagapattinam"
+        },
+        {
+            "university": "Anna University, Chennai (Id: U-0439)",
+            "college": "Anjalai Ammal Mahalingam Engineering College (Id: C-25008)",
+            "college_type": "Affiliated College",
+            "state": "Tamil Nadu",
+            "district": "Tiruvarur"
+        },
+        {
+            "university": "Visvesvaraya Technological University, Belgaum (Id: U-0240)",
+            "college": "Indian Institute of Science (Id: C-41146)",
+            "college_type": "Deemed University(Private)",
+            "state": "Karnataka",
+            "district": "Bangalore"
+        }
+    ]
+}
