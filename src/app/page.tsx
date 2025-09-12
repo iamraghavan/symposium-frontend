@@ -179,7 +179,7 @@ export default function HomePage() {
               </div>
               <p className="mt-4 text-lg md:text-xl text-gray-200">
                 <Calendar className="inline-block mr-2 h-5 w-5" />
-                September 15-20, 2024, at EGSPEC Campus
+                expected at Oct 10
               </p>
               <div className="mt-8 flex items-center gap-6">
                 <Button size="lg">
@@ -437,3 +437,5 @@ export default function HomePage() {
     </Dialog>
   );
 }
+
+    
