@@ -387,7 +387,7 @@ export default function HomePage() {
             data-ai-hint="conference crowd"
           />
            <div className="absolute inset-0 bg-primary/80 -z-10" />
-          <div className="container px-4 md:px-6 text-center">
+          <div className="container px-4 md:px-6 text-center mx-auto">
               <Badge variant="secondary">Don't Miss Out</Badge>
               <h2 className="text-3xl font-bold font-headline md:text-4xl text-white mt-4">
                 Register for the Symposium
@@ -437,5 +437,3 @@ export default function HomePage() {
     </Dialog>
   );
 }
-
-    
