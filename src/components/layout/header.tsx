@@ -31,7 +31,7 @@ export function Header() {
               <Link href="/events">Explore Events</Link>
            </Button>
             <Button variant="ghost" asChild>
-              <Link href="/about">About</Link>
+              <Link href="/#about-event">About</Link>
            </Button>
             <Button variant="ghost" asChild>
               <Link href="/code-of-conduct">Code of Conduct</Link>

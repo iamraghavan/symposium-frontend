@@ -163,7 +163,7 @@ export default function HomePage() {
           </div>
         </section>
         
-        <section className="py-12 md:py-20 bg-background">
+        <section id="about-event" className="py-12 md:py-20 bg-background">
           <div className="container mx-auto px-4">
              <div className="grid md:grid-cols-2 gap-12 items-center">
                 <div>
@@ -235,7 +235,7 @@ export default function HomePage() {
         </section>
 
         <section className="py-12 md:py-20 space-y-12">
-          <div className="container">
+          <div className="container px-4 md:px-6">
              <h2 className="text-3xl font-bold font-headline tracking-tight mb-8 text-center">
                 Upcoming Online Events
             </h2>
@@ -270,7 +270,7 @@ export default function HomePage() {
               </div>
           )}
           
-           <div className="container">
+           <div className="container px-4 md:px-6">
              <h2 className="text-3xl font-bold font-headline tracking-tight mb-8 text-center">
                 Upcoming Offline Events
             </h2>
@@ -384,5 +384,3 @@ export default function HomePage() {
     </Dialog>
   );
 }
-
-    
