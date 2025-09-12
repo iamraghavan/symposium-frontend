@@ -225,29 +225,29 @@ export default function HomePage() {
              <h2 className="text-3xl font-bold font-headline tracking-tight mb-8 text-center">
                 Upcoming Online Events
             </h2>
-            <Carousel
-              opts={{
-                align: "start",
-              }}
-              className="w-full"
-            >
-              <CarouselContent>
-                {onlineEvents.slice(0, 5).map((event) => (
-                  <CarouselItem key={event.id} className="md:basis-1/2 lg:basis-1/4">
-                    <div className="p-1 h-full">
-                       <EventCard event={event} />
-                    </div>
-                  </CarouselItem>
-                ))}
-                 <CarouselItem className="md:basis-1/2 lg:basis-1/4">
-                    <div className="p-1 h-full">
-                       <ViewAllCard />
-                    </div>
-                  </CarouselItem>
-              </CarouselContent>
-              <CarouselPrevious className="hidden sm:flex" />
-              <CarouselNext className="hidden sm:flex" />
-            </Carousel>
+            <div className="flex justify-center">
+                <Carousel
+                opts={{
+                    align: "start",
+                }}
+                className="w-full max-w-6xl"
+                >
+                <CarouselContent>
+                    {onlineEvents.slice(0, 5).map((event) => (
+                    <CarouselItem key={event.id} className="md:basis-1/2 lg:basis-1/4">
+                        <div className="p-1 h-full">
+                        <EventCard event={event} />
+                        </div>
+                    </CarouselItem>
+                    ))}
+                    <CarouselItem className="md:basis-1/2 lg:basis-1/4">
+                        <div className="p-1 h-full">
+                        <ViewAllCard />
+                        </div>
+                    </CarouselItem>
+                </CarouselContent>
+                </Carousel>
+            </div>
              {onlineEvents.length === 0 && (
                 <div className="text-center col-span-full py-12">
                     <p className="text-muted-foreground">No online events scheduled at the moment.</p>
@@ -258,29 +258,29 @@ export default function HomePage() {
              <h2 className="text-3xl font-bold font-headline tracking-tight mb-8 text-center">
                 Upcoming Offline Events
             </h2>
-             <Carousel
-              opts={{
-                align: "start",
-              }}
-              className="w-full"
-            >
-              <CarouselContent>
-                {offlineEvents.slice(0,5).map((event) => (
-                  <CarouselItem key={event.id} className="md:basis-1/2 lg:basis-1/4">
-                     <div className="p-1 h-full">
-                       <EventCard event={event} />
-                    </div>
-                  </CarouselItem>
-                ))}
-                <CarouselItem className="md:basis-1/2 lg:basis-1/4">
-                    <div className="p-1 h-full">
-                       <ViewAllCard />
-                    </div>
-                </CarouselItem>
-              </CarouselContent>
-              <CarouselPrevious className="hidden sm:flex"/>
-              <CarouselNext className="hidden sm:flex"/>
-            </Carousel>
+             <div className="flex justify-center">
+                <Carousel
+                opts={{
+                    align: "start",
+                }}
+                className="w-full max-w-6xl"
+                >
+                <CarouselContent>
+                    {offlineEvents.slice(0,5).map((event) => (
+                    <CarouselItem key={event.id} className="md:basis-1/2 lg:basis-1/4">
+                        <div className="p-1 h-full">
+                        <EventCard event={event} />
+                        </div>
+                    </CarouselItem>
+                    ))}
+                    <CarouselItem className="md:basis-1/2 lg:basis-1/4">
+                        <div className="p-1 h-full">
+                        <ViewAllCard />
+                        </div>
+                    </CarouselItem>
+                </CarouselContent>
+                </Carousel>
+            </div>
             {offlineEvents.length === 0 && (
                 <div className="text-center col-span-full py-12">
                     <p className="text-muted-foreground">No offline events scheduled at the moment.</p>
@@ -336,6 +336,3 @@ export default function HomePage() {
     </div>
   );
 }
-
-
-    
