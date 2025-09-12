@@ -22,7 +22,7 @@ export function Footer() {
                  <span className="font-headline text-2xl text-white hidden sm:inline">The people platform</span>
             </div>
             <Link href="#" className="text-lg font-semibold text-white hover:text-primary transition-colors flex items-center gap-2">
-                Create your own Meetup group. Get Started <ArrowRight className="h-5 w-5" />
+                Register to Achive more <ArrowRight className="h-5 w-5" />
             </Link>
         </div>
 
