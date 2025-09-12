@@ -161,6 +161,7 @@ export default function HomePage() {
                 />
             </div>
           </div>
+          
         </section>
         
         <section id="about-event" className="py-12 md:py-20 bg-background">
