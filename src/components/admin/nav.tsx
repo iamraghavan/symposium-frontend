@@ -21,6 +21,7 @@ import {
   LogOut,
   Settings,
   AppWindow,
+  Home,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -35,6 +36,7 @@ import { Button } from "../ui/button";
 import type { LoggedInUser } from "@/lib/types";
 
 const allMenuItems = [
+  { href: "/", label: "Home", icon: Home },
   { href: "/portal/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/portal/events", label: "Events", icon: Calendar },
   { href: "/portal/departments", label: "Departments", icon: Building2, requiredRole: "superadmin" },
@@ -81,7 +83,7 @@ export function AdminNav() {
             <SidebarMenuItem key={item.href}>
               <SidebarMenuButton
                 asChild
-                isActive={pathname === item.href || (item.href !== "/portal/dashboard" && pathname.startsWith(item.href))}
+                isActive={pathname === item.href || (item.href !== "/portal/dashboard" && item.href !== "/" && pathname.startsWith(item.href))}
                 tooltip={item.label}
               >
                 <Link href={item.href}>
@@ -142,5 +144,3 @@ export function AdminNav() {
     </>
   );
 }
-
-    
