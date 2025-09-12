@@ -120,7 +120,7 @@ export function Header() {
           )}
            <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" className="md:hidden">
+              <Button variant="ghost" size="icon" className="md:hidden">
                 <Menu className="h-6 w-6" />
                 <span className="sr-only">Toggle Navigation</span>
               </Button>
@@ -142,7 +142,7 @@ export function Header() {
                     <Link href="/code-of-conduct" className="text-muted-foreground transition-colors hover:text-foreground">Code of Conduct</Link>
                   </SheetClose>
                 </nav>
-                 <div className="flex flex-col gap-2">
+                 <div className="flex flex-col gap-2 pt-4 border-t">
                     <Button variant="outline" asChild>
                       <Link href="/auth/login">Log in</Link>
                     </Button>
