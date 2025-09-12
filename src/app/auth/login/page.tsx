@@ -20,17 +20,27 @@ import GoogleIcon from '@mui/icons-material/Google';
 
 const SUPERADMIN_EMAIL = "web@egspec.org";
 const SUPERADMIN_NAME = "Raghavan";
+const DEFAULT_PASSWORD = "password123"; // For demo purposes
 
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (name.toLowerCase() === SUPERADMIN_NAME.toLowerCase() && email.toLowerCase() === SUPERADMIN_EMAIL.toLowerCase()) {
+    if (password !== DEFAULT_PASSWORD) {
+        toast({
+            variant: "destructive",
+            title: "Login Failed",
+            description: "Invalid credentials. Please try again.",
+        });
+        return;
+    }
+
+    if (email.toLowerCase() === SUPERADMIN_EMAIL.toLowerCase()) {
       const user = { name: SUPERADMIN_NAME, email: SUPERADMIN_EMAIL, role: 'superadmin' };
       localStorage.setItem('loggedInUser', JSON.stringify(user));
       toast({
@@ -42,7 +52,7 @@ export default function LoginPage() {
     }
 
     const department = departments.find(
-      (dept) => dept.head?.name.toLowerCase() === name.toLowerCase() && dept.head?.email.toLowerCase() === email.toLowerCase()
+      (dept) => dept.head?.email.toLowerCase() === email.toLowerCase()
     );
 
     if (department && department.head) {
@@ -80,25 +90,24 @@ export default function LoginPage() {
           </CardHeader>
           <CardContent className="grid gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="name">Username</Label>
-              <Input
-                id="name"
-                type="text"
-                placeholder="Username"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="Mail ID"
+                placeholder="mail@example.com"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
               />
             </div>
           </CardContent>

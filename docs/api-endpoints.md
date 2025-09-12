@@ -6,7 +6,7 @@ This document outlines the backend API endpoints required to support the Symposi
 ## Authentication Endpoints
 
 - **`POST /api/auth/login`**: Authenticates a user (superadmin or department admin) and returns a session token (e.g., JWT).
-  - **Request Body**: `{ "email": "user@example.com", "name": "UserName" }`
+  - **Request Body**: `{ "email": "user@example.com", "password": "..." }`
   - **Response**: `{ "token": "...", "user": { ... } }`
 
 - **`POST /api/auth/logout`**: Invalidates the user's session token.
