@@ -31,6 +31,7 @@ import { format, parseISO } from 'date-fns';
 import { useEffect, useState } from 'react';
 import { Calendar, Users, ArrowRight, ArrowRightCircle, Lightbulb, Network, Code, Users2, Globe, FileText, Ticket } from 'lucide-react';
 import type { Event } from '@/lib/types';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const GoogleCalendarIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor" {...props}>
@@ -61,6 +62,38 @@ export default function HomePage() {
     setOfflineEvents(allEvents.filter(event => event.mode === 'offline'));
 
   }, []);
+
+  const speakers = [
+    {
+      name: 'Dr. Evelyn Reed',
+      title: 'AI Researcher',
+      company: 'Synthara Corp',
+      avatarUrl: 'https://picsum.photos/seed/speaker1/200/200',
+      imageHint: 'woman portrait',
+    },
+    {
+      name: 'Marcus Chen',
+      title: 'Cloud Architect',
+      company: 'NexusCloud',
+      avatarUrl: 'https://picsum.photos/seed/speaker2/200/200',
+      imageHint: 'man portrait',
+    },
+    {
+      name: 'Priya Sharma',
+      title: 'Cybersecurity Expert',
+      company: 'SecureNet',
+      avatarUrl: 'https://picsum.photos/seed/speaker3/200/200',
+      imageHint: 'woman professional',
+      
+    },
+    {
+      name: 'Ben Carter',
+      title: 'Head of Product',
+      company: 'InnovateX',
+      avatarUrl: 'https://picsum.photos/seed/speaker4/200/200',
+      imageHint: 'man professional',
+    },
+  ];
 
   const EventCard = ({ event }: { event: Event }) => (
       <DialogTrigger asChild>
@@ -320,15 +353,25 @@ export default function HomePage() {
           <div className="container mx-auto px-4 text-center">
              <h2 className="text-3xl font-bold font-headline">Our Speakers</h2>
              <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">Meet the brilliant minds who will be sharing their insights at our symposium.</p>
-              <div className="mt-8 text-center bg-background p-8 rounded-lg border border-dashed">
-                <p className="text-muted-foreground">Speakers profile will be updated within 2 days. Thank you!</p>
-             </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 mt-10">
+                {speakers.map((speaker) => (
+                  <div key={speaker.name} className="flex flex-col items-center text-center">
+                    <Avatar className="h-32 w-32 mb-4 border-4 border-background shadow-lg">
+                      <AvatarImage src={speaker.avatarUrl} alt={speaker.name} data-ai-hint={speaker.imageHint} />
+                      <AvatarFallback>{speaker.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <h3 className="font-bold font-headline text-lg">{speaker.name}</h3>
+                    <p className="text-primary">{speaker.title}</p>
+                    <p className="text-muted-foreground text-sm">{speaker.company}</p>
+                  </div>
+                ))}
+              </div>
           </div>
         </section>
         
         <section className="py-12 md:py-20">
           <div className="container mx-auto px-4 text-center">
-             <h2 className="text-3xl font-bold font-headline">Event & Venue Partner</h2>
+             <h2 className="text-3xl font-bold font-headline">Event &amp; Venue Partner</h2>
               <div className="mt-8 text-center">
                 <Image src="/placeholder.svg" alt="Partner logo" width={150} height={50} className="mx-auto" data-ai-hint="logo"/>
              </div>
@@ -394,3 +437,5 @@ export default function HomePage() {
     </Dialog>
   );
 }
+
+    
