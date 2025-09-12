@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { AppWindow, Search, Settings, LifeBuoy, LogOut } from "lucide-react";
+import { AppWindow, Menu, Search, Settings, LifeBuoy, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,6 +13,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetClose,
+} from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import React, { useEffect, useState } from "react";
 import type { LoggedInUser } from "@/lib/types";
@@ -54,8 +60,8 @@ export function Header() {
           </nav>
         </div>
 
-        <div className="flex items-center justify-end gap-4">
-           <div className="relative w-full max-w-sm">
+        <div className="flex items-center justify-end gap-2 md:gap-4">
+           <div className="relative w-full max-w-sm hidden sm:block">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
@@ -103,7 +109,7 @@ export function Header() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <div className="flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-2">
               <Button variant="outline" asChild>
                 <Link href="/auth/login">Log in</Link>
               </Button>
@@ -112,6 +118,41 @@ export function Header() {
               </Button>
             </div>
           )}
+           <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" className="md:hidden">
+                <Menu className="h-6 w-6" />
+                <span className="sr-only">Toggle Navigation</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left">
+              <div className="flex flex-col gap-6 p-6">
+                <Link href="/" className="flex items-center gap-2 font-bold">
+                    <AppWindow className="h-6 w-6 text-primary" />
+                    <span className="font-headline text-lg">Symposium Central</span>
+                </Link>
+                <nav className="flex flex-col gap-4">
+                  <SheetClose asChild>
+                    <Link href="/events" className="text-muted-foreground transition-colors hover:text-foreground">Explore Events</Link>
+                  </SheetClose>
+                  <SheetClose asChild>
+                    <Link href="/#about-event" className="text-muted-foreground transition-colors hover:text-foreground">About</Link>
+                  </SheetClose>
+                  <SheetClose asChild>
+                    <Link href="/code-of-conduct" className="text-muted-foreground transition-colors hover:text-foreground">Code of Conduct</Link>
+                  </SheetClose>
+                </nav>
+                 <div className="flex flex-col gap-2">
+                    <Button variant="outline" asChild>
+                      <Link href="/auth/login">Log in</Link>
+                    </Button>
+                    <Button asChild>
+                      <Link href="/auth/signup">Sign up</Link>
+                    </Button>
+                  </div>
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
     </header>
