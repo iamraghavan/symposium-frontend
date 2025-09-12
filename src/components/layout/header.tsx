@@ -27,13 +27,13 @@ export function Header() {
         </div>
         
         <nav className="hidden md:flex flex-1 items-center gap-4 text-sm">
-           <Button variant="ghost" asChild>
+           <Button variant="link" asChild>
               <Link href="/events">Explore Events</Link>
            </Button>
-            <Button variant="ghost" asChild>
+            <Button variant="link" asChild>
               <Link href="/#about-event">About</Link>
            </Button>
-            <Button variant="ghost" asChild>
+            <Button variant="link" asChild>
               <Link href="/code-of-conduct">Code of Conduct</Link>
            </Button>
         </nav>
