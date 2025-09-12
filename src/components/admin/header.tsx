@@ -20,10 +20,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LifeBuoy, LogOut, Settings } from "lucide-react";
 
 const pathToTitle: { [key: string]: string } = {
-  "/admin": "Dashboard",
-  "/admin/events": "Events",
-  "/admin/departments": "Departments",
-  "/admin/finance": "Finance",
+  "/portal/dashboard": "Dashboard",
+  "/portal/events": "Events",
+  "/portal/departments": "Departments",
+  "/portal/finance": "Finance",
+  "/portal/registered-users": "Registered Users",
 };
 
 export function AdminHeader() {

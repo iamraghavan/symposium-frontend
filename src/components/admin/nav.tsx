@@ -22,6 +22,7 @@ import {
   Settings,
   AppWindow,
   Home,
+  Users
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -39,6 +40,7 @@ const allMenuItems = [
   { href: "/", label: "Home", icon: Home },
   { href: "/portal/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/portal/events", label: "Events", icon: Calendar },
+  { href: "/portal/registered-users", label: "Users", icon: Users },
   { href: "/portal/departments", label: "Departments", icon: Building2, requiredRole: "superadmin" },
   { href: "/portal/finance", label: "Finance", icon: Banknote, requiredRole: "superadmin" },
 ];
