@@ -1,3 +1,4 @@
+
 export type Department = {
   id: string;
   name: string;
@@ -26,6 +27,8 @@ export type Event = {
   imageUrl: string;
   imageHint: string;
   registrationFee: number;
+  mode: 'online' | 'offline';
+  category: 'technical' | 'non-technical';
 };
 
 export type Winner = {

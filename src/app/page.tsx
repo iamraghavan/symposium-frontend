@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from 'next/image';
@@ -12,20 +13,27 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { events } from '@/lib/data';
+import { departments, events as allEvents } from '@/lib/data';
 import { format, parseISO } from 'date-fns';
 import { useEffect, useState } from 'react';
 import { Calendar, Users, Search, ArrowRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import type { Event } from '@/lib/types';
 
 export default function HomePage() {
-  const [formattedDates, setFormattedDates] = useState<Record<string, string>>(
-    {}
-  );
+  const [events, setEvents] = useState<Event[]>(allEvents);
+  const [filteredEvents, setFilteredEvents] = useState<Event[]>(allEvents);
+  const [formattedDates, setFormattedDates] = useState<Record<string, string>>({});
+  const [modeFilter, setModeFilter] = useState('all');
+  const [departmentFilter, setDepartmentFilter] = useState('all');
+  const [priceFilter, setPriceFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+
 
   useEffect(() => {
     const newFormattedDates: Record<string, string> = {};
-    events.forEach((event) => {
+    allEvents.forEach((event) => {
       newFormattedDates[event.id] = format(
         parseISO(event.date),
         "MMMM d, yyyy 'at' h:mm a"
@@ -33,6 +41,26 @@ export default function HomePage() {
     });
     setFormattedDates(newFormattedDates);
   }, []);
+
+  useEffect(() => {
+    let tempEvents = [...allEvents];
+
+    if (modeFilter !== 'all') {
+      tempEvents = tempEvents.filter(event => event.mode === modeFilter);
+    }
+    if (departmentFilter !== 'all') {
+      tempEvents = tempEvents.filter(event => event.department.id === departmentFilter);
+    }
+    if (priceFilter === 'free') {
+      tempEvents = tempEvents.filter(event => event.registrationFee === 0);
+    } else if (priceFilter === 'paid') {
+      tempEvents = tempEvents.filter(event => event.registrationFee > 0);
+    }
+    if (categoryFilter !== 'all') {
+      tempEvents = tempEvents.filter(event => event.category === categoryFilter);
+    }
+    setFilteredEvents(tempEvents);
+  }, [modeFilter, departmentFilter, priceFilter, categoryFilter]);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -74,11 +102,56 @@ export default function HomePage() {
 
         <section className="py-12 md:py-20">
           <div className="container px-4 md:px-6">
-             <h2 className="text-3xl font-bold font-headline tracking-tight mb-8">
-              Upcoming Events
-            </h2>
+             <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-8 gap-4">
+                <h2 className="text-3xl font-bold font-headline tracking-tight">
+                    Upcoming Events
+                </h2>
+                <div className="grid grid-cols-2 sm:flex gap-2">
+                    <Select value={modeFilter} onValueChange={setModeFilter}>
+                        <SelectTrigger className="w-full sm:w-[120px]">
+                            <SelectValue placeholder="Mode" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Modes</SelectItem>
+                            <SelectItem value="online">Online</SelectItem>
+                            <SelectItem value="offline">Offline</SelectItem>
+                        </SelectContent>
+                    </Select>
+                     <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+                        <SelectTrigger className="w-full sm:w-[150px]">
+                            <SelectValue placeholder="Department" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Departments</SelectItem>
+                            {departments.map(dept => (
+                                <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                     <Select value={priceFilter} onValueChange={setPriceFilter}>
+                        <SelectTrigger className="w-full sm:w-[120px]">
+                            <SelectValue placeholder="Price" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Prices</SelectItem>
+                            <SelectItem value="free">Free</SelectItem>
+                            <SelectItem value="paid">Paid</SelectItem>
+                        </SelectContent>
+                    </Select>
+                     <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                        <SelectTrigger className="w-full sm:w-[140px]">
+                            <SelectValue placeholder="Category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Categories</SelectItem>
+                            <SelectItem value="technical">Technical</SelectItem>
+                            <SelectItem value="non-technical">Non-Technical</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {events.map((event) => (
+              {filteredEvents.map((event) => (
                 <Card
                   key={event.id}
                   className="flex flex-col overflow-hidden hover:shadow-lg transition-shadow duration-300"
@@ -91,6 +164,9 @@ export default function HomePage() {
                       className="object-cover"
                       data-ai-hint={event.imageHint}
                     />
+                     <Badge className="absolute top-2 right-2" variant={event.mode === 'online' ? 'default' : 'secondary'}>
+                        {event.mode === 'online' ? 'Online' : 'Offline'}
+                    </Badge>
                   </div>
                   <CardHeader>
                     <div className="flex justify-between items-start">
@@ -123,6 +199,11 @@ export default function HomePage() {
                 </Card>
               ))}
             </div>
+            {filteredEvents.length === 0 && (
+                <div className="text-center col-span-full py-12">
+                    <p className="text-muted-foreground">No events match the current filters.</p>
+                </div>
+            )}
           </div>
         </section>
       </main>

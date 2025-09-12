@@ -1,3 +1,4 @@
+
 import type { Department, Event, User, Winner } from "@/lib/types";
 
 export const departments: Department[] = [
@@ -29,6 +30,8 @@ export const events: Event[] = [
     imageUrl: "https://picsum.photos/seed/tech/400/250",
     imageHint: "technology code",
     registrationFee: 10,
+    mode: "offline",
+    category: "technical",
   },
   {
     id: "event-2",
@@ -40,6 +43,8 @@ export const events: Event[] = [
     imageUrl: "https://picsum.photos/seed/robotics/400/250",
     imageHint: "robot battle",
     registrationFee: 15,
+    mode: "online",
+    category: "technical",
   },
   {
     id: "event-3",
@@ -50,7 +55,9 @@ export const events: Event[] = [
     participants: users.slice(4),
     imageUrl: "https://picsum.photos/seed/bridge/400/250",
     imageHint: "bridge construction",
-    registrationFee: 5,
+    registrationFee: 0,
+    mode: "offline",
+    category: "non-technical",
   },
   {
     id: "event-4",
@@ -62,6 +69,8 @@ export const events: Event[] = [
     imageUrl: "https://picsum.photos/seed/design/400/250",
     imageHint: "3d model",
     registrationFee: 8,
+    mode: "online",
+    category: "technical",
   },
 ];
 
