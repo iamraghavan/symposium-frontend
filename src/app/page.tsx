@@ -170,7 +170,7 @@ export default function HomePage() {
             <div className="text-left">
               <Badge>#EGSPECISSH-T</Badge>
               <h1 className="text-4xl font-bold font-headline md:text-6xl text-white mt-4">
-                EGSPEC Biggest Event 2024
+                EGSPEC Biggest Event {new Date().getFullYear()}
               </h1>
               <div className="mt-4 flex gap-2">
                 <div className="w-16 h-2 bg-primary rounded-full"></div>
