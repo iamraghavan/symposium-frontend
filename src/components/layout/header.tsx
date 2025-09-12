@@ -19,17 +19,26 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">
-        <div className="mr-4 flex">
+        <div className="mr-6 flex">
           <Link href="/" className="flex items-center gap-2 font-bold">
             <AppWindow className="h-6 w-6 text-primary" />
             <span className="font-headline text-lg">Symposium Central</span>
           </Link>
         </div>
-
-        <div className="flex flex-1 items-center justify-end space-x-2">
+        
+        <nav className="hidden md:flex flex-1 items-center gap-4 text-sm">
            <Button variant="ghost" asChild>
-              <Link href="/">Explore Events</Link>
+              <Link href="/events">Explore Events</Link>
            </Button>
+            <Button variant="ghost" asChild>
+              <Link href="/about">About</Link>
+           </Button>
+            <Button variant="ghost" asChild>
+              <Link href="/code-of-conduct">Code of Conduct</Link>
+           </Button>
+        </nav>
+
+        <div className="flex items-center justify-end space-x-2">
            <Button variant="outline" asChild>
              <Link href="/auth/login">Log in</Link>
            </Button>
@@ -41,5 +50,3 @@ export function Header() {
     </header>
   );
 }
-
-    
