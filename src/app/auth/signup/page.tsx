@@ -14,18 +14,42 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import GoogleIcon from '@mui/icons-material/Google';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Combobox } from '@/components/ui/combobox';
-import collegeData from '@/lib/colleges.json';
 
-const colleges = collegeData.colleges.map(c => ({
-    value: c.college.toLowerCase(),
-    label: c.college,
-}));
+type College = {
+    university: string;
+    college: string;
+    college_type: string;
+    state: string;
+    district: string;
+};
 
 export default function SignupPage() {
   const [collegeValue, setCollegeValue] = useState("");
+  const [colleges, setColleges] = useState<{ value: string; label: string }[]>([]);
+  const [loadingColleges, setLoadingColleges] = useState(true);
   
+  useEffect(() => {
+    async function fetchColleges() {
+      try {
+        const response = await fetch('https://raw.githubusercontent.com/VarthanV/Indian-Colleges-List/master/colleges.json');
+        const data: College[] = await response.json();
+        const formattedColleges = data.map(c => ({
+            value: c.college.toLowerCase(),
+            label: c.college,
+        }));
+        setColleges(formattedColleges);
+      } catch (error) {
+        console.error("Failed to fetch colleges:", error);
+        // Handle error, maybe show a toast
+      } finally {
+        setLoadingColleges(false);
+      }
+    }
+    fetchColleges();
+  }, []);
+
   const handleGoogleSignup = () => {
     // Placeholder for Google Sign-up logic
     alert("Redirecting to Google for sign-up...");
@@ -64,9 +88,10 @@ export default function SignupPage() {
                 items={colleges}
                 value={collegeValue}
                 onChange={setCollegeValue}
-                placeholder="Select college..."
+                placeholder={loadingColleges ? "Loading colleges..." : "Select college..."}
                 searchPlaceholder="Search colleges..."
                 noResultsMessage="No college found."
+                disabled={loadingColleges}
             />
           </div>
         </CardContent>
@@ -97,4 +122,3 @@ export default function SignupPage() {
     </div>
   );
 }
-

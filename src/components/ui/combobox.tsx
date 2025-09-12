@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -10,7 +11,6 @@ import {
   CommandEmpty,
   CommandGroup,
   CommandInput,
-  CommandItem,
   CommandList,
 } from "@/components/ui/command"
 import {
@@ -26,9 +26,10 @@ type ComboboxProps = {
     placeholder?: string;
     searchPlaceholder?: string;
     noResultsMessage?: string;
+    disabled?: boolean;
 }
 
-export function Combobox({ items, value, onChange, placeholder, searchPlaceholder, noResultsMessage }: ComboboxProps) {
+export function Combobox({ items, value, onChange, placeholder, searchPlaceholder, noResultsMessage, disabled = false }: ComboboxProps) {
   const [open, setOpen] = React.useState(false)
 
   return (
@@ -39,6 +40,7 @@ export function Combobox({ items, value, onChange, placeholder, searchPlaceholde
           role="combobox"
           aria-expanded={open}
           className="w-full justify-between"
+          disabled={disabled}
         >
           {value
             ? items.find((item) => item.value === value)?.label
