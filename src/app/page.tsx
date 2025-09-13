@@ -220,7 +220,7 @@ export default function HomePage() {
                     <li className="flex items-center gap-2"><ArrowRight className="h-4 w-4 text-primary"/>Discover the impact of emerging technologies.</li>
                   </ul>
                    <Button asChild className="mt-6">
-                      <Link href="#">Learn More</Link>
+                      <Link href="/about">Learn More</Link>
                   </Button>
                 </div>
              </div>
@@ -426,4 +426,3 @@ export default function HomePage() {
     </Dialog>
   );
 }
-
