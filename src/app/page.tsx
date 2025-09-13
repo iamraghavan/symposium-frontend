@@ -184,10 +184,10 @@ export default function HomePage() {
                 <Button size="lg" variant="secondary">
                   Register Now
                 </Button>
-                <Button size="lg" variant="outline" className="text-white border-white/50 hover:bg-white/10 hover:text-white">
+                <Button asChild size="lg" variant="ghost" className="text-white hover:bg-white/10 hover:text-white group">
                   <Link href="/events" className="flex items-center gap-2">
                     <span>Explore Events</span>
-                    <ArrowRight className="h-5 w-5" />
+                    <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
                   </Link>
                 </Button>
               </div>
