@@ -20,10 +20,8 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Badge } from '@/components/ui/badge';
 import { events as allEvents } from '@/lib/data';
@@ -96,56 +94,54 @@ export default function HomePage() {
   ];
 
   const EventCard = ({ event }: { event: Event }) => (
-      <DialogTrigger asChild>
-        <Card
-          key={event.id}
-          className="flex flex-col overflow-hidden h-full hover:shadow-lg transition-shadow duration-300 cursor-pointer"
-          onClick={() => setSelectedEvent(event)}
-        >
-          <div className="relative h-48 w-full">
-            <Image
-              src={event.imageUrl}
-              alt={event.name}
-              fill
-              className="object-cover"
-              data-ai-hint={event.imageHint}
-            />
-            <Badge className="absolute top-2 right-2" variant={event.mode === 'online' ? 'default' : 'secondary'}>
-                {event.mode === 'online' ? 'Online' : 'Offline'}
-            </Badge>
+      <Card
+        key={event.id}
+        className="flex flex-col overflow-hidden h-full hover:shadow-lg transition-shadow duration-300 cursor-pointer"
+        onClick={() => setSelectedEvent(event)}
+      >
+        <div className="relative h-48 w-full">
+          <Image
+            src={event.imageUrl}
+            alt={event.name}
+            fill
+            className="object-cover"
+            data-ai-hint={event.imageHint}
+          />
+          <Badge className="absolute top-2 right-2" variant={event.mode === 'online' ? 'default' : 'secondary'}>
+              {event.mode === 'online' ? 'Online' : 'Offline'}
+          </Badge>
+        </div>
+        <CardHeader>
+          <div className="flex justify-between items-start">
+            <CardTitle className="font-headline text-xl mb-1">
+              {event.name}
+            </CardTitle>
+            <Badge variant="outline">{event.department.name}</Badge>
           </div>
-          <CardHeader>
-            <div className="flex justify-between items-start">
-              <CardTitle className="font-headline text-xl mb-1">
-                {event.name}
-              </CardTitle>
-              <Badge variant="secondary">{event.department.name}</Badge>
-            </div>
-            <CardDescription className="flex items-center gap-2 text-sm">
-              <Calendar className="h-4 w-4" />
-              {formattedDates[event.id]?.date} at {formattedDates[event.id]?.time}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex-grow">
-            <p className="text-sm text-muted-foreground line-clamp-2">
-              {event.description}
-            </p>
-          </CardContent>
-          <CardFooter className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">
-                {event.participants.length} Participants
-              </span>
-            </div>
-            <Button asChild variant="default" size="sm" onClick={(e) => e.stopPropagation()}>
-               <Link href={`/events/${event.id}`}>
-                {event.registrationFee === 0 ? 'Free' : `$${event.registrationFee}`}
-               </Link>
-            </Button>
-          </CardFooter>
-        </Card>
-      </DialogTrigger>
+          <CardDescription className="flex items-center gap-2 text-sm">
+            <Calendar className="h-4 w-4" />
+            {formattedDates[event.id]?.date} at {formattedDates[event.id]?.time}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex-grow">
+          <p className="text-sm text-muted-foreground line-clamp-2">
+            {event.description}
+          </p>
+        </CardContent>
+        <CardFooter className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">
+              {event.participants.length} Participants
+            </span>
+          </div>
+          <Button asChild variant="default" size="sm" onClick={(e) => e.stopPropagation()}>
+              <Link href={`/events/${event.id}`}>
+              {event.registrationFee === 0 ? 'Free' : `$${event.registrationFee}`}
+              </Link>
+          </Button>
+        </CardFooter>
+      </Card>
   );
 
   const ViewAllCard = () => (
@@ -163,45 +159,38 @@ export default function HomePage() {
 
 
   return (
-    <Dialog>
+    <Dialog onOpenChange={(open) => !open && setSelectedEvent(null)}>
       <main className="flex-1">
-        <section className="relative h-[70vh] flex items-center justify-center text-center bg-gradient-to-r from-primary/80 to-accent/80 text-primary-foreground">
-          <div className="container px-4 md:px-6 grid md:grid-cols-2 gap-8 items-center">
-            <div className="text-left">
+        <section className="relative h-[80vh] flex items-center justify-center text-center text-white">
+          <Image
+            src="https://images.unsplash.com/photo-1523580494863-6f3031224c94?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+            alt="Audience at a symposium"
+            fill
+            className="object-cover -z-10"
+            data-ai-hint="conference audience"
+          />
+          <div className="absolute inset-0 bg-black/60 -z-10" />
+
+          <div className="container px-4 md:px-6">
               <Badge>#EGSPECISSH-T</Badge>
-              <h1 className="text-4xl font-bold font-headline md:text-6xl text-white mt-4">
+              <h1 className="text-4xl font-extrabold font-headline md:text-7xl mt-4 tracking-tight">
                 EGSPEC Biggest Event {new Date().getFullYear()}
               </h1>
-              <div className="mt-4 flex gap-2">
-                <div className="w-16 h-2 bg-primary rounded-full"></div>
-                <div className="w-16 h-2 bg-primary/50 rounded-full"></div>
-                <div className="w-16 h-2 bg-primary/50 rounded-full"></div>
-              </div>
-              <p className="mt-4 text-lg md:text-xl text-gray-200">
-                <Calendar className="inline-block mr-2 h-5 w-5" />
-                expected at Oct 10
+              
+              <p className="mt-4 text-lg md:text-xl text-gray-200 max-w-3xl mx-auto">
+                Join thousands of students, professionals, and enthusiasts for the most anticipated tech and culture symposium of the year.
               </p>
-              <div className="mt-8 flex items-center gap-6">
-                <Button size="lg">
+               <div className="mt-8 flex items-center justify-center gap-4">
+                <Button size="lg" variant="secondary">
                   Register Now
                 </Button>
-                <Link href="#" className="flex items-center gap-2 text-white hover:underline">
-                  <GoogleCalendarIcon className="h-6 w-6" />
-                  <span>Add to calendar</span>
-                </Link>
+                <Button size="lg" variant="outline" className="text-white border-white/50 hover:bg-white/10 hover:text-white">
+                  <Link href="/events" className="flex items-center gap-2">
+                    <span>Explore Events</span>
+                    <ArrowRight className="h-5 w-5" />
+                  </Link>
+                </Button>
               </div>
-            </div>
-           
-            <div className="hidden md:block">
-               <Image
-                  src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=2071&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-                  alt="Students collaborating"
-                  width={600}
-                  height={400}
-                  className="rounded-lg object-cover"
-                  data-ai-hint="students collaborating"
-                />
-            </div>
           </div>
           
         </section>
@@ -438,4 +427,3 @@ export default function HomePage() {
   );
 }
 
-    
