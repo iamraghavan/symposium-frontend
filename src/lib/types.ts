@@ -67,5 +67,3 @@ export type ApiErrorResponse = {
     message: string;
     details?: { field: string; msg: string }[];
 };
-
-    

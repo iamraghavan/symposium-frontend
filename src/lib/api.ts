@@ -1,7 +1,7 @@
 
 'use client';
 
-import type { LoggedInUser } from './types';
+import type { ApiErrorResponse } from './types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
@@ -19,16 +19,17 @@ async function api<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
   const defaultHeaders: Record<string, string> = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
-    'x-api-key': API_KEY || '',
   };
+  
+  if (API_KEY) {
+      defaultHeaders['x-api-key'] = API_KEY;
+  }
 
   if (authenticated) {
     const token = localStorage.getItem('jwt');
     if (token) {
       defaultHeaders['Authorization'] = `Bearer ${token}`;
     } else {
-      // Handle case where token is required but not available
-      // Maybe redirect to login
       console.warn('Authenticated request made without a token.');
     }
   }
@@ -42,11 +43,26 @@ async function api<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
     config.body = JSON.stringify(body);
   }
 
-  const response = await fetch(`${API_BASE_URL}/v1${endpoint}`, config);
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ message: 'An unknown error occurred.' }));
-    throw new Error(errorData.message || 'API request failed');
+    let errorMessage = 'An unknown API error occurred.';
+    try {
+      const errorData: ApiErrorResponse = await response.json();
+      if (errorData.message) {
+        errorMessage = errorData.message;
+        if (errorData.details && Array.isArray(errorData.details)) {
+          const details = errorData.details.map(d => d.msg).join(', ');
+          if (details) {
+            errorMessage += `: ${details}`;
+          }
+        }
+      }
+    } catch (e) {
+      // Failed to parse error JSON, stick with the default message.
+      errorMessage = `API request failed with status: ${response.status}`;
+    }
+    throw new Error(errorMessage);
   }
 
   // For 204 No Content responses
