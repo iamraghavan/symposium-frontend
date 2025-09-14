@@ -21,13 +21,12 @@ import {
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import React, { useEffect, useState } from "react";
-import type { LoggedInUser, ApiSuccessResponse } from "@/lib/types";
+import type { LoggedInUser, ApiSuccessResponse, Department } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { LifeBuoy, LogOut } from "lucide-react";
-import { googleLogout, GoogleLogin, useGoogleOneTapLogin } from '@react-oauth/google';
+import { googleLogout, GoogleLogin } from '@react-oauth/google';
 import api from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-
 
 export function Header() {
   const router = useRouter();
@@ -36,14 +35,19 @@ export function Header() {
   const [isClient, setIsClient] = useState(false);
   
   useEffect(() => {
+    console.log("Header component mounted. Checking for user data in localStorage.");
     const userData = localStorage.getItem("loggedInUser");
     if (userData) {
+      console.log("User data found in localStorage:", userData);
       setUser(JSON.parse(userData));
+    } else {
+      console.log("No user data in localStorage.");
     }
     setIsClient(true);
   }, []);
 
   const handleLogout = () => {
+    console.log("Logging out user.");
     googleLogout();
     localStorage.removeItem("loggedInUser");
     localStorage.removeItem("jwt");
@@ -53,6 +57,7 @@ export function Header() {
   };
 
   const completeLogin = (token: string, user: LoggedInUser) => {
+    console.log("completeLogin called with token and user:", { token, user });
     localStorage.setItem('jwt', token);
     localStorage.setItem('loggedInUser', JSON.stringify(user));
     setUser(user);
@@ -115,12 +120,6 @@ export function Header() {
         description: "An unknown error occurred during Google authentication.",
     });
   };
-
-  useGoogleOneTapLogin({
-      onSuccess: handleGoogleSuccess,
-      onError: handleGoogleError,
-      disabled: !isClient || !!user,
-  });
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background">
