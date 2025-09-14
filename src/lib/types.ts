@@ -1,5 +1,6 @@
 
 export type Department = {
+  _id: string;
   id: string;
   name: string;
   head?: {
@@ -9,6 +10,7 @@ export type Department = {
 };
 
 export type User = {
+  _id: string;
   id: string;
   name: string;
   email: string;
@@ -46,8 +48,22 @@ export type Financials = {
 }
 
 export type LoggedInUser = {
+  _id: string;
   name: string;
   email: string;
-  role: 'superadmin' | 'department';
-  departmentId?: string;
+  role: 'super_admin' | 'department_admin' | 'user';
+  department?: string; // Department ID
+};
+
+export type ApiSuccessResponse<T> = {
+    success: true;
+    token?: string;
+    user?: LoggedInUser;
+    data?: T;
+};
+
+export type ApiErrorResponse = {
+    success: false;
+    message: string;
+    details?: { field: string; msg: string }[];
 };

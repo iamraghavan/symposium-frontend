@@ -50,8 +50,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { Department, LoggedInUser } from "@/lib/types";
-import { createDepartment, updateDepartment, deleteDepartment, getDepartments } from "./actions";
+import type { Department, LoggedInUser, ApiSuccessResponse } from "@/lib/types";
+import api from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 
@@ -62,39 +62,55 @@ export default function AdminDepartmentsPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [isNewDepartmentDialogOpen, setIsNewDepartmentDialogOpen] = useState(false);
   const [editingDepartment, setEditingDepartment] = useState<Department | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const userData = localStorage.getItem("loggedInUser");
     if (userData) {
         const parsedUser = JSON.parse(userData) as LoggedInUser;
-        if (parsedUser.role !== 'superadmin') {
+        if (parsedUser.role !== 'super_admin') {
             router.push('/u/s/portal/dashboard');
         } else {
             setUser(parsedUser);
+            fetchDepartments();
         }
     } else {
-        router.push('/auth/login');
+        router.push('/c/auth/login?login=s_admin');
     }
-    
-    const fetchDepartments = async () => {
-        const fetchedDepartments = await getDepartments();
-        setDepartments(fetchedDepartments);
-    }
-    fetchDepartments();
   }, [router]);
 
-  const refreshDepartments = async () => {
-    const fetchedDepartments = await getDepartments();
-    setDepartments(fetchedDepartments);
+  const fetchDepartments = async () => {
+    setIsLoading(true);
+    try {
+        const response = await api<ApiSuccessResponse<{ departments: Department[] }>>('/departments', { authenticated: true });
+        if (response.success && response.data) {
+            setDepartments(response.data.departments);
+        }
+    } catch(error) {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Could not fetch departments.",
+        });
+    } finally {
+        setIsLoading(false);
+    }
   }
 
   const handleCreateDepartment = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
+    const newDepartmentData = {
+        id: formData.get("id") as string,
+        name: formData.get("name") as string,
+        headName: formData.get("headName") as string,
+        headEmail: formData.get("headEmail") as string,
+    }
+
     try {
-      await createDepartment(formData);
+      await api('/departments', { method: 'POST', body: newDepartmentData, authenticated: true });
       setIsNewDepartmentDialogOpen(false);
-      await refreshDepartments();
+      await fetchDepartments();
        toast({
         title: "Success",
         description: "Department created successfully.",
@@ -113,10 +129,15 @@ export default function AdminDepartmentsPage() {
     if (!editingDepartment) return;
     
     const formData = new FormData(event.currentTarget);
+     const updatedDepartmentData = {
+        name: formData.get("name") as string,
+        headName: formData.get("headName") as string,
+        headEmail: formData.get("headEmail") as string,
+    }
     try {
-        await updateDepartment(editingDepartment.id, formData);
+        await api(`/departments/${editingDepartment._id}`, { method: 'PUT', body: updatedDepartmentData, authenticated: true });
         setEditingDepartment(null);
-        await refreshDepartments();
+        await fetchDepartments();
         toast({
             title: "Success",
             description: "Department updated successfully.",
@@ -132,8 +153,8 @@ export default function AdminDepartmentsPage() {
 
   const handleDeleteDepartment = async (departmentId: string) => {
     try {
-        await deleteDepartment(departmentId);
-        await refreshDepartments();
+        await api(`/departments/${departmentId}`, { method: 'DELETE', authenticated: true });
+        await fetchDepartments();
          toast({
             title: "Success",
             description: "Department deleted successfully.",
@@ -147,7 +168,7 @@ export default function AdminDepartmentsPage() {
     }
   };
 
-  if (user?.role !== 'superadmin') {
+  if (!user || user.role !== 'super_admin') {
     return null; // or a loading spinner while redirecting
   }
 
@@ -228,8 +249,14 @@ export default function AdminDepartmentsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {departments.map((dept) => (
-                <TableRow key={dept.id}>
+              {isLoading ? (
+                <TableRow>
+                    <TableCell colSpan={4} className="h-24 text-center">
+                        Loading...
+                    </TableCell>
+                </TableRow>
+              ) : departments.map((dept) => (
+                <TableRow key={dept._id}>
                   <TableCell className="font-medium">
                     <Badge variant="secondary">{dept.name}</Badge>
                   </TableCell>
@@ -267,7 +294,7 @@ export default function AdminDepartmentsPage() {
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDeleteDepartment(dept.id)}>
+                                <AlertDialogAction onClick={() => handleDeleteDepartment(dept._id)}>
                                   Continue
                                 </AlertDialogAction>
                               </AlertDialogFooter>
@@ -315,7 +342,7 @@ export default function AdminDepartmentsPage() {
                 </div>
               </div>
               <DialogFooter>
-                 <Button variant="outline" onClick={() => setEditingDepartment(null)}>Cancel</Button>
+                 <Button variant="outline" type="button" onClick={() => setEditingDepartment(null)}>Cancel</Button>
                 <Button type="submit">Save Changes</Button>
               </DialogFooter>
             </form>

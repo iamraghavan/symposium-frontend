@@ -24,6 +24,7 @@ import React, { useEffect, useState } from "react";
 import type { LoggedInUser } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { LifeBuoy, LogOut, Settings } from "lucide-react";
+import GoogleIcon from '@mui/icons-material/Google';
 
 
 export function Header() {
@@ -41,8 +42,16 @@ export function Header() {
 
   const handleLogout = () => {
     localStorage.removeItem("loggedInUser");
+    localStorage.removeItem("jwt");
     setUser(null);
     router.push("/");
+  };
+  
+  const handleGoogleLogin = () => {
+    // Placeholder for Google Sign-in logic
+    alert("Redirecting to Google for sign-in...");
+    // Here you would typically use a library like @react-oauth/google
+    // to get an idToken and then send it to your backend.
   };
 
 
@@ -95,10 +104,12 @@ export function Header() {
                         </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => router.push('/u/s/portal/dashboard')}>
-                      <Settings className="mr-2 h-4 w-4" />
-                      <span>Dashboard</span>
-                    </DropdownMenuItem>
+                    {(user.role === 'super_admin' || user.role === 'department_admin') && (
+                       <DropdownMenuItem onClick={() => router.push('/u/s/portal/dashboard')}>
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>Dashboard</span>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem>
                       <LifeBuoy className="mr-2 h-4 w-4" />
                       <span>Support</span>
@@ -112,12 +123,10 @@ export function Header() {
                 </DropdownMenu>
               ) : (
                 <div className="hidden md:flex items-center gap-2">
-                  <Button variant="outline" asChild>
-                    <Link href="/auth/login">Log in</Link>
-                  </Button>
-                  <Button asChild>
-                    <Link href="/auth/signup">Sign up</Link>
-                  </Button>
+                   <Button onClick={handleGoogleLogin}>
+                      <GoogleIcon className="mr-2 h-4 w-4" />
+                      Continue with Google
+                    </Button>
                 </div>
               )}
                <Sheet>
@@ -148,18 +157,12 @@ export function Header() {
                         {isClient && user ? (
                           <Button onClick={handleLogout}>Log out</Button>
                         ) : (
-                          <>
-                            <SheetClose asChild>
-                                <Button variant="outline" asChild>
-                                    <Link href="/auth/login">Log in</Link>
-                                </Button>
-                            </SheetClose>
-                             <SheetClose asChild>
-                                <Button asChild>
-                                    <Link href="/auth/signup">Sign up</Link>
-                                </Button>
-                            </SheetClose>
-                          </>
+                          <SheetClose asChild>
+                            <Button onClick={handleGoogleLogin}>
+                               <GoogleIcon className="mr-2 h-4 w-4" />
+                                Continue with Google
+                            </Button>
+                          </SheetClose>
                         )}
                       </div>
                   </div>

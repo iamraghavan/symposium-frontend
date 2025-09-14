@@ -41,8 +41,8 @@ const allMenuItems = [
   { href: "/u/s/portal/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/u/s/portal/events", label: "Events", icon: Calendar },
   { href: "/u/s/portal/registered-users", label: "Users", icon: Users },
-  { href: "/u/s/portal/departments", label: "Departments", icon: Building2, requiredRole: "superadmin" },
-  { href: "/u/s/portal/finance", label: "Finance", icon: Banknote, requiredRole: "superadmin" },
+  { href: "/u/s/portal/departments", label: "Departments", icon: Building2, requiredRole: "super_admin" },
+  { href: "/u/s/portal/finance", label: "Finance", icon: Banknote, requiredRole: "super_admin" },
 ];
 
 export function AdminNav() {
@@ -55,12 +55,14 @@ export function AdminNav() {
     if (userData) {
       setUser(JSON.parse(userData));
     } else {
-      router.push('/auth/login');
+      // Redirect to a generic login page or home if no user data
+      router.push("/");
     }
   }, [router]);
 
   const handleLogout = () => {
     localStorage.removeItem("loggedInUser");
+    localStorage.removeItem("jwt");
     router.push("/");
   };
   
