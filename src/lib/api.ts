@@ -42,7 +42,7 @@ async function api<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
     config.body = JSON.stringify(body);
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+  const response = await fetch(`${API_BASE_URL}/v1${endpoint}`, config);
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ message: 'An unknown error occurred.' }));
