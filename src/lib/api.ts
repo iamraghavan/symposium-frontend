@@ -43,7 +43,7 @@ async function api<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
     config.body = JSON.stringify(body);
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+  const response = await fetch(`${API_BASE_URL}/api${endpoint}`, config);
 
   if (!response.ok) {
     let errorMessage = 'An unknown API error occurred.';
@@ -59,13 +59,11 @@ async function api<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
         }
       }
     } catch (e) {
-      // Failed to parse error JSON, stick with the default message.
       errorMessage = `API request failed with status: ${response.status}`;
     }
     throw new Error(errorMessage);
   }
 
-  // For 204 No Content responses
   if (response.status === 204) {
     return null as T;
   }
