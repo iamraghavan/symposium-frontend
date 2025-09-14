@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import React, { useEffect, useState } from "react";
-import type { LoggedInUser, ApiSuccessResponse, Department } from "@/lib/types";
+import type { LoggedInUser, ApiSuccessResponse, Department, ApiErrorResponse } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { LifeBuoy, LogOut, Settings } from "lucide-react";
 import { googleLogout, GoogleLogin, useGoogleOneTapLogin } from '@react-oauth/google';
@@ -111,7 +111,7 @@ export function Header() {
   
   const handleGoogleAuth = async (idToken: string, departmentId?: string) => {
      try {
-        const response = await api<ApiSuccessResponse<{ user: LoggedInUser, token: string }>>('/auth/google', {
+        const response = await api<ApiSuccessResponse<{ user: LoggedInUser, token: string }> | ApiErrorResponse>('/auth/google', {
             method: 'POST',
             body: { idToken, ...(departmentId && { departmentId }) }
         });
@@ -121,21 +121,22 @@ export function Header() {
             return;
         }
         
-        throw new Error((response as any).message || "Google login failed.");
-
-    } catch (error: any) {
-        // This is a specific check for when a new user tries to sign up without a department
-        if (error.message && error.message.includes("User not found and departmentId is required")) {
+        // This is a specific check for when a new user signs up without a department
+        // Modify this condition if your backend sends a more specific error message.
+        if (!response.success && response.message.includes("Department is required")) {
             setGoogleCredential(idToken);
             await fetchDepartments();
             setShowDepartmentModal(true);
         } else {
-            toast({
-                variant: "destructive",
-                title: "Login Failed",
-                description: error.message || "Could not sign in with Google. Please try again.",
-            });
+             throw new Error((response as ApiErrorResponse).message || "Google login failed.");
         }
+
+    } catch (error: any) {
+        toast({
+            variant: "destructive",
+            title: "Login Failed",
+            description: error.message || "An unknown error occurred. Please try again.",
+        });
     }
   };
 
