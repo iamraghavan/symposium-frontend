@@ -102,6 +102,7 @@ export function Header() {
         title: "Login Successful",
         description: `Welcome, ${user.name}!`,
     });
+
     if (user.role === 'super_admin' || user.role === 'department_admin') {
         router.push('/u/s/portal/dashboard');
     } else {
@@ -319,3 +320,5 @@ export function Header() {
     </header>
   );
 }
+
+    
