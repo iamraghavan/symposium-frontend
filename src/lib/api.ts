@@ -43,23 +43,26 @@ async function api<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
     config.body = JSON.stringify(body);
   }
 
-  const response = await fetch(`${API_BASE_URL}/api${endpoint}`, config);
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
 
   if (!response.ok) {
-    let errorMessage = 'An unknown API error occurred.';
+    let errorMessage = `API request failed with status: ${response.status}`;
     try {
       const errorData: ApiErrorResponse = await response.json();
       if (errorData.message) {
-        errorMessage = errorData.message;
-        if (errorData.details && Array.isArray(errorData.details)) {
-          const details = errorData.details.map(d => d.msg).join(', ');
-          if (details) {
-            errorMessage += `: ${details}`;
+          errorMessage = errorData.message;
+          if (errorData.details && Array.isArray(errorData.details)) {
+              const details = errorData.details.map(d => `${d.field}: ${d.msg}`).join(', ');
+              if (details) {
+                  errorMessage += `: ${details}`;
+              }
           }
-        }
       }
     } catch (e) {
-      errorMessage = `API request failed with status: ${response.status}`;
+      // Fallback if response is not JSON
+      if (response.statusText) {
+          errorMessage = response.statusText;
+      }
     }
     throw new Error(errorMessage);
   }
