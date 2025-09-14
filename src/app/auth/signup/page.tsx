@@ -20,6 +20,7 @@ import api from '@/lib/api';
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
 import type { ApiSuccessResponse, LoggedInUser } from '@/lib/types';
+import { GoogleLogin } from '@react-oauth/google';
 
 
 type College = {
@@ -66,9 +67,39 @@ export default function SignupPage() {
     fetchColleges();
   }, [toast]);
 
-  const handleGoogleSignup = () => {
-    // Placeholder for Google Sign-up logic
-    alert("Redirecting to Google for sign-up...");
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    try {
+        const response = await api<ApiSuccessResponse<{ user: LoggedInUser, token: string }>>('/auth/google', {
+            method: 'POST',
+            body: { idToken: credentialResponse.credential }
+        });
+        
+        if (response.success && response.token && response.user) {
+            localStorage.setItem('jwt', response.token);
+            localStorage.setItem('loggedInUser', JSON.stringify(response.user));
+            toast({
+                title: "Login Successful",
+                description: `Welcome, ${response.user.name}!`,
+            });
+            router.push('/');
+        } else {
+            throw new Error((response as any).message || "Google login failed.");
+        }
+    } catch (error) {
+        toast({
+            variant: "destructive",
+            title: "Login Failed",
+            description: (error as Error).message || "Could not sign in with Google. Please try again.",
+        });
+    }
+  };
+
+  const handleGoogleError = () => {
+    toast({
+        variant: "destructive",
+        title: "Login Failed",
+        description: "Google authentication failed.",
+    });
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -171,10 +202,12 @@ export default function SignupPage() {
                 </span>
                 </div>
             </div>
-            <Button variant="outline" className="w-full" onClick={handleGoogleSignup}>
-                <GoogleIcon className="mr-2 h-4 w-4" />
-                Sign up with Google
-            </Button>
+            <div className="w-full flex justify-center">
+               <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={handleGoogleError}
+                />
+            </div>
             <div className="mt-4 text-center text-sm">
                 Already have an account?{" "}
                 <Link href="/c/auth/login" className="underline">

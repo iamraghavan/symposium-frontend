@@ -21,14 +21,18 @@ import {
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import React, { useEffect, useState } from "react";
-import type { LoggedInUser } from "@/lib/types";
+import type { LoggedInUser, ApiSuccessResponse } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { LifeBuoy, LogOut, Settings } from "lucide-react";
 import GoogleIcon from '@mui/icons-material/Google';
+import { useGoogleLogin, googleLogout, hasGrantedAnyScope, GoogleLogin } from '@react-oauth/google';
+import api from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 
 export function Header() {
   const router = useRouter();
+  const { toast } = useToast();
   const [user, setUser] = useState<LoggedInUser | null>(null);
   const [isClient, setIsClient] = useState(false);
 
@@ -41,17 +45,50 @@ export function Header() {
   }, []);
 
   const handleLogout = () => {
+    googleLogout();
     localStorage.removeItem("loggedInUser");
     localStorage.removeItem("jwt");
     setUser(null);
+    toast({ title: "Logged out successfully" });
     router.push("/");
   };
   
-  const handleGoogleLogin = () => {
-    // Placeholder for Google Sign-in logic
-    alert("Redirecting to Google for sign-in...");
-    // Here you would typically use a library like @react-oauth/google
-    // to get an idToken and then send it to your backend.
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    try {
+        const response = await api<ApiSuccessResponse<{ user: LoggedInUser, token: string }>>('/auth/google', {
+            method: 'POST',
+            body: { idToken: credentialResponse.credential }
+        });
+        
+        if (response.success && response.token && response.user) {
+            localStorage.setItem('jwt', response.token);
+            localStorage.setItem('loggedInUser', JSON.stringify(response.user));
+            setUser(response.user);
+            toast({
+                title: "Login Successful",
+                description: `Welcome, ${response.user.name}!`,
+            });
+            if (response.user.role === 'super_admin' || response.user.role === 'department_admin') {
+                router.push('/u/s/portal/dashboard');
+            }
+        } else {
+            throw new Error((response as any).message || "Google login failed.");
+        }
+    } catch (error) {
+        toast({
+            variant: "destructive",
+            title: "Login Failed",
+            description: (error as Error).message || "Could not sign in with Google. Please try again.",
+        });
+    }
+  };
+
+  const handleGoogleError = () => {
+    toast({
+        variant: "destructive",
+        title: "Login Failed",
+        description: "Google authentication failed.",
+    });
   };
 
 
@@ -121,12 +158,21 @@ export function Header() {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-              ) : (
+              ) : isClient && (
                 <div className="hidden md:flex items-center gap-2">
-                   <Button onClick={handleGoogleLogin}>
-                      <GoogleIcon className="mr-2 h-4 w-4" />
-                      Continue with Google
-                    </Button>
+                   <GoogleLogin
+                        onSuccess={handleGoogleSuccess}
+                        onError={handleGoogleError}
+                        useOneTap
+                        auto_select
+                    />
+                     <GoogleLogin
+                        onSuccess={handleGoogleSuccess}
+                        onError={handleGoogleError}
+                        theme="outline"
+                        text="continue_with"
+                        shape="rectangular"
+                     />
                 </div>
               )}
                <Sheet>
@@ -156,13 +202,11 @@ export function Header() {
                      <div className="flex flex-col gap-2 pt-4 border-t">
                         {isClient && user ? (
                           <Button onClick={handleLogout}>Log out</Button>
-                        ) : (
-                          <SheetClose asChild>
-                            <Button onClick={handleGoogleLogin}>
-                               <GoogleIcon className="mr-2 h-4 w-4" />
-                                Continue with Google
-                            </Button>
-                          </SheetClose>
+                        ) : isClient && (
+                           <GoogleLogin
+                                onSuccess={handleGoogleSuccess}
+                                onError={handleGoogleError}
+                             />
                         )}
                       </div>
                   </div>
