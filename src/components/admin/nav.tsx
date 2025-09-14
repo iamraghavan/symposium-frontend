@@ -110,7 +110,7 @@ export function AdminNav() {
                 <div className="flex gap-2 items-center">
                   <Avatar className="w-8 h-8">
                     <AvatarImage
-                      src={`https://picsum.photos/seed/${user?.name || 'admin'}/40/40`}
+                      src={user?.picture || `https://picsum.photos/seed/${user?.name || 'admin'}/40/40`}
                       alt={user?.name || 'Admin'}
                       data-ai-hint="person"
                     />

@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { AppWindow, Menu, Search } from "lucide-react";
+import { AppWindow, Menu, Search, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -31,7 +31,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import React, { useEffect, useState } from "react";
 import type { LoggedInUser, ApiSuccessResponse, Department, ApiErrorResponse } from "@/lib/types";
 import { useRouter } from "next/navigation";
-import { LifeBuoy, LogOut, Settings } from "lucide-react";
+import { LifeBuoy, LogOut } from "lucide-react";
 import { googleLogout, GoogleLogin, useGoogleOneTapLogin } from '@react-oauth/google';
 import api from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -120,23 +120,21 @@ export function Header() {
             completeLogin(response.token, response.user);
             return;
         }
-        
-        // This is a specific check for when a new user signs up without a department
-        // Modify this condition if your backend sends a more specific error message.
-        if (!response.success && response.message.includes("Department is required")) {
-            setGoogleCredential(idToken);
-            await fetchDepartments();
-            setShowDepartmentModal(true);
-        } else {
-             throw new Error((response as ApiErrorResponse).message || "Google login failed.");
-        }
+
+        throw new Error((response as ApiErrorResponse).message || "Google login failed.");
 
     } catch (error: any) {
-        toast({
-            variant: "destructive",
-            title: "Login Failed",
-            description: error.message || "An unknown error occurred. Please try again.",
-        });
+        if (error.message.includes("Department is required")) {
+             setGoogleCredential(idToken);
+             await fetchDepartments();
+             setShowDepartmentModal(true);
+        } else {
+            toast({
+                variant: "destructive",
+                title: "Login Failed",
+                description: error.message || "An unknown error occurred. Please try again.",
+            });
+        }
     }
   };
 
@@ -204,7 +202,7 @@ export function Header() {
                     <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                       <Avatar>
                         <AvatarImage
-                            src={`https://picsum.photos/seed/${user.name}/40/40`}
+                            src={user.picture || `https://picsum.photos/seed/${user.name}/40/40`}
                             alt={user.name}
                             data-ai-hint="person"
                           />
@@ -222,12 +220,10 @@ export function Header() {
                         </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    {(user.role === 'super_admin' || user.role === 'department_admin') && (
-                       <DropdownMenuItem onClick={() => router.push('/u/s/portal/dashboard')}>
-                        <Settings className="mr-2 h-4 w-4" />
-                        <span>Dashboard</span>
-                      </DropdownMenuItem>
-                    )}
+                     <DropdownMenuItem onClick={() => router.push('/u/s/portal/dashboard')}>
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Dashboard</span>
+                    </DropdownMenuItem>
                     <DropdownMenuItem>
                       <LifeBuoy className="mr-2 h-4 w-4" />
                       <span>Support</span>

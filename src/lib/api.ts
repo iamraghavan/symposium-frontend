@@ -31,6 +31,7 @@ async function api<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
       defaultHeaders['Authorization'] = `Bearer ${token}`;
     } else {
       console.warn('Authenticated request made without a token.');
+      // Optionally, you could throw an error here or redirect to login
     }
   }
 
@@ -57,6 +58,8 @@ async function api<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
                   errorMessage += `: ${details}`;
               }
           }
+      } else {
+        errorMessage = response.statusText || 'Not Found';
       }
     } catch (e) {
       // Fallback if response is not JSON or has no body

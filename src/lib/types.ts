@@ -53,6 +53,7 @@ export type LoggedInUser = {
   email: string;
   role: 'super_admin' | 'department_admin' | 'user';
   departmentId?: string; // Department ID
+  picture?: string;
 };
 
 export type ApiSuccessResponse<T> = {
