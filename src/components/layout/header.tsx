@@ -118,19 +118,17 @@ export function Header() {
         
         if (response.success && response.token && response.user) {
             completeLogin(response.token, response.user);
-        } else if ((response as any).requiresDepartment) {
-            // New user, ask for department
+            return;
+        }
+        
+        throw new Error((response as any).message || "Google login failed.");
+
+    } catch (error: any) {
+        // This is a specific check for when a new user tries to sign up without a department
+        if (error.message && error.message.includes("User not found and departmentId is required")) {
             setGoogleCredential(idToken);
             await fetchDepartments();
             setShowDepartmentModal(true);
-        } else {
-            throw new Error((response as any).message || "Google login failed.");
-        }
-    } catch (error: any) {
-        if(error.message.includes("User not found and departmentId is required")) {
-             setGoogleCredential(idToken);
-             await fetchDepartments();
-             setShowDepartmentModal(true);
         } else {
             toast({
                 variant: "destructive",
@@ -324,5 +322,3 @@ export function Header() {
     </header>
   );
 }
-
-    
