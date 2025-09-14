@@ -19,40 +19,30 @@ import {
   SheetTrigger,
   SheetClose,
 } from "@/components/ui/sheet";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import React, { useEffect, useState, useCallback } from "react";
-import type { LoggedInUser, ApiSuccessResponse, Department } from "@/lib/types";
+import type { LoggedInUser, ApiSuccessResponse } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { LifeBuoy, LogOut } from "lucide-react";
-import { googleLogout, GoogleLogin, useGoogleOneTapLogin, CredentialResponse } from '@react-oauth/google';
+import { googleLogout, GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import api from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Combobox } from "../ui/combobox";
-import { Label } from "../ui/label";
 
 export function Header() {
   const router = useRouter();
   const { toast } = useToast();
   const [user, setUser] = useState<LoggedInUser | null>(null);
   const [isClient, setIsClient] = useState(false);
-  
-  // State for new user department selection
-  const [showDepartmentModal, setShowDepartmentModal] = useState(false);
-  const [departments, setDepartments] = useState<{ value: string; label: string }[]>([]);
-  const [selectedDepartment, setSelectedDepartment] = useState("");
-  const [googleCredential, setGoogleCredential] = useState<CredentialResponse | null>(null);
-  const [isSubmittingDepartment, setIsSubmittingDepartment] = useState(false);
+
+  useEffect(() => {
+    const userData = localStorage.getItem("loggedInUser");
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+    setIsClient(true);
+  }, []);
 
   const completeLogin = useCallback((token: string, user: LoggedInUser) => {
-    console.log("completeLogin called with token and user:", { token, user });
     localStorage.setItem('jwt', token);
     localStorage.setItem('loggedInUser', JSON.stringify(user));
     setUser(user);
@@ -68,9 +58,8 @@ export function Header() {
     }
   }, [toast, router]);
 
-  const handleGoogleAuth = useCallback(async (credentialResponse: CredentialResponse, departmentId?: string) => {
+  const handleGoogleAuth = useCallback(async (credentialResponse: CredentialResponse) => {
     if (!credentialResponse.credential) {
-        console.error("Google credential not found in response.");
         toast({
             variant: "destructive",
             title: "Login Failed",
@@ -78,49 +67,36 @@ export function Header() {
         });
         return;
     }
-    
-    console.log('Attempting Google Auth with token:', credentialResponse.credential);
 
     try {
-        const body: { idToken: string; departmentId?: string } = { idToken: credentialResponse.credential };
-        if (departmentId) {
-            body.departmentId = departmentId;
-        }
-
         const response = await api<ApiSuccessResponse<{ user: LoggedInUser, token: string }>>('/auth/google', {
             method: 'POST',
-            body: body,
+            body: { idToken: credentialResponse.credential },
         });
-        
-        console.log('Backend Response:', response);
 
         if (response.success && response.token && response.user) {
             completeLogin(response.token, response.user);
-            setShowDepartmentModal(false); // Close modal on success
         } else {
-            throw new Error((response as any).message || "Google login failed: Invalid response from server.");
+             // This case is for when backend returns success:false for a new user
+             if ((response as any).isNewUser && (response as any).profile) {
+                const profile = (response as any).profile;
+                sessionStorage.setItem('google_signup_profile', JSON.stringify(profile));
+                router.push('/auth/signup');
+             } else {
+                throw new Error((response as any).message || "Google login failed: Invalid response from server.");
+             }
         }
     } catch (error: any) {
-        console.error("Google Auth API Error:", error);
-        
-        // Check if the error indicates a new user needs to select a department
-        if (error.message && error.message.toLowerCase().includes('department is required for new user')) {
-            setGoogleCredential(credentialResponse);
-            
-            // Fetch departments
+        if (error.message && error.message.includes('New user')) {
             try {
-                const deptResponse = await api<ApiSuccessResponse<{ departments: Department[] }>>('/departments');
-                if (deptResponse.success && deptResponse.data) {
-                    setDepartments(deptResponse.data.departments.map(d => ({ value: d._id, label: d.name })));
-                    setShowDepartmentModal(true);
-                } else {
-                    throw new Error("Failed to load departments.");
-                }
-            } catch (deptError) {
-                toast({
+                const profile = JSON.parse(error.message.substring(error.message.indexOf('{')));
+                sessionStorage.setItem('google_signup_profile', JSON.stringify(profile));
+                router.push('/auth/signup');
+            } catch (e) {
+                 toast({
                     variant: "destructive",
-                    title: "Setup Error",
-                    description: "Could not fetch department list. Please contact support.",
+                    title: "Login Failed",
+                    description: "Failed to process new user data. Please try registering manually.",
                 });
             }
         } else {
@@ -130,33 +106,10 @@ export function Header() {
                 description: error.message || "An unknown error occurred. Please try again.",
             });
         }
-    } finally {
-        setIsSubmittingDepartment(false);
     }
-  }, [completeLogin, toast]);
-
-  useGoogleOneTapLogin({
-    onSuccess: handleGoogleAuth,
-    onError: () => {
-      console.log('One Tap login error');
-    },
-    disabled: !isClient || !!user,
-  });
-
-  useEffect(() => {
-    console.log("Header component mounted. Checking for user data in localStorage.");
-    const userData = localStorage.getItem("loggedInUser");
-    if (userData) {
-      console.log("User data found in localStorage:", userData);
-      setUser(JSON.parse(userData));
-    } else {
-      console.log("No user data in localStorage.");
-    }
-    setIsClient(true);
-  }, []);
+  }, [completeLogin, toast, router]);
 
   const handleLogout = () => {
-    console.log("Logging out user.");
     googleLogout();
     localStorage.removeItem("loggedInUser");
     localStorage.removeItem("jwt");
@@ -165,17 +118,6 @@ export function Header() {
     router.push("/");
   };
   
-  const handleDepartmentSubmit = async () => {
-    if (!selectedDepartment) {
-        toast({ variant: "destructive", title: "Please select a department." });
-        return;
-    }
-    if (googleCredential) {
-        setIsSubmittingDepartment(true);
-        await handleGoogleAuth(googleCredential, selectedDepartment);
-    }
-  };
-
   return (
     <>
       <header className="sticky top-0 z-50 w-full border-b bg-background">
@@ -294,33 +236,6 @@ export function Header() {
           </div>
         </div>
       </header>
-
-      <Dialog open={showDepartmentModal} onOpenChange={setShowDepartmentModal}>
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>Welcome! Please select your department</DialogTitle>
-                <DialogDescription>
-                    To complete your registration, we need to know which department you belong to.
-                </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-                <Label htmlFor="department">Department</Label>
-                <Combobox
-                    items={departments}
-                    value={selectedDepartment}
-                    onChange={setSelectedDepartment}
-                    placeholder="Select department..."
-                    searchPlaceholder="Search departments..."
-                    noResultsMessage="No department found."
-                />
-            </div>
-            <DialogFooter>
-                <Button onClick={handleDepartmentSubmit} disabled={isSubmittingDepartment}>
-                    {isSubmittingDepartment ? "Submitting..." : "Complete Registration"}
-                </Button>
-            </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }

@@ -31,7 +31,6 @@ async function api<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
       defaultHeaders['Authorization'] = `Bearer ${token}`;
     } else {
       console.warn('Authenticated request made without a token.');
-      // Optionally, you could throw an error here or redirect to login
     }
   }
 
@@ -46,32 +45,19 @@ async function api<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
 
   const response = await fetch(`${API_BASE_URL}/api/v1${endpoint}`, config);
 
+  const responseData = await response.json();
+
   if (!response.ok) {
-    let errorData: ApiErrorResponse | null = null;
-    try {
-        errorData = await response.json();
-    } catch (e) {
-        // Not a JSON response, or no body.
-    }
-
-    if (errorData && errorData.message) {
-        let errorMessage = errorData.message;
-        if (errorData.details && Array.isArray(errorData.details) && errorData.details.length > 0) {
-            const details = errorData.details.map(d => `${d.field}: ${d.msg}`).join(', ');
-            errorMessage += `: ${details}`;
-        }
-        throw new Error(errorMessage);
-    }
-    
-    // Fallback error message
-    throw new Error(response.statusText || `API request failed with status: ${response.status}`);
+    // Forward the structured error from the backend
+    throw new Error(JSON.stringify(responseData));
+  }
+  
+  // Also handle cases where backend returns success:false in a 200 OK response
+  if (responseData.success === false) {
+      throw new Error(JSON.stringify(responseData));
   }
 
-  if (response.status === 204) {
-    return null as T;
-  }
-
-  return response.json() as T;
+  return responseData as T;
 }
 
 export default api;
