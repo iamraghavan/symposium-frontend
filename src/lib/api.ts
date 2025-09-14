@@ -43,7 +43,7 @@ async function api<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
     config.body = JSON.stringify(body);
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+  const response = await fetch(`${API_BASE_URL}/api/v1${endpoint}`, config);
 
   if (!response.ok) {
     let errorMessage = `API request failed with status: ${response.status}`;
@@ -51,7 +51,7 @@ async function api<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
       const errorData: ApiErrorResponse = await response.json();
       if (errorData.message) {
           errorMessage = errorData.message;
-          if (errorData.details && Array.isArray(errorData.details)) {
+          if (errorData.details && Array.isArray(errorData.details) && errorData.details.length > 0) {
               const details = errorData.details.map(d => `${d.field}: ${d.msg}`).join(', ');
               if (details) {
                   errorMessage += `: ${details}`;
@@ -59,7 +59,7 @@ async function api<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
           }
       }
     } catch (e) {
-      // Fallback if response is not JSON
+      // Fallback if response is not JSON or has no body
       if (response.statusText) {
           errorMessage = response.statusText;
       }
