@@ -13,15 +13,13 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import GoogleIcon from '@mui/icons-material/Google';
 import { useState, useEffect } from 'react';
 import { Combobox } from '@/components/ui/combobox';
 import api from '@/lib/api';
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
-import type { ApiSuccessResponse, LoggedInUser } from '@/lib/types';
+import type { ApiSuccessResponse, LoggedInUser, Department } from '@/lib/types';
 import { GoogleLogin } from '@react-oauth/google';
-
 
 type College = {
     university: string;
@@ -39,9 +37,12 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [collegeValue, setCollegeValue] = useState("");
+  const [departmentValue, setDepartmentValue] = useState("");
   
   const [colleges, setColleges] = useState<{ value: string; label: string }[]>([]);
+  const [departments, setDepartments] = useState<{ value: string; label: string }[]>([]);
   const [loadingColleges, setLoadingColleges] = useState(true);
+  const [loadingDepartments, setLoadingDepartments] = useState(true);
   
   useEffect(() => {
     async function fetchColleges() {
@@ -64,7 +65,31 @@ export default function SignupPage() {
         setLoadingColleges(false);
       }
     }
+    
+    async function fetchDepartments() {
+        try {
+            const response = await api<ApiSuccessResponse<{ departments: Department[] }>>('/departments');
+            if(response.success && response.data) {
+                const formattedDepartments = response.data.departments.map(d => ({
+                    value: d._id,
+                    label: d.name,
+                }));
+                setDepartments(formattedDepartments);
+            }
+        } catch (error) {
+            console.error("Failed to fetch departments:", error);
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: "Failed to load department list.",
+            });
+        } finally {
+            setLoadingDepartments(false);
+        }
+    }
+
     fetchColleges();
+    fetchDepartments();
   }, [toast]);
 
   const handleGoogleSuccess = async (credentialResponse: any) => {
@@ -81,7 +106,11 @@ export default function SignupPage() {
                 title: "Login Successful",
                 description: `Welcome, ${response.user.name}!`,
             });
-            router.push('/');
+             if (response.user.role === 'super_admin' || response.user.role === 'department_admin') {
+                router.push('/u/s/portal/dashboard');
+            } else {
+                router.push('/events');
+            }
         } else {
             throw new Error((response as any).message || "Google login failed.");
         }
@@ -98,7 +127,7 @@ export default function SignupPage() {
     toast({
         variant: "destructive",
         title: "Login Failed",
-        description: "Google authentication failed.",
+        description: "An unknown error occurred during Google authentication.",
     });
   };
 
@@ -114,6 +143,14 @@ export default function SignupPage() {
         });
         return;
     }
+    if (!departmentValue) {
+        toast({
+            variant: "destructive",
+            title: "Validation Error",
+            description: "Please select your department.",
+        });
+        return;
+    }
 
     try {
         const response = await api<ApiSuccessResponse<{ user: LoggedInUser, token: string }>>('/auth/register', {
@@ -123,6 +160,7 @@ export default function SignupPage() {
                 email,
                 password,
                 college: selectedCollege.label, // Send the full college name
+                departmentId: departmentValue,
             }
         });
 
@@ -133,7 +171,7 @@ export default function SignupPage() {
                 title: "Registration Successful",
                 description: `Welcome, ${response.user.name}!`,
             });
-            router.push('/');
+            router.push('/events');
         } else {
             throw new Error((response as any).message || "Registration failed.");
         }
@@ -176,6 +214,18 @@ export default function SignupPage() {
             <div className="grid gap-2">
                 <Label htmlFor="password">Password</Label>
                 <Input id="password" type="password" required value={password} onChange={e => setPassword(e.target.value)} />
+            </div>
+             <div className="grid gap-2">
+                <Label htmlFor="department">Department</Label>
+                <Combobox 
+                    items={departments}
+                    value={departmentValue}
+                    onChange={setDepartmentValue}
+                    placeholder={loadingDepartments ? "Loading departments..." : "Select department..."}
+                    searchPlaceholder="Search departments..."
+                    noResultsMessage="No department found."
+                    disabled={loadingDepartments}
+                />
             </div>
             <div className="grid gap-2">
                 <Label htmlFor="college">College</Label>

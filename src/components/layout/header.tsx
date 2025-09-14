@@ -24,8 +24,7 @@ import React, { useEffect, useState } from "react";
 import type { LoggedInUser, ApiSuccessResponse } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { LifeBuoy, LogOut, Settings } from "lucide-react";
-import GoogleIcon from '@mui/icons-material/Google';
-import { useGoogleLogin, googleLogout, hasGrantedAnyScope, GoogleLogin } from '@react-oauth/google';
+import { googleLogout, GoogleLogin } from '@react-oauth/google';
 import api from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
@@ -70,6 +69,8 @@ export function Header() {
             });
             if (response.user.role === 'super_admin' || response.user.role === 'department_admin') {
                 router.push('/u/s/portal/dashboard');
+            } else {
+                router.push('/events');
             }
         } else {
             throw new Error((response as any).message || "Google login failed.");
@@ -87,7 +88,7 @@ export function Header() {
     toast({
         variant: "destructive",
         title: "Login Failed",
-        description: "Google authentication failed.",
+        description: "An unknown error occurred during Google authentication.",
     });
   };
 
