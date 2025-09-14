@@ -19,14 +19,24 @@ import {
   SheetTrigger,
   SheetClose,
 } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import type { LoggedInUser, ApiSuccessResponse, Department } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { LifeBuoy, LogOut } from "lucide-react";
-import { googleLogout, GoogleLogin } from '@react-oauth/google';
+import { googleLogout, GoogleLogin, useGoogleOneTapLogin, CredentialResponse } from '@react-oauth/google';
 import api from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { Combobox } from "../ui/combobox";
+import { Label } from "../ui/label";
 
 export function Header() {
   const router = useRouter();
@@ -34,6 +44,105 @@ export function Header() {
   const [user, setUser] = useState<LoggedInUser | null>(null);
   const [isClient, setIsClient] = useState(false);
   
+  // State for new user department selection
+  const [showDepartmentModal, setShowDepartmentModal] = useState(false);
+  const [departments, setDepartments] = useState<{ value: string; label: string }[]>([]);
+  const [selectedDepartment, setSelectedDepartment] = useState("");
+  const [googleCredential, setGoogleCredential] = useState<CredentialResponse | null>(null);
+  const [isSubmittingDepartment, setIsSubmittingDepartment] = useState(false);
+
+  const completeLogin = useCallback((token: string, user: LoggedInUser) => {
+    console.log("completeLogin called with token and user:", { token, user });
+    localStorage.setItem('jwt', token);
+    localStorage.setItem('loggedInUser', JSON.stringify(user));
+    setUser(user);
+    toast({
+        title: "Login Successful",
+        description: `Welcome, ${user.name}!`,
+    });
+
+    if (user.role === 'super_admin' || user.role === 'department_admin') {
+        router.push('/u/s/portal/dashboard');
+    } else {
+        router.push('/events');
+    }
+  }, [toast, router]);
+
+  const handleGoogleAuth = useCallback(async (credentialResponse: CredentialResponse, departmentId?: string) => {
+    if (!credentialResponse.credential) {
+        console.error("Google credential not found in response.");
+        toast({
+            variant: "destructive",
+            title: "Login Failed",
+            description: "Could not retrieve Google credential.",
+        });
+        return;
+    }
+    
+    console.log('Attempting Google Auth with token:', credentialResponse.credential);
+
+    try {
+        const body: { idToken: string; departmentId?: string } = { idToken: credentialResponse.credential };
+        if (departmentId) {
+            body.departmentId = departmentId;
+        }
+
+        const response = await api<ApiSuccessResponse<{ user: LoggedInUser, token: string }>>('/auth/google', {
+            method: 'POST',
+            body: body,
+        });
+        
+        console.log('Backend Response:', response);
+
+        if (response.success && response.token && response.user) {
+            completeLogin(response.token, response.user);
+            setShowDepartmentModal(false); // Close modal on success
+        } else {
+            throw new Error((response as any).message || "Google login failed: Invalid response from server.");
+        }
+    } catch (error: any) {
+        console.error("Google Auth API Error:", error);
+        
+        // Check if the error indicates a new user needs to select a department
+        if (error.message && error.message.toLowerCase().includes('department is required for new user')) {
+            setGoogleCredential(credentialResponse);
+            
+            // Fetch departments
+            try {
+                const deptResponse = await api<ApiSuccessResponse<{ departments: Department[] }>>('/departments');
+                if (deptResponse.success && deptResponse.data) {
+                    setDepartments(deptResponse.data.departments.map(d => ({ value: d._id, label: d.name })));
+                    setShowDepartmentModal(true);
+                } else {
+                    throw new Error("Failed to load departments.");
+                }
+            } catch (deptError) {
+                toast({
+                    variant: "destructive",
+                    title: "Setup Error",
+                    description: "Could not fetch department list. Please contact support.",
+                });
+            }
+        } else {
+             toast({
+                variant: "destructive",
+                title: "Login Failed",
+                description: error.message || "An unknown error occurred. Please try again.",
+            });
+        }
+    } finally {
+        setIsSubmittingDepartment(false);
+    }
+  }, [completeLogin, toast]);
+
+  useGoogleOneTapLogin({
+    onSuccess: handleGoogleAuth,
+    onError: () => {
+      console.log('One Tap login error');
+    },
+    disabled: !isClient || !!user,
+  });
+
   useEffect(() => {
     console.log("Header component mounted. Checking for user data in localStorage.");
     const userData = localStorage.getItem("loggedInUser");
@@ -55,188 +164,163 @@ export function Header() {
     toast({ title: "Logged out successfully" });
     router.push("/");
   };
-
-  const completeLogin = (token: string, user: LoggedInUser) => {
-    console.log("completeLogin called with token and user:", { token, user });
-    localStorage.setItem('jwt', token);
-    localStorage.setItem('loggedInUser', JSON.stringify(user));
-    setUser(user);
-    toast({
-        title: "Login Successful",
-        description: `Welcome, ${user.name}!`,
-    });
-
-    if (user.role === 'super_admin' || user.role === 'department_admin') {
-        router.push('/u/s/portal/dashboard');
-    } else {
-        router.push('/events');
-    }
-  }
   
-  const handleGoogleAuth = async (idToken: string) => {
-    console.log('Attempting Google Auth with token:', idToken);
-     try {
-        const response = await api<ApiSuccessResponse<{ user: LoggedInUser, token: string }>>('/auth/google', {
-            method: 'POST',
-            body: { idToken }
-        });
-        
-        console.log('Backend Response:', response);
-
-        if (response.success && response.token && response.user) {
-            completeLogin(response.token, response.user);
-        } else {
-            throw new Error((response as any).message || "Google login failed: Invalid response from server.");
-        }
-    } catch (error: any) {
-        console.error("Google Auth API Error:", error);
-        toast({
-            variant: "destructive",
-            title: "Login Failed",
-            description: error.message || "An unknown error occurred. Please try again.",
-        });
+  const handleDepartmentSubmit = async () => {
+    if (!selectedDepartment) {
+        toast({ variant: "destructive", title: "Please select a department." });
+        return;
     }
-  };
-
-  const handleGoogleSuccess = (credentialResponse: any) => {
-      console.log('Google Success Callback:', credentialResponse);
-      if (credentialResponse.credential) {
-          handleGoogleAuth(credentialResponse.credential);
-      } else {
-          console.error("Google credential not found in response.");
-          toast({
-              variant: "destructive",
-              title: "Login Failed",
-              description: "Could not retrieve Google credential.",
-          });
-      }
-  };
-
-  const handleGoogleError = () => {
-    console.error('Google Login Error');
-    toast({
-        variant: "destructive",
-        title: "Login Failed",
-        description: "An unknown error occurred during Google authentication.",
-    });
+    if (googleCredential) {
+        setIsSubmittingDepartment(true);
+        await handleGoogleAuth(googleCredential, selectedDepartment);
+    }
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background">
-      <div className="w-full px-[50px]">
-        <div className="flex h-16 items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 font-bold">
-          <AppWindow className="h-6 w-6 text-primary" />
-          <span className="font-headline text-lg hidden sm:inline-block">Symposium Central</span>
-          </Link>
+    <>
+      <header className="sticky top-0 z-50 w-full border-b bg-background">
+        <div className="w-full px-[50px]">
+          <div className="flex h-16 items-center justify-between">
+            <Link href="/" className="flex items-center gap-2 font-bold">
+            <AppWindow className="h-6 w-6 text-primary" />
+            <span className="font-headline text-lg hidden sm:inline-block">Symposium Central</span>
+            </Link>
 
-          <div className="flex items-center gap-4">
-            <nav className="hidden md:flex items-center gap-6 text-sm">
-               <Link href="/events" className="text-muted-foreground transition-colors hover:text-foreground">Explore Events</Link>
-               <Link href="/#about-event" className="text-muted-foreground transition-colors hover:text-foreground">About</Link>
-               <Link href="/code-of-conduct" className="text-muted-foreground transition-colors hover:text-foreground">Code of Conduct</Link>
-            </nav>
+            <div className="flex items-center gap-4">
+              <nav className="hidden md:flex items-center gap-6 text-sm">
+                 <Link href="/events" className="text-muted-foreground transition-colors hover:text-foreground">Explore Events</Link>
+                 <Link href="/#about-event" className="text-muted-foreground transition-colors hover:text-foreground">About</Link>
+                 <Link href="/code-of-conduct" className="text-muted-foreground transition-colors hover:text-foreground">Code of Conduct</Link>
+              </nav>
 
-            <div className="flex items-center justify-end gap-2 md:gap-4">
-               <div className="relative w-full max-w-sm hidden sm:block">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="search"
-                    placeholder="Search events..."
-                    className="pl-8"
-                  />
-                </div>
-              {isClient && user ? (
-                 <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                      <Avatar>
-                        <AvatarImage
-                            src={user.picture || `https://picsum.photos/seed/${user.name}/40/40`}
-                            alt={user.name}
-                            data-ai-hint="person"
-                          />
-                        <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuLabel>
-                        <div className="flex flex-col">
-                            <span className="text-sm font-medium">{user.name}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {user.email}
-                            </span>
-                        </div>
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                     <DropdownMenuItem onClick={() => router.push('/u/s/portal/dashboard')}>
-                      <Settings className="mr-2 h-4 w-4" />
-                      <span>Dashboard</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <LifeBuoy className="mr-2 h-4 w-4" />
-                      <span>Support</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleLogout}>
-                      <LogOut className="mr-2 h-4 w-4" />
-                      <span>Log out</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : isClient && (
-                <div className="hidden md:flex items-center gap-2">
-                     <GoogleLogin
-                        onSuccess={handleGoogleSuccess}
-                        onError={handleGoogleError}
-                        theme="outline"
-                        text="continue_with"
-                        shape="rectangular"
-                     />
-                </div>
-              )}
-               <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="md:hidden">
-                    <Menu className="h-6 w-6" />
-                    <span className="sr-only">Toggle Navigation</span>
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left">
-                  <div className="flex flex-col gap-6 p-6">
-                    <Link href="/" className="flex items-center gap-2 font-bold">
-                        <AppWindow className="h-6 w-6 text-primary" />
-                        <span className="font-headline text-lg">Symposium Central</span>
-                    </Link>
-                    <nav className="flex flex-col gap-4">
-                      <SheetClose asChild>
-                        <Link href="/events" className="text-muted-foreground transition-colors hover:text-foreground">Explore Events</Link>
-                      </SheetClose>
-                      <SheetClose asChild>
-                        <Link href="/#about-event" className="text-muted-foreground transition-colors hover:text-foreground">About</Link>
-                      </SheetClose>
-                      <SheetClose asChild>
-                        <Link href="/code-of-conduct" className="text-muted-foreground transition-colors hover:text-foreground">Code of Conduct</Link>
-                      </SheetClose>
-                    </nav>
-                     <div className="flex flex-col gap-2 pt-4 border-t">
-                        {isClient && user ? (
-                          <Button onClick={handleLogout}>Log out</Button>
-                        ) : isClient && (
-                           <GoogleLogin
-                                onSuccess={handleGoogleSuccess}
-                                onError={handleGoogleError}
-                             />
-                        )}
-                      </div>
+              <div className="flex items-center justify-end gap-2 md:gap-4">
+                 <div className="relative w-full max-w-sm hidden sm:block">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="search"
+                      placeholder="Search events..."
+                      className="pl-8"
+                    />
                   </div>
-                </SheetContent>
-              </Sheet>
+                {isClient && user ? (
+                   <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                        <Avatar>
+                          <AvatarImage
+                              src={user.picture || `https://picsum.photos/seed/${user.name}/40/40`}
+                              alt={user.name}
+                              data-ai-hint="person"
+                            />
+                          <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                      <DropdownMenuLabel>
+                          <div className="flex flex-col">
+                              <span className="text-sm font-medium">{user.name}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {user.email}
+                              </span>
+                          </div>
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                       <DropdownMenuItem onClick={() => router.push('/u/s/portal/dashboard')}>
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>Dashboard</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <LifeBuoy className="mr-2 h-4 w-4" />
+                        <span>Support</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={handleLogout}>
+                        <LogOut className="mr-2 h-4 w-4" />
+                        <span>Log out</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : isClient && (
+                  <div className="hidden md:flex items-center gap-2">
+                       <GoogleLogin
+                          onSuccess={handleGoogleAuth}
+                          onError={() => toast({ variant: "destructive", title: "Google login failed."})}
+                          theme="outline"
+                          text="continue_with"
+                          shape="rectangular"
+                       />
+                  </div>
+                )}
+                 <Sheet>
+                  <SheetTrigger asChild>
+                    <Button variant="ghost" size="icon" className="md:hidden">
+                      <Menu className="h-6 w-6" />
+                      <span className="sr-only">Toggle Navigation</span>
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="left">
+                    <div className="flex flex-col gap-6 p-6">
+                      <Link href="/" className="flex items-center gap-2 font-bold">
+                          <AppWindow className="h-6 w-6 text-primary" />
+                          <span className="font-headline text-lg">Symposium Central</span>
+                      </Link>
+                      <nav className="flex flex-col gap-4">
+                        <SheetClose asChild>
+                          <Link href="/events" className="text-muted-foreground transition-colors hover:text-foreground">Explore Events</Link>
+                        </SheetClose>
+                        <SheetClose asChild>
+                          <Link href="/#about-event" className="text-muted-foreground transition-colors hover:text-foreground">About</Link>
+                        </SheetClose>
+                        <SheetClose asChild>
+                          <Link href="/code-of-conduct" className="text-muted-foreground transition-colors hover:text-foreground">Code of Conduct</Link>
+                        </SheetClose>
+                      </nav>
+                       <div className="flex flex-col gap-2 pt-4 border-t">
+                          {isClient && user ? (
+                            <Button onClick={handleLogout}>Log out</Button>
+                          ) : isClient && (
+                             <GoogleLogin
+                                  onSuccess={handleGoogleAuth}
+                                  onError={() => toast({ variant: "destructive", title: "Google login failed."})}
+                               />
+                          )}
+                        </div>
+                    </div>
+                  </SheetContent>
+                </Sheet>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      <Dialog open={showDepartmentModal} onOpenChange={setShowDepartmentModal}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Welcome! Please select your department</DialogTitle>
+                <DialogDescription>
+                    To complete your registration, we need to know which department you belong to.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+                <Label htmlFor="department">Department</Label>
+                <Combobox
+                    items={departments}
+                    value={selectedDepartment}
+                    onChange={setSelectedDepartment}
+                    placeholder="Select department..."
+                    searchPlaceholder="Search departments..."
+                    noResultsMessage="No department found."
+                />
+            </div>
+            <DialogFooter>
+                <Button onClick={handleDepartmentSubmit} disabled={isSubmittingDepartment}>
+                    {isSubmittingDepartment ? "Submitting..." : "Complete Registration"}
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

@@ -1,4 +1,5 @@
 
+
 export type Department = {
   _id: string;
   id: string;
@@ -17,6 +18,7 @@ export type User = {
   college: string;
   registeredAt: string;
   avatarUrl: string;
+  picture?: string;
 };
 
 export type Event = {
@@ -68,5 +70,3 @@ export type ApiErrorResponse = {
     message: string;
     details?: { field: string; msg: string }[];
 };
-
-    
