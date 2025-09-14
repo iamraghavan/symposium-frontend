@@ -45,13 +45,6 @@ export function Header() {
   const [user, setUser] = useState<LoggedInUser | null>(null);
   const [isClient, setIsClient] = useState(false);
   
-  const [showDepartmentModal, setShowDepartmentModal] = useState(false);
-  const [googleCredential, setGoogleCredential] = useState<string | null>(null);
-  const [departments, setDepartments] = useState<{ value: string; label: string }[]>([]);
-  const [loadingDepartments, setLoadingDepartments] = useState(false);
-  const [selectedDepartment, setSelectedDepartment] = useState("");
-
-
   useEffect(() => {
     const userData = localStorage.getItem("loggedInUser");
     if (userData) {
@@ -59,31 +52,6 @@ export function Header() {
     }
     setIsClient(true);
   }, []);
-
-  const fetchDepartments = async () => {
-    if (departments.length > 0) return;
-    setLoadingDepartments(true);
-    try {
-        const response = await api<ApiSuccessResponse<{ departments: Department[] }>>('/departments');
-        if (response.success && response.data) {
-            const formattedDepartments = response.data.departments.map(d => ({
-                value: d._id,
-                label: d.name,
-            }));
-            setDepartments(formattedDepartments);
-        }
-    } catch (error) {
-        console.error("Failed to fetch departments:", error);
-        toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Failed to load department list.",
-        });
-    } finally {
-        setLoadingDepartments(false);
-    }
-  }
-
 
   const handleLogout = () => {
     googleLogout();
@@ -110,32 +78,25 @@ export function Header() {
     }
   }
   
-  const handleGoogleAuth = async (idToken: string, departmentId?: string) => {
+  const handleGoogleAuth = async (idToken: string) => {
      try {
-        const response = await api<ApiSuccessResponse<{ user: LoggedInUser, token: string }> | ApiErrorResponse>('/auth/google', {
+        const response = await api<ApiSuccessResponse<{ user: LoggedInUser, token: string }>>('/auth/google', {
             method: 'POST',
-            body: { idToken, ...(departmentId && { departmentId }) }
+            body: { idToken }
         });
         
         if (response.success && response.token && response.user) {
             completeLogin(response.token, response.user);
-            return;
+        } else {
+            throw new Error((response as any).message || "Google login failed.");
         }
-
-        throw new Error((response as ApiErrorResponse).message || "Google login failed.");
 
     } catch (error: any) {
-        if (error.message.includes("Department is required")) {
-             setGoogleCredential(idToken);
-             await fetchDepartments();
-             setShowDepartmentModal(true);
-        } else {
-            toast({
-                variant: "destructive",
-                title: "Login Failed",
-                description: error.message || "An unknown error occurred. Please try again.",
-            });
-        }
+        toast({
+            variant: "destructive",
+            title: "Login Failed",
+            description: error.message || "An unknown error occurred. Please try again.",
+        });
     }
   };
 
@@ -158,19 +119,6 @@ export function Header() {
       onError: handleGoogleError,
       disabled: !isClient || !!user,
   });
-
-  const handleDepartmentSelection = async () => {
-      if (!googleCredential) return;
-      if (!selectedDepartment) {
-          toast({ variant: "destructive", title: "Please select a department."});
-          return;
-      }
-      await handleGoogleAuth(googleCredential, selectedDepartment);
-      setShowDepartmentModal(false);
-      setGoogleCredential(null);
-      setSelectedDepartment("");
-  };
-
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background">
@@ -288,37 +236,6 @@ export function Header() {
           </div>
         </div>
       </div>
-       <Dialog open={showDepartmentModal} onOpenChange={setShowDepartmentModal}>
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>Complete Your Registration</DialogTitle>
-                <DialogDescription>
-                    Welcome! To finish setting up your account, please select your department.
-                </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-                 <div className="grid gap-2">
-                    <Label htmlFor="department">Department</Label>
-                    <Combobox 
-                        items={departments}
-                        value={selectedDepartment}
-                        onChange={setSelectedDepartment}
-                        placeholder={loadingDepartments ? "Loading departments..." : "Select department..."}
-                        searchPlaceholder="Search departments..."
-                        noResultsMessage="No department found."
-                        disabled={loadingDepartments}
-                    />
-                </div>
-            </div>
-            <DialogFooter>
-                <Button onClick={handleDepartmentSelection} disabled={loadingDepartments}>
-                    Continue
-                </Button>
-            </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </header>
   );
 }
-
-    
