@@ -19,14 +19,24 @@ import {
   SheetTrigger,
   SheetClose,
 } from "@/components/ui/sheet";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import React, { useEffect, useState } from "react";
-import type { LoggedInUser, ApiSuccessResponse } from "@/lib/types";
+import type { LoggedInUser, ApiSuccessResponse, Department } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { LifeBuoy, LogOut, Settings } from "lucide-react";
-import { googleLogout, GoogleLogin } from '@react-oauth/google';
+import { googleLogout, GoogleLogin, useGoogleOneTapLogin } from '@react-oauth/google';
 import api from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { Combobox } from "../ui/combobox";
+import { Label } from "../ui/label";
 
 
 export function Header() {
@@ -34,6 +44,13 @@ export function Header() {
   const { toast } = useToast();
   const [user, setUser] = useState<LoggedInUser | null>(null);
   const [isClient, setIsClient] = useState(false);
+  
+  const [showDepartmentModal, setShowDepartmentModal] = useState(false);
+  const [googleCredential, setGoogleCredential] = useState<string | null>(null);
+  const [departments, setDepartments] = useState<{ value: string; label: string }[]>([]);
+  const [loadingDepartments, setLoadingDepartments] = useState(false);
+  const [selectedDepartment, setSelectedDepartment] = useState("");
+
 
   useEffect(() => {
     const userData = localStorage.getItem("loggedInUser");
@@ -43,6 +60,31 @@ export function Header() {
     setIsClient(true);
   }, []);
 
+  const fetchDepartments = async () => {
+    if (departments.length > 0) return;
+    setLoadingDepartments(true);
+    try {
+        const response = await api<ApiSuccessResponse<{ departments: Department[] }>>('/departments');
+        if (response.success && response.data) {
+            const formattedDepartments = response.data.departments.map(d => ({
+                value: d._id,
+                label: d.name,
+            }));
+            setDepartments(formattedDepartments);
+        }
+    } catch (error) {
+        console.error("Failed to fetch departments:", error);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to load department list.",
+        });
+    } finally {
+        setLoadingDepartments(false);
+    }
+  }
+
+
   const handleLogout = () => {
     googleLogout();
     localStorage.removeItem("loggedInUser");
@@ -51,37 +93,58 @@ export function Header() {
     toast({ title: "Logged out successfully" });
     router.push("/");
   };
+
+  const completeLogin = (token: string, user: LoggedInUser) => {
+    localStorage.setItem('jwt', token);
+    localStorage.setItem('loggedInUser', JSON.stringify(user));
+    setUser(user);
+    toast({
+        title: "Login Successful",
+        description: `Welcome, ${user.name}!`,
+    });
+    if (user.role === 'super_admin' || user.role === 'department_admin') {
+        router.push('/u/s/portal/dashboard');
+    } else {
+        router.push('/events');
+    }
+  }
   
-  const handleGoogleSuccess = async (credentialResponse: any) => {
-    try {
+  const handleGoogleAuth = async (idToken: string, departmentId?: string) => {
+     try {
         const response = await api<ApiSuccessResponse<{ user: LoggedInUser, token: string }>>('/auth/google', {
             method: 'POST',
-            body: { idToken: credentialResponse.credential }
+            body: { idToken, ...(departmentId && { departmentId }) }
         });
         
         if (response.success && response.token && response.user) {
-            localStorage.setItem('jwt', response.token);
-            localStorage.setItem('loggedInUser', JSON.stringify(response.user));
-            setUser(response.user);
-            toast({
-                title: "Login Successful",
-                description: `Welcome, ${response.user.name}!`,
-            });
-            if (response.user.role === 'super_admin' || response.user.role === 'department_admin') {
-                router.push('/u/s/portal/dashboard');
-            } else {
-                router.push('/events');
-            }
+            completeLogin(response.token, response.user);
+        } else if ((response as any).requiresDepartment) {
+            // New user, ask for department
+            setGoogleCredential(idToken);
+            await fetchDepartments();
+            setShowDepartmentModal(true);
         } else {
             throw new Error((response as any).message || "Google login failed.");
         }
-    } catch (error) {
-        toast({
-            variant: "destructive",
-            title: "Login Failed",
-            description: (error as Error).message || "Could not sign in with Google. Please try again.",
-        });
+    } catch (error: any) {
+        if(error.message.includes("User not found and departmentId is required")) {
+             setGoogleCredential(idToken);
+             await fetchDepartments();
+             setShowDepartmentModal(true);
+        } else {
+            toast({
+                variant: "destructive",
+                title: "Login Failed",
+                description: error.message || "Could not sign in with Google. Please try again.",
+            });
+        }
     }
+  };
+
+  const handleGoogleSuccess = (credentialResponse: any) => {
+      if (credentialResponse.credential) {
+          handleGoogleAuth(credentialResponse.credential);
+      }
   };
 
   const handleGoogleError = () => {
@@ -90,6 +153,24 @@ export function Header() {
         title: "Login Failed",
         description: "An unknown error occurred during Google authentication.",
     });
+  };
+
+  useGoogleOneTapLogin({
+      onSuccess: handleGoogleSuccess,
+      onError: handleGoogleError,
+      disabled: !isClient || !!user,
+  });
+
+  const handleDepartmentSelection = async () => {
+      if (!googleCredential) return;
+      if (!selectedDepartment) {
+          toast({ variant: "destructive", title: "Please select a department."});
+          return;
+      }
+      await handleGoogleAuth(googleCredential, selectedDepartment);
+      setShowDepartmentModal(false);
+      setGoogleCredential(null);
+      setSelectedDepartment("");
   };
 
 
@@ -161,12 +242,6 @@ export function Header() {
                 </DropdownMenu>
               ) : isClient && (
                 <div className="hidden md:flex items-center gap-2">
-                   <GoogleLogin
-                        onSuccess={handleGoogleSuccess}
-                        onError={handleGoogleError}
-                        useOneTap
-                        auto_select
-                    />
                      <GoogleLogin
                         onSuccess={handleGoogleSuccess}
                         onError={handleGoogleError}
@@ -217,6 +292,37 @@ export function Header() {
           </div>
         </div>
       </div>
+       <Dialog open={showDepartmentModal} onOpenChange={setShowDepartmentModal}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Complete Your Registration</DialogTitle>
+                <DialogDescription>
+                    Welcome! To finish setting up your account, please select your department.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+                 <div className="grid gap-2">
+                    <Label htmlFor="department">Department</Label>
+                    <Combobox 
+                        items={departments}
+                        value={selectedDepartment}
+                        onChange={setSelectedDepartment}
+                        placeholder={loadingDepartments ? "Loading departments..." : "Select department..."}
+                        searchPlaceholder="Search departments..."
+                        noResultsMessage="No department found."
+                        disabled={loadingDepartments}
+                    />
+                </div>
+            </div>
+            <DialogFooter>
+                <Button onClick={handleDepartmentSelection} disabled={loadingDepartments}>
+                    Continue
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </header>
   );
 }
+
+    

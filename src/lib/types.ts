@@ -52,7 +52,7 @@ export type LoggedInUser = {
   name: string;
   email: string;
   role: 'super_admin' | 'department_admin' | 'user';
-  department?: string; // Department ID
+  departmentId?: string; // Department ID
 };
 
 export type ApiSuccessResponse<T> = {
@@ -67,3 +67,5 @@ export type ApiErrorResponse = {
     message: string;
     details?: { field: string; msg: string }[];
 };
+
+    
