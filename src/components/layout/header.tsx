@@ -19,24 +19,14 @@ import {
   SheetTrigger,
   SheetClose,
 } from "@/components/ui/sheet";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter,
-} from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import React, { useEffect, useState } from "react";
-import type { LoggedInUser, ApiSuccessResponse, Department, ApiErrorResponse } from "@/lib/types";
+import type { LoggedInUser, ApiSuccessResponse } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { LifeBuoy, LogOut } from "lucide-react";
 import { googleLogout, GoogleLogin, useGoogleOneTapLogin } from '@react-oauth/google';
 import api from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Combobox } from "../ui/combobox";
-import { Label } from "../ui/label";
 
 
 export function Header() {
@@ -79,19 +69,22 @@ export function Header() {
   }
   
   const handleGoogleAuth = async (idToken: string) => {
+    console.log('Attempting Google Auth with token:', idToken);
      try {
         const response = await api<ApiSuccessResponse<{ user: LoggedInUser, token: string }>>('/auth/google', {
             method: 'POST',
             body: { idToken }
         });
         
+        console.log('Backend Response:', response);
+
         if (response.success && response.token && response.user) {
             completeLogin(response.token, response.user);
         } else {
-            throw new Error((response as any).message || "Google login failed.");
+            throw new Error((response as any).message || "Google login failed: Invalid response from server.");
         }
-
     } catch (error: any) {
+        console.error("Google Auth API Error:", error);
         toast({
             variant: "destructive",
             title: "Login Failed",
@@ -101,12 +94,21 @@ export function Header() {
   };
 
   const handleGoogleSuccess = (credentialResponse: any) => {
+      console.log('Google Success Callback:', credentialResponse);
       if (credentialResponse.credential) {
           handleGoogleAuth(credentialResponse.credential);
+      } else {
+          console.error("Google credential not found in response.");
+          toast({
+              variant: "destructive",
+              title: "Login Failed",
+              description: "Could not retrieve Google credential.",
+          });
       }
   };
 
   const handleGoogleError = () => {
+    console.error('Google Login Error');
     toast({
         variant: "destructive",
         title: "Login Failed",
