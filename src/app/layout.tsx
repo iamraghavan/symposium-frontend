@@ -1,13 +1,13 @@
 
 "use client";
 
-import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { usePathname } from 'next/navigation';
 import { GoogleOAuthProvider } from '@react-oauth/google';
+import { GoogleOneTap } from '@/components/layout/google-one-tap';
 
 
 // Even with client-side rendering for layout choices, metadata can be defined
@@ -36,6 +36,7 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased bg-background text-foreground" suppressHydrationWarning={true}>
         <GoogleOAuthProvider clientId={googleClientId}>
+          <GoogleOneTap />
           <div className="flex flex-col min-h-screen">
             {!isPortalPage && <Header />}
             <main className="flex-1">{children}</main>

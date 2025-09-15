@@ -48,11 +48,13 @@ async function api<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
   const responseData = await response.json();
 
   if (!response.ok) {
-    // Forward the structured error from the backend
-    throw new Error(JSON.stringify(responseData));
+     if (responseData.details && Array.isArray(responseData.details)) {
+        const errorMessages = responseData.details.map((d: any) => d.msg).join(', ');
+        throw new Error(errorMessages || responseData.message || `API request failed with status: ${response.status}`);
+    }
+    throw new Error(responseData.message || `API request failed with status: ${response.status}`);
   }
   
-  // Also handle cases where backend returns success:false in a 200 OK response
   if (responseData.success === false) {
       throw new Error(JSON.stringify(responseData));
   }

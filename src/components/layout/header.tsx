@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import React, { useEffect, useState, useCallback } from "react";
-import type { LoggedInUser, ApiSuccessResponse } from "@/lib/types";
+import type { LoggedInUser } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { LifeBuoy, LogOut } from "lucide-react";
 import { googleLogout, GoogleLogin, CredentialResponse } from '@react-oauth/google';
@@ -59,6 +59,7 @@ export function Header() {
   }, [toast, router]);
 
   const handleGoogleAuth = useCallback(async (credentialResponse: CredentialResponse) => {
+    console.log("Google Auth Response:", credentialResponse);
     if (!credentialResponse.credential) {
         toast({
             variant: "destructive",
@@ -69,38 +70,45 @@ export function Header() {
     }
 
     try {
-        const response = await api<ApiSuccessResponse<{ user: LoggedInUser, token: string }>>('/auth/google', {
+        console.log("Sending token to backend...");
+        const response: any = await api('/auth/google', {
             method: 'POST',
             body: { idToken: credentialResponse.credential },
         });
+        console.log("Backend response:", response);
 
         if (response.success && response.token && response.user) {
+            console.log("Login successful, completing login...");
             completeLogin(response.token, response.user);
         } else {
-             // This case is for when backend returns success:false for a new user
-             if ((response as any).isNewUser && (response as any).profile) {
-                const profile = (response as any).profile;
-                sessionStorage.setItem('google_signup_profile', JSON.stringify(profile));
+            console.log("Backend indicates new user or other issue.");
+             if (response.isNewUser && response.profile) {
+                console.log("Redirecting new user to signup page with profile:", response.profile);
+                sessionStorage.setItem('google_signup_profile', JSON.stringify(response.profile));
                 router.push('/auth/signup');
              } else {
-                throw new Error((response as any).message || "Google login failed: Invalid response from server.");
+                throw new Error(response.message || "Google login failed: Invalid response from server.");
              }
         }
     } catch (error: any) {
-        if (error.message && error.message.includes('New user')) {
-            try {
-                const profile = JSON.parse(error.message.substring(error.message.indexOf('{')));
-                sessionStorage.setItem('google_signup_profile', JSON.stringify(profile));
+        console.error("Google Auth Error:", error);
+        // This block now specifically handles new user redirection.
+        try {
+            const parsedError = JSON.parse(error.message);
+            if (parsedError.isNewUser && parsedError.profile) {
+                console.log("Caught new user error, redirecting to signup...");
+                sessionStorage.setItem('google_signup_profile', JSON.stringify(parsedError.profile));
                 router.push('/auth/signup');
-            } catch (e) {
-                 toast({
-                    variant: "destructive",
-                    title: "Login Failed",
-                    description: "Failed to process new user data. Please try registering manually.",
-                });
+                return;
             }
-        } else {
              toast({
+                variant: "destructive",
+                title: "Login Failed",
+                description: parsedError.message || "An unknown error occurred. Please try again.",
+            });
+        } catch(e) {
+            // Not a JSON error message, show the raw error.
+            toast({
                 variant: "destructive",
                 title: "Login Failed",
                 description: error.message || "An unknown error occurred. Please try again.",
