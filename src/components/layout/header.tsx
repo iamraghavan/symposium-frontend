@@ -174,7 +174,7 @@ export function Header() {
                           </div>
                       </DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                       {(user.role === 'super_admin' || user.role === 'department_admin') && (
+                       {user.role !== 'user' && (
                           <DropdownMenuItem onClick={() => router.push('/u/s/portal/dashboard')}>
                             <Settings className="mr-2 h-4 w-4" />
                             <span>Dashboard</span>
@@ -240,7 +240,7 @@ export function Header() {
                                     </span>
                                 </div>
                              </div>
-                              {(user.role === 'super_admin' || user.role === 'department_admin') && (
+                              {user.role !== 'user' && (
                                 <SheetClose asChild>
                                   <Button variant="secondary" className="w-full mt-4" onClick={() => router.push('/u/s/portal/dashboard')}>Dashboard</Button>
                                 </SheetClose>
