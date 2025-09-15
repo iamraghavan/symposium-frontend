@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { AppWindow, Menu, Search, Settings } from "lucide-react";
+import { AppWindow, Menu, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -23,7 +23,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import React, { useEffect, useState, useCallback } from "react";
 import type { LoggedInUser } from "@/lib/types";
 import { useRouter } from "next/navigation";
-import { LifeBuoy, LogOut } from "lucide-react";
+import { LifeBuoy, LogOut, LayoutDashboard } from "lucide-react";
 import { googleLogout, GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import api from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -60,6 +60,7 @@ export function Header() {
   }, [toast]);
 
  const handleGoogleAuth = useCallback(async (credentialResponse: CredentialResponse) => {
+    console.log("Google response received:", credentialResponse);
     if (!credentialResponse.credential) {
       toast({
         variant: "destructive",
@@ -70,20 +71,24 @@ export function Header() {
     }
 
     try {
+      console.log("Sending token to backend...");
       const response: any = await api('/auth/google', {
         method: 'POST',
         body: { idToken: credentialResponse.credential },
       });
+      console.log("Backend response:", response);
 
       if (response.success && response.token && response.user) {
         completeLogin(response.token, response.user);
       } else if (response.isNewUser && response.profile) {
+         console.log("New user detected, redirecting to signup completion.");
         sessionStorage.setItem('google_signup_profile', JSON.stringify(response.profile));
         router.push('/auth/signup');
       } else {
         throw new Error(response.message || "Google login failed: Invalid response from server.");
       }
     } catch (error: any) {
+       console.error("Error during Google Auth:", error);
       try {
         const parsedError = JSON.parse(error.message);
         if (parsedError.isNewUser && parsedError.profile) {
@@ -166,9 +171,14 @@ export function Header() {
                           </div>
                       </DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                       {isAdmin(user) && (
+                       {isAdmin(user) ? (
                           <DropdownMenuItem onClick={() => router.push('/u/s/portal/dashboard')}>
-                            <Settings className="mr-2 h-4 w-4" />
+                            <LayoutDashboard className="mr-2 h-4 w-4" />
+                            <span>Admin Dashboard</span>
+                          </DropdownMenuItem>
+                       ) : (
+                          <DropdownMenuItem onClick={() => router.push('/u/d/dashboard')}>
+                            <LayoutDashboard className="mr-2 h-4 w-4" />
                             <span>Dashboard</span>
                           </DropdownMenuItem>
                        )}
@@ -216,7 +226,7 @@ export function Header() {
                       <div className="flex-1 overflow-y-auto">
                         {isClient && user && (
                            <div className="p-4 border-b">
-                             <div className="flex items-center gap-3">
+                             <div className="flex items-center gap-3 mb-4">
                                 <Avatar className="h-10 w-10">
                                   <AvatarImage
                                       src={user.picture || `https://picsum.photos/seed/${user.name}/40/40`}
@@ -232,11 +242,13 @@ export function Header() {
                                     </span>
                                 </div>
                              </div>
-                              {isAdmin(user) && (
-                                <SheetClose asChild>
-                                  <Button variant="secondary" className="w-full mt-4" onClick={() => router.push('/u/s/portal/dashboard')}>Dashboard</Button>
-                                </SheetClose>
-                              )}
+                              <SheetClose asChild>
+                                {isAdmin(user) ? (
+                                    <Button variant="secondary" className="w-full" onClick={() => router.push('/u/s/portal/dashboard')}>Admin Dashboard</Button>
+                                ) : (
+                                    <Button variant="secondary" className="w-full" onClick={() => router.push('/u/d/dashboard')}>Dashboard</Button>
+                                )}
+                              </SheetClose>
                            </div>
                         )}
                         <nav className="flex flex-col gap-2 p-4">
