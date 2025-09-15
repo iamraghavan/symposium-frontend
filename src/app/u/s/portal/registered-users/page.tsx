@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { users } from "@/lib/data";
 import { format, parseISO } from "date-fns";
 import type { LoggedInUser, User } from "@/lib/types";
+import { isAdmin } from "@/lib/utils";
 
 export default function RegisteredUsersPage() {
   const router = useRouter();
@@ -32,9 +33,14 @@ export default function RegisteredUsersPage() {
   useEffect(() => {
     const userData = localStorage.getItem("loggedInUser");
     if (userData) {
-        setUser(JSON.parse(userData));
+        const parsedUser = JSON.parse(userData);
+        if (!isAdmin(parsedUser)) {
+          router.push('/');
+        } else {
+          setUser(parsedUser);
+        }
     } else {
-        router.push('/auth/login');
+        router.push('/c/auth/login?login=s_admin');
     }
   }, [router]);
 

@@ -53,6 +53,7 @@ import {
 import type { Department, LoggedInUser, ApiSuccessResponse } from "@/lib/types";
 import api from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { isAdmin } from "@/lib/utils";
 
 
 export default function AdminDepartmentsPage() {

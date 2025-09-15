@@ -38,6 +38,7 @@ import { format, parseISO } from "date-fns";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { LoggedInUser } from "@/lib/types";
+import { isAdmin } from "@/lib/utils";
 
 
 const totalParticipants = new Set(events.flatMap(event => event.participants.map(p => p.id))).size;
@@ -51,9 +52,14 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     const userData = localStorage.getItem("loggedInUser");
     if (userData) {
-      setUser(JSON.parse(userData));
+      const parsedUser = JSON.parse(userData);
+      if (!isAdmin(parsedUser)) {
+        router.push('/');
+      } else {
+        setUser(parsedUser);
+      }
     } else {
-      router.push('/auth/login');
+      router.push('/c/auth/login?login=s_admin');
     }
     setIsClient(true);
   }, [router]);
@@ -67,7 +73,7 @@ export default function AdminDashboardPage() {
     { date: "2024-08-05", users: 1 },
   ];
 
-  if (!isClient) {
+  if (!isClient || !user) {
     return null; // or a loading spinner
   }
 

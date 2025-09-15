@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Banknote } from "lucide-react";
 import type { LoggedInUser } from "@/lib/types";
+import { isAdmin } from "@/lib/utils";
 
 export default function AdminFinancePage() {
   const router = useRouter();
@@ -15,17 +16,17 @@ export default function AdminFinancePage() {
     const userData = localStorage.getItem("loggedInUser");
     if (userData) {
       const parsedUser = JSON.parse(userData) as LoggedInUser;
-      if (parsedUser.role !== 'superadmin') {
+      if (parsedUser.role !== 'super_admin') {
         router.push('/u/s/portal/dashboard');
       } else {
         setUser(parsedUser);
       }
     } else {
-      router.push('/auth/login');
+      router.push('/c/auth/login?login=s_admin');
     }
   }, [router]);
   
-  if (user?.role !== 'superadmin') {
+  if (user?.role !== 'super_admin') {
     return null; // or a loading spinner while redirecting
   }
 

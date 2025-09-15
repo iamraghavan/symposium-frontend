@@ -61,18 +61,18 @@ export function AdminNav() {
         setUser(loggedInUser);
       }
     } else {
-      router.push("/");
+      router.push("/c/auth/login?login=s_admin");
     }
   }, [router]);
 
   const handleLogout = () => {
     localStorage.removeItem("loggedInUser");
     localStorage.removeItem("jwt");
-    router.push("/");
+    window.location.href = "/";
   };
   
   const menuItems = allMenuItems.filter(item => {
-    if (!isAdmin(user)) return item.href === '/'; // Only show home if not an admin
+    if (!isAdmin(user)) return item.href === '/'; // Should not happen due to guard clause above, but for safety
     if (item.requiredRole) {
       return user?.role === item.requiredRole;
     }

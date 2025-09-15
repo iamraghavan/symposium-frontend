@@ -14,9 +14,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import GoogleIcon from '@mui/icons-material/Google';
 import api from '@/lib/api';
-import type { ApiSuccessResponse, ApiErrorResponse, LoggedInUser } from '@/lib/types';
+import type { ApiSuccessResponse, LoggedInUser } from '@/lib/types';
+import { isAdmin } from "@/lib/utils";
 
 function LoginPageContent() {
   const router = useRouter();
@@ -48,12 +48,21 @@ function LoginPageContent() {
 
       if (response.success && response.token && response.user) {
         // Check if the role from backend matches the expected role from URL
+        if (!isAdmin(response.user)) {
+             toast({
+                variant: "destructive",
+                title: "Access Denied",
+                description: "You do not have the required permissions for this portal.",
+            });
+            return;
+        }
+
         if ((loginType === 's_admin' && response.user.role !== 'super_admin') || 
             (loginType === 'd_admin' && response.user.role !== 'department_admin')) {
              toast({
                 variant: "destructive",
                 title: "Access Denied",
-                description: "You do not have the required permissions for this portal.",
+                description: "Your role does not match the login portal you are using.",
             });
             return;
         }
@@ -65,15 +74,22 @@ function LoginPageContent() {
           title: "Login Successful",
           description: `Welcome, ${response.user.name}!`,
         });
-        router.push("/u/s/portal/dashboard");
+        window.location.href = "/u/s/portal/dashboard";
       } else {
         throw new Error(response.message || "Login failed.");
       }
     } catch (error) {
+      let errorMessage = "An unknown error occurred.";
+      try {
+          const parsedError = JSON.parse((error as Error).message);
+          errorMessage = parsedError.message || errorMessage;
+      } catch (e) {
+          errorMessage = (error as Error).message;
+      }
       toast({
         variant: "destructive",
         title: "Login Failed",
-        description: (error as Error).message || "Invalid credentials. Please try again.",
+        description: errorMessage,
       });
     }
   };
@@ -128,4 +144,3 @@ export default function LoginPage() {
         </Suspense>
     );
 }
-

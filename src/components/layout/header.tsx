@@ -60,7 +60,6 @@ export function Header() {
   }, [toast]);
 
  const handleGoogleAuth = useCallback(async (credentialResponse: CredentialResponse) => {
-    console.log("Google response received:", credentialResponse);
     if (!credentialResponse.credential) {
       toast({
         variant: "destructive",
@@ -71,24 +70,17 @@ export function Header() {
     }
 
     try {
-      console.log("Sending token to backend...");
       const response: any = await api('/auth/google', {
         method: 'POST',
         body: { idToken: credentialResponse.credential },
       });
-      console.log("Backend response:", response);
 
       if (response.success && response.token && response.user) {
         completeLogin(response.token, response.user);
-      } else if (response.isNewUser && response.profile) {
-         console.log("New user detected, redirecting to signup completion.");
-        sessionStorage.setItem('google_signup_profile', JSON.stringify(response.profile));
-        router.push('/auth/signup');
       } else {
         throw new Error(response.message || "Google login failed: Invalid response from server.");
       }
     } catch (error: any) {
-       console.error("Error during Google Auth:", error);
       try {
         const parsedError = JSON.parse(error.message);
         if (parsedError.isNewUser && parsedError.profile) {

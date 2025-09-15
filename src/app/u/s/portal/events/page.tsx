@@ -42,6 +42,7 @@ import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import { useRouter } from "next/navigation";
+import { isAdmin } from "@/lib/utils";
 
 export default function AdminEventsPage() {
   const router = useRouter();
@@ -56,14 +57,18 @@ export default function AdminEventsPage() {
     const userData = localStorage.getItem("loggedInUser");
     if (userData) {
       const parsedUser = JSON.parse(userData) as LoggedInUser;
+      if (!isAdmin(parsedUser)) {
+        router.push('/');
+        return;
+      }
       setUser(parsedUser);
-      if (parsedUser.role === 'superadmin') {
+      if (parsedUser.role === 'super_admin') {
         setEvents(allEvents);
-      } else if (parsedUser.role === 'department' && parsedUser.departmentId) {
+      } else if (parsedUser.role === 'department_admin' && parsedUser.departmentId) {
         setEvents(allEvents.filter(event => event.department.id === parsedUser.departmentId));
       }
     } else {
-      router.push('/auth/login');
+      router.push('/c/auth/login?login=s_admin');
     }
   }, [router]);
 
@@ -86,7 +91,7 @@ export default function AdminEventsPage() {
         <div>
           <h2 className="text-3xl font-bold tracking-tight font-headline">Events</h2>
           <p className="text-muted-foreground">
-            {user?.role === 'superadmin' ? 'Manage all events across the college.' : 'Manage events for your department.'}
+            {user?.role === 'super_admin' ? 'Manage all events across the college.' : 'Manage events for your department.'}
           </p>
         </div>
         <Dialog>

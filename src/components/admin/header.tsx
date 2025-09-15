@@ -18,19 +18,33 @@ import {
 import { Button } from "../ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LifeBuoy, LogOut, Settings } from "lucide-react";
+import { googleLogout } from '@react-oauth/google';
 
-const pathToTitle: { [key: string]: string } = {
-  "/portal/dashboard": "Dashboard",
-  "/portal/events": "Events",
-  "/portal/departments": "Departments",
-  "/portal/finance": "Finance",
-  "/portal/registered-users": "Registered Users",
+const pathToTitle: Record<string, string> = {
+  "/u/s/portal/dashboard": "Dashboard",
+  "/u/s/portal/events": "Events",
+  "/u/s/portal/registered-users": "Registered Users",
+  "/u/s/portal/departments": "Departments",
+  "/u/s/portal/finance": "Finance",
 };
+
 
 export function AdminHeader() {
   const pathname = usePathname();
   const router = useRouter();
-  const title = pathToTitle[pathname] || "Event Details";
+  
+  const getTitle = (path: string): string => {
+    const staticTitle = pathToTitle[path];
+    if (staticTitle) return staticTitle;
+
+    if (path.startsWith('/u/s/portal/events/')) {
+      return "Event Details";
+    }
+
+    return "Admin Portal";
+  };
+  const title = getTitle(pathname);
+
   const [user, setUser] = useState<LoggedInUser | null>(null);
   const [isClient, setIsClient] = useState(false);
 
@@ -43,8 +57,10 @@ export function AdminHeader() {
   }, []);
 
   const handleLogout = () => {
+    googleLogout();
     localStorage.removeItem("loggedInUser");
-    router.push("/");
+    localStorage.removeItem("jwt");
+    window.location.href = "/";
   };
   
   if (!isClient) {
@@ -77,7 +93,7 @@ export function AdminHeader() {
             <Button variant="ghost" className="relative h-10 w-10 rounded-full">
               <Avatar>
                  <AvatarImage
-                    src={`https://picsum.photos/seed/${user?.name || 'admin'}/40/40`}
+                    src={user?.picture || `https://picsum.photos/seed/${user?.name || 'admin'}/40/40`}
                     alt={user?.name || "Admin"}
                     data-ai-hint="person"
                   />
