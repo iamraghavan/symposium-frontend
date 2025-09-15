@@ -52,14 +52,13 @@ export function Header() {
     });
 
     if (user.role === 'super_admin' || user.role === 'department_admin') {
-        router.push('/u/s/portal/dashboard');
+        window.location.href = '/u/s/portal/dashboard';
     } else {
-        router.push('/events');
+        window.location.href = '/events';
     }
-  }, [toast, router]);
+  }, [toast]);
 
   const handleGoogleAuth = useCallback(async (credentialResponse: CredentialResponse) => {
-    console.log("Google Auth Response:", credentialResponse);
     if (!credentialResponse.credential) {
         toast({
             variant: "destructive",
@@ -70,20 +69,15 @@ export function Header() {
     }
 
     try {
-        console.log("Sending token to backend...");
         const response: any = await api('/auth/google', {
             method: 'POST',
             body: { idToken: credentialResponse.credential },
         });
-        console.log("Backend response:", response);
 
         if (response.success && response.token && response.user) {
-            console.log("Login successful, completing login...");
             completeLogin(response.token, response.user);
         } else {
-            console.log("Backend indicates new user or other issue.");
              if (response.isNewUser && response.profile) {
-                console.log("Redirecting new user to signup page with profile:", response.profile);
                 sessionStorage.setItem('google_signup_profile', JSON.stringify(response.profile));
                 router.push('/auth/signup');
              } else {
@@ -91,12 +85,9 @@ export function Header() {
              }
         }
     } catch (error: any) {
-        console.error("Google Auth Error:", error);
-        // This block now specifically handles new user redirection.
-        try {
+         try {
             const parsedError = JSON.parse(error.message);
-            if (parsedError.isNewUser && parsedError.profile) {
-                console.log("Caught new user error, redirecting to signup...");
+             if (parsedError.isNewUser && parsedError.profile) {
                 sessionStorage.setItem('google_signup_profile', JSON.stringify(parsedError.profile));
                 router.push('/auth/signup');
                 return;
@@ -104,14 +95,13 @@ export function Header() {
              toast({
                 variant: "destructive",
                 title: "Login Failed",
-                description: parsedError.message || "An unknown error occurred. Please try again.",
+                description: parsedError.message || "An unknown error occurred.",
             });
         } catch(e) {
-            // Not a JSON error message, show the raw error.
-            toast({
+             toast({
                 variant: "destructive",
                 title: "Login Failed",
-                description: error.message || "An unknown error occurred. Please try again.",
+                description: error.message || "An unknown error occurred.",
             });
         }
     }
@@ -123,7 +113,7 @@ export function Header() {
     localStorage.removeItem("jwt");
     setUser(null);
     toast({ title: "Logged out successfully" });
-    router.push("/");
+    window.location.href = "/";
   };
   
   return (
@@ -176,10 +166,12 @@ export function Header() {
                           </div>
                       </DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                       <DropdownMenuItem onClick={() => router.push('/u/s/portal/dashboard')}>
-                        <Settings className="mr-2 h-4 w-4" />
-                        <span>Dashboard</span>
-                      </DropdownMenuItem>
+                       {(user.role === 'super_admin' || user.role === 'department_admin') && (
+                          <DropdownMenuItem onClick={() => router.push('/u/s/portal/dashboard')}>
+                            <Settings className="mr-2 h-4 w-4" />
+                            <span>Dashboard</span>
+                          </DropdownMenuItem>
+                       )}
                       <DropdownMenuItem>
                         <LifeBuoy className="mr-2 h-4 w-4" />
                         <span>Support</span>
