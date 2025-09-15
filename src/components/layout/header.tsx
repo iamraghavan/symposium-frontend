@@ -58,52 +58,59 @@ export function Header() {
     }
   }, [toast]);
 
-  const handleGoogleAuth = useCallback(async (credentialResponse: CredentialResponse) => {
+ const handleGoogleAuth = useCallback(async (credentialResponse: CredentialResponse) => {
+    console.log("Google Auth Response:", credentialResponse);
     if (!credentialResponse.credential) {
-        toast({
-            variant: "destructive",
-            title: "Login Failed",
-            description: "Could not retrieve Google credential.",
-        });
-        return;
+      console.error("Google login failed: No credential returned.");
+      toast({
+        variant: "destructive",
+        title: "Login Failed",
+        description: "Could not retrieve Google credential.",
+      });
+      return;
     }
 
     try {
-        const response: any = await api('/auth/google', {
-            method: 'POST',
-            body: { idToken: credentialResponse.credential },
-        });
+      console.log("Sending ID token to backend...");
+      const response: any = await api('/auth/google', {
+        method: 'POST',
+        body: { idToken: credentialResponse.credential },
+      });
 
-        if (response.success && response.token && response.user) {
-            completeLogin(response.token, response.user);
-        } else {
-             if (response.isNewUser && response.profile) {
-                sessionStorage.setItem('google_signup_profile', JSON.stringify(response.profile));
-                router.push('/auth/signup');
-             } else {
-                throw new Error(response.message || "Google login failed: Invalid response from server.");
-             }
-        }
+      console.log("Backend response:", response);
+
+      if (response.success && response.token && response.user) {
+        console.log("Login successful, completing login...");
+        completeLogin(response.token, response.user);
+      } else if (response.isNewUser && response.profile) {
+        console.log("New user detected, redirecting to signup...");
+        sessionStorage.setItem('google_signup_profile', JSON.stringify(response.profile));
+        router.push('/auth/signup');
+      } else {
+        throw new Error(response.message || "Google login failed: Invalid response from server.");
+      }
     } catch (error: any) {
-         try {
-            const parsedError = JSON.parse(error.message);
-             if (parsedError.isNewUser && parsedError.profile) {
-                sessionStorage.setItem('google_signup_profile', JSON.stringify(parsedError.profile));
-                router.push('/auth/signup');
-                return;
-            }
-             toast({
-                variant: "destructive",
-                title: "Login Failed",
-                description: parsedError.message || "An unknown error occurred.",
-            });
-        } catch(e) {
-             toast({
-                variant: "destructive",
-                title: "Login Failed",
-                description: error.message || "An unknown error occurred.",
-            });
+      console.error("Error during Google authentication:", error);
+      try {
+        const parsedError = JSON.parse(error.message);
+        if (parsedError.isNewUser && parsedError.profile) {
+          console.log("New user error, redirecting to signup...");
+          sessionStorage.setItem('google_signup_profile', JSON.stringify(parsedError.profile));
+          router.push('/auth/signup');
+          return;
         }
+        toast({
+          variant: "destructive",
+          title: "Login Failed",
+          description: parsedError.message || "An unknown error occurred.",
+        });
+      } catch (e) {
+        toast({
+          variant: "destructive",
+          title: "Login Failed",
+          description: error.message || "An unknown error occurred.",
+        });
+      }
     }
   }, [completeLogin, toast, router]);
 
@@ -119,7 +126,7 @@ export function Header() {
   return (
     <>
       <header className="sticky top-0 z-50 w-full border-b bg-background">
-        <div className="w-full px-[50px]">
+        <div className="w-full px-4 sm:px-6 md:px-8">
           <div className="flex h-16 items-center justify-between">
             <Link href="/" className="flex items-center gap-2 font-bold">
             <AppWindow className="h-6 w-6 text-primary" />
@@ -145,8 +152,8 @@ export function Header() {
                 {isClient && user ? (
                    <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                        <Avatar>
+                      <Button variant="ghost" className="relative h-10 rounded-full p-2 flex items-center gap-2">
+                        <Avatar className="h-8 w-8">
                           <AvatarImage
                               src={user.picture || `https://picsum.photos/seed/${user.name}/40/40`}
                               alt={user.name}
@@ -154,6 +161,7 @@ export function Header() {
                             />
                           <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                         </Avatar>
+                        <span className="hidden sm:inline-block text-sm font-medium">{user.name}</span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-56">
@@ -202,25 +210,58 @@ export function Header() {
                     </Button>
                   </SheetTrigger>
                   <SheetContent side="left">
-                    <div className="flex flex-col gap-6 p-6">
-                      <Link href="/" className="flex items-center gap-2 font-bold">
-                          <AppWindow className="h-6 w-6 text-primary" />
-                          <span className="font-headline text-lg">Symposium Central</span>
-                      </Link>
-                      <nav className="flex flex-col gap-4">
-                        <SheetClose asChild>
-                          <Link href="/events" className="text-muted-foreground transition-colors hover:text-foreground">Explore Events</Link>
-                        </SheetClose>
-                        <SheetClose asChild>
-                          <Link href="/#about-event" className="text-muted-foreground transition-colors hover:text-foreground">About</Link>
-                        </SheetClose>
-                        <SheetClose asChild>
-                          <Link href="/code-of-conduct" className="text-muted-foreground transition-colors hover:text-foreground">Code of Conduct</Link>
-                        </SheetClose>
-                      </nav>
-                       <div className="flex flex-col gap-2 pt-4 border-t">
+                    <div className="flex flex-col h-full">
+                      <div className="flex items-center justify-between p-4 border-b">
+                          <Link href="/" className="flex items-center gap-2 font-bold">
+                              <AppWindow className="h-6 w-6 text-primary" />
+                              <span className="font-headline text-lg">Symposium Central</span>
+                          </Link>
+                          <SheetClose asChild>
+                            <Button variant="ghost" size="icon"><span className="sr-only">Close</span></Button>
+                          </SheetClose>
+                      </div>
+                      
+                      <div className="flex-1 overflow-y-auto">
+                        {isClient && user && (
+                           <div className="p-4 border-b">
+                             <div className="flex items-center gap-3">
+                                <Avatar className="h-10 w-10">
+                                  <AvatarImage
+                                      src={user.picture || `https://picsum.photos/seed/${user.name}/40/40`}
+                                      alt={user.name}
+                                      data-ai-hint="person"
+                                    />
+                                  <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <div className="flex flex-col">
+                                    <span className="text-sm font-medium">{user.name}</span>
+                                    <span className="text-xs text-muted-foreground">
+                                      {user.email}
+                                    </span>
+                                </div>
+                             </div>
+                              {(user.role === 'super_admin' || user.role === 'department_admin') && (
+                                <SheetClose asChild>
+                                  <Button variant="secondary" className="w-full mt-4" onClick={() => router.push('/u/s/portal/dashboard')}>Dashboard</Button>
+                                </SheetClose>
+                              )}
+                           </div>
+                        )}
+                        <nav className="flex flex-col gap-2 p-4">
+                          <SheetClose asChild>
+                            <Link href="/events" className="text-lg font-medium text-muted-foreground transition-colors hover:text-foreground">Explore Events</Link>
+                          </SheetClose>
+                          <SheetClose asChild>
+                            <Link href="/#about-event" className="text-lg font-medium text-muted-foreground transition-colors hover:text-foreground">About</Link>
+                          </SheetClose>
+                          <SheetClose asChild>
+                            <Link href="/code-of-conduct" className="text-lg font-medium text-muted-foreground transition-colors hover:text-foreground">Code of Conduct</Link>
+                          </SheetClose>
+                        </nav>
+                      </div>
+                       <div className="p-4 border-t mt-auto">
                           {isClient && user ? (
-                            <Button onClick={handleLogout}>Log out</Button>
+                            <Button onClick={handleLogout} className="w-full">Log out</Button>
                           ) : isClient && (
                              <GoogleLogin
                                   onSuccess={handleGoogleAuth}
