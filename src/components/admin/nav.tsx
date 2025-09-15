@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "../ui/button";
 import type { LoggedInUser } from "@/lib/types";
+import { isAdmin } from "@/lib/utils";
 
 const allMenuItems = [
   { href: "/", label: "Home", icon: Home },
@@ -53,9 +54,13 @@ export function AdminNav() {
   useEffect(() => {
     const userData = localStorage.getItem("loggedInUser");
     if (userData) {
-      setUser(JSON.parse(userData));
+      const loggedInUser = JSON.parse(userData);
+      if (!isAdmin(loggedInUser)) {
+        router.push("/");
+      } else {
+        setUser(loggedInUser);
+      }
     } else {
-      // Redirect to a generic login page or home if no user data
       router.push("/");
     }
   }, [router]);
@@ -66,7 +71,14 @@ export function AdminNav() {
     router.push("/");
   };
   
-  const menuItems = allMenuItems.filter(item => !item.requiredRole || item.requiredRole === user?.role);
+  const menuItems = allMenuItems.filter(item => {
+    if (!isAdmin(user)) return item.href === '/'; // Only show home if not an admin
+    if (item.requiredRole) {
+      return user?.role === item.requiredRole;
+    }
+    return true;
+  });
+
 
   return (
     <>

@@ -27,6 +27,7 @@ import { LifeBuoy, LogOut } from "lucide-react";
 import { googleLogout, GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import api from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { isAdmin } from "@/lib/utils";
 
 export function Header() {
   const router = useRouter();
@@ -51,7 +52,7 @@ export function Header() {
         description: `Welcome, ${user.name}!`,
     });
 
-    if (user.role === 'super_admin' || user.role === 'department_admin') {
+    if (isAdmin(user)) {
         window.location.href = '/u/s/portal/dashboard';
     } else {
         window.location.href = '/events';
@@ -59,9 +60,7 @@ export function Header() {
   }, [toast]);
 
  const handleGoogleAuth = useCallback(async (credentialResponse: CredentialResponse) => {
-    console.log("Google Auth Response:", credentialResponse);
     if (!credentialResponse.credential) {
-      console.error("Google login failed: No credential returned.");
       toast({
         variant: "destructive",
         title: "Login Failed",
@@ -71,30 +70,23 @@ export function Header() {
     }
 
     try {
-      console.log("Sending ID token to backend...");
       const response: any = await api('/auth/google', {
         method: 'POST',
         body: { idToken: credentialResponse.credential },
       });
 
-      console.log("Backend response:", response);
-
       if (response.success && response.token && response.user) {
-        console.log("Login successful, completing login...");
         completeLogin(response.token, response.user);
       } else if (response.isNewUser && response.profile) {
-        console.log("New user detected, redirecting to signup...");
         sessionStorage.setItem('google_signup_profile', JSON.stringify(response.profile));
         router.push('/auth/signup');
       } else {
         throw new Error(response.message || "Google login failed: Invalid response from server.");
       }
     } catch (error: any) {
-      console.error("Error during Google authentication:", error);
       try {
         const parsedError = JSON.parse(error.message);
         if (parsedError.isNewUser && parsedError.profile) {
-          console.log("New user error, redirecting to signup...");
           sessionStorage.setItem('google_signup_profile', JSON.stringify(parsedError.profile));
           router.push('/auth/signup');
           return;
@@ -174,7 +166,7 @@ export function Header() {
                           </div>
                       </DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                       {user.role !== 'user' && (
+                       {isAdmin(user) && (
                           <DropdownMenuItem onClick={() => router.push('/u/s/portal/dashboard')}>
                             <Settings className="mr-2 h-4 w-4" />
                             <span>Dashboard</span>
@@ -240,7 +232,7 @@ export function Header() {
                                     </span>
                                 </div>
                              </div>
-                              {user.role !== 'user' && (
+                              {isAdmin(user) && (
                                 <SheetClose asChild>
                                   <Button variant="secondary" className="w-full mt-4" onClick={() => router.push('/u/s/portal/dashboard')}>Dashboard</Button>
                                 </SheetClose>
