@@ -33,7 +33,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-
+import { motion } from "framer-motion";
 
 export default function EventsPage() {
   const [events, setEvents] = useState<Event[]>(allEvents);
@@ -80,9 +80,13 @@ export default function EventsPage() {
 
   const EventCard = ({ event }: { event: Event }) => (
       <DialogTrigger asChild>
+         <motion.div
+            whileHover={{ scale: 1.03, y: -5 }}
+            className="h-full"
+        >
         <Card
           key={event.id}
-          className="flex flex-col overflow-hidden h-full hover:shadow-lg transition-shadow duration-300 cursor-pointer"
+          className="flex flex-col overflow-hidden h-full shadow-md transition-shadow duration-300 cursor-pointer"
           onClick={() => setSelectedEvent(event)}
         >
           <div className="relative h-48 w-full">
@@ -126,16 +130,37 @@ export default function EventsPage() {
             </Button>
           </CardFooter>
         </Card>
+        </motion.div>
       </DialogTrigger>
   )
+
+  const containerVariants = {
+      hidden: { opacity: 0 },
+      visible: {
+          opacity: 1,
+          transition: {
+          staggerChildren: 0.05,
+          },
+      },
+  };
+
+  const itemVariants = {
+      hidden: { y: 20, opacity: 0 },
+      visible: { y: 0, opacity: 1 },
+  };
 
   return (
     <Dialog>
       <div className="container mx-auto px-4 py-8 md:py-12">
-        <div className="mb-8">
+        <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="mb-8"
+        >
           <h1 className="text-4xl font-bold font-headline tracking-tight">All Events</h1>
           <p className="text-muted-foreground mt-2">Browse, filter, and discover all the exciting events happening.</p>
-        </div>
+        </motion.div>
 
         <div className="flex flex-wrap gap-4 mb-8 p-4 bg-muted rounded-lg">
             <Select value={modeFilter} onValueChange={setModeFilter}>
@@ -184,16 +209,23 @@ export default function EventsPage() {
             </Select>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <motion.div 
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
           {filteredEvents.map((event) => (
-            <EventCard event={event} key={event.id} />
+            <motion.div key={event.id} variants={itemVariants}>
+              <EventCard event={event} />
+            </motion.div>
           ))}
+          </motion.div>
           {filteredEvents.length === 0 && (
               <div className="text-center col-span-full py-12">
                   <p className="text-muted-foreground">No events match the current filters.</p>
               </div>
           )}
-        </div>
       </div>
 
        {selectedEvent && (

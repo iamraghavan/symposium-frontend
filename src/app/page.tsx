@@ -30,6 +30,7 @@ import { useEffect, useState } from 'react';
 import { Calendar, Users, ArrowRight, ArrowRightCircle, Lightbulb, Network, Code, Users2, Globe, FileText, Ticket } from 'lucide-react';
 import type { Event } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { motion } from "framer-motion";
 
 const GoogleCalendarIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor" {...props}>
@@ -93,58 +94,72 @@ export default function HomePage() {
     },
   ];
 
+  const cardVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 },
+  };
+
   const EventCard = ({ event }: { event: Event }) => (
-      <Card
-        key={event.id}
-        className="flex flex-col overflow-hidden h-full hover:shadow-lg transition-shadow duration-300 cursor-pointer"
-        onClick={() => setSelectedEvent(event)}
+      <motion.div
+        whileHover={{ scale: 1.03, y: -5 }}
+        className="h-full"
       >
-        <div className="relative h-48 w-full">
-          <Image
-            src={event.imageUrl}
-            alt={event.name}
-            fill
-            className="object-cover"
-            data-ai-hint={event.imageHint}
-          />
-          <Badge className="absolute top-2 right-2" variant={event.mode === 'online' ? 'default' : 'secondary'}>
-              {event.mode === 'online' ? 'Online' : 'Offline'}
-          </Badge>
-        </div>
-        <CardHeader>
-          <div className="flex justify-between items-start">
-            <CardTitle className="font-headline text-xl mb-1">
-              {event.name}
-            </CardTitle>
-            <Badge variant="outline">{event.department.name}</Badge>
+        <Card
+          key={event.id}
+          className="flex flex-col overflow-hidden h-full shadow-md transition-shadow duration-300 cursor-pointer"
+          onClick={() => setSelectedEvent(event)}
+        >
+          <div className="relative h-48 w-full">
+            <Image
+              src={event.imageUrl}
+              alt={event.name}
+              fill
+              className="object-cover"
+              data-ai-hint={event.imageHint}
+            />
+            <Badge className="absolute top-2 right-2" variant={event.mode === 'online' ? 'default' : 'secondary'}>
+                {event.mode === 'online' ? 'Online' : 'Offline'}
+            </Badge>
           </div>
-          <CardDescription className="flex items-center gap-2 text-sm">
-            <Calendar className="h-4 w-4" />
-            {formattedDates[event.id]?.date} at {formattedDates[event.id]?.time}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex-grow">
-          <p className="text-sm text-muted-foreground line-clamp-2">
-            {event.description}
-          </p>
-        </CardContent>
-        <CardFooter className="flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <Users className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">
-              {event.participants.length} Participants
-            </span>
-          </div>
-          <Button asChild variant="default" size="sm" onClick={(e) => e.stopPropagation()}>
-              <Link href={`/events/${event.id}`}>
-              {event.registrationFee === 0 ? 'Free' : `$${event.registrationFee}`}
-              </Link>
-          </Button>
-        </CardFooter>
-      </Card>
+          <CardHeader>
+            <div className="flex justify-between items-start">
+              <CardTitle className="font-headline text-xl mb-1">
+                {event.name}
+              </CardTitle>
+              <Badge variant="outline">{event.department.name}</Badge>
+            </div>
+            <CardDescription className="flex items-center gap-2 text-sm">
+              <Calendar className="h-4 w-4" />
+              {formattedDates[event.id]?.date} at {formattedDates[event.id]?.time}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex-grow">
+            <p className="text-sm text-muted-foreground line-clamp-2">
+              {event.description}
+            </p>
+          </CardContent>
+          <CardFooter className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">
+                {event.participants.length} Participants
+              </span>
+            </div>
+            <Button asChild variant="default" size="sm" onClick={(e) => e.stopPropagation()}>
+                <Link href={`/events/${event.id}`}>
+                {event.registrationFee === 0 ? 'Free' : `$${event.registrationFee}`}
+                </Link>
+            </Button>
+          </CardFooter>
+        </Card>
+      </motion.div>
   );
 
   const ViewAllCard = () => (
+    <motion.div
+        whileHover={{ scale: 1.03, y: -5 }}
+        className="h-full"
+    >
      <Card className="flex flex-col h-full items-center justify-center bg-muted/50 hover:bg-muted transition-colors">
       <CardContent className="flex flex-col items-center justify-center text-center p-6">
         <ArrowRightCircle className="h-12 w-12 text-primary mb-4" />
@@ -155,12 +170,17 @@ export default function HomePage() {
         </Button>
       </CardContent>
     </Card>
+    </motion.div>
   )
 
 
   return (
     <Dialog onOpenChange={(open) => !open && setSelectedEvent(null)}>
-      <main className="flex-1">
+      <motion.main 
+         initial="hidden"
+        animate="visible"
+        transition={{ staggerChildren: 0.1 }}
+        className="flex-1">
         <section className="relative h-[80vh] flex items-center justify-center text-center text-white">
           <Image
             src="https://images.unsplash.com/photo-1523580494863-6f3031224c94?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
@@ -171,7 +191,12 @@ export default function HomePage() {
           />
           <div className="absolute inset-0 bg-black/60 -z-10" />
 
-          <div className="container px-4 md:px-6">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: "easeInOut" }}
+            className="container px-4 md:px-6"
+          >
               <Badge>#EGSPECISSH-T</Badge>
               <h1 className="text-4xl font-extrabold font-headline md:text-7xl mt-4 tracking-tight">
                 EGSPEC Biggest Event {new Date().getFullYear()}
@@ -191,11 +216,18 @@ export default function HomePage() {
                   </Link>
                 </Button>
               </div>
-          </div>
+          </motion.div>
           
         </section>
         
-        <section id="about-event" className="py-12 md:py-20 bg-background">
+        <motion.section 
+            id="about-event" 
+            className="py-12 md:py-20 bg-background"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.8 }}
+        >
           <div className="container mx-auto px-4">
              <div className="grid md:grid-cols-2 gap-12 items-center">
                 <div>
@@ -225,46 +257,36 @@ export default function HomePage() {
                 </div>
              </div>
           </div>
-        </section>
+        </motion.section>
 
-        <section className="py-12 md:py-20 bg-muted/30">
+        <motion.section 
+            className="py-12 md:py-20 bg-muted/30"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ staggerChildren: 0.1 }}
+        >
           <div className="container mx-auto px-4 text-center">
             <h2 className="text-3xl font-bold font-headline">Who Benefits?</h2>
             <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">Our symposium is designed to provide value to a wide range of participants, from students to seasoned professionals.</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mt-10 text-left">
-              <div className="p-6 bg-background rounded-lg shadow-sm">
-                <Lightbulb className="h-8 w-8 text-primary mb-4" />
-                <h3 className="font-bold font-headline text-lg">Inspiration</h3>
-                <p className="text-muted-foreground mt-1">Get inspired by leading experts, groundbreaking research, and innovative projects that are shaping the future of technology.</p>
-              </div>
-              <div className="p-6 bg-background rounded-lg shadow-sm">
-                <Network className="h-8 w-8 text-primary mb-4" />
-                <h3 className="font-bold font-headline text-lg">Networking</h3>
-                <p className="text-muted-foreground mt-1">Expand your professional network by connecting with industry leaders, academic experts, and talented peers from various disciplines.</p>
-              </div>
-              <div className="p-6 bg-background rounded-lg shadow-sm">
-                <Code className="h-8 w-8 text-primary mb-4" />
-                <h3 className="font-bold font-headline text-lg">Tech Insights</h3>
-                <p className="text-muted-foreground mt-1">Gain deep insights into the latest technological advancements and trends directly from the innovators creating them.</p>
-              </div>
-               <div className="p-6 bg-background rounded-lg shadow-sm">
-                <Users2 className="h-8 w-8 text-primary mb-4" />
-                <h3 className="font-bold font-headline text-lg">Collaborative Sessions</h3>
-                <p className="text-muted-foreground mt-1">Participate in interactive workshops and sessions to collaborate, solve problems, and exchange ideas among participants.</p>
-              </div>
-               <div className="p-6 bg-background rounded-lg shadow-sm">
-                <Globe className="h-8 w-8 text-primary mb-4" />
-                <h3 className="font-bold font-headline text-lg">Global Perspective</h3>
-                <p className="text-muted-foreground mt-1">Experience a global outlook on tech and business with contributions from international speakers and attendees.</p>
-              </div>
-               <div className="p-6 bg-background rounded-lg shadow-sm">
-                <FileText className="h-8 w-8 text-primary mb-4" />
-                <h3 className="font-bold font-headline text-lg">Exclusive Materials</h3>
-                <p className="text-muted-foreground mt-1">Get access to exclusive content, including research papers, presentation slides, and recorded sessions from the event.</p>
-              </div>
+              {[
+                { icon: Lightbulb, title: 'Inspiration', text: 'Get inspired by leading experts, groundbreaking research, and innovative projects that are shaping the future of technology.' },
+                { icon: Network, title: 'Networking', text: 'Expand your professional network by connecting with industry leaders, academic experts, and talented peers from various disciplines.' },
+                { icon: Code, title: 'Tech Insights', text: 'Gain deep insights into the latest technological advancements and trends directly from the innovators creating them.' },
+                { icon: Users2, title: 'Collaborative Sessions', text: 'Participate in interactive workshops and sessions to collaborate, solve problems, and exchange ideas among participants.' },
+                { icon: Globe, title: 'Global Perspective', text: 'Experience a global outlook on tech and business with contributions from international speakers and attendees.' },
+                { icon: FileText, title: 'Exclusive Materials', text: 'Get access to exclusive content, including research papers, presentation slides, and recorded sessions from the event.' },
+              ].map((item, i) => (
+                <motion.div key={i} variants={cardVariants} className="p-6 bg-background rounded-lg shadow-sm">
+                  <item.icon className="h-8 w-8 text-primary mb-4" />
+                  <h3 className="font-bold font-headline text-lg">{item.title}</h3>
+                  <p className="text-muted-foreground mt-1">{item.text}</p>
+                </motion.div>
+              ))}
             </div>
           </div>
-        </section>
+        </motion.section>
 
         <section className="py-12 md:py-20 space-y-12">
           <div className="container px-4 md:px-6">
@@ -338,13 +360,19 @@ export default function HomePage() {
             )}
         </section>
 
-        <section className="py-12 md:py-20 bg-muted/30">
+        <motion.section 
+            className="py-12 md:py-20 bg-muted/30"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ staggerChildren: 0.1 }}
+        >
           <div className="container mx-auto px-4 text-center">
              <h2 className="text-3xl font-bold font-headline">Our Speakers</h2>
              <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">Meet the brilliant minds who will be sharing their insights at our symposium.</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 mt-10">
                 {speakers.map((speaker) => (
-                  <div key={speaker.name} className="flex flex-col items-center text-center">
+                  <motion.div key={speaker.name} variants={cardVariants} className="flex flex-col items-center text-center">
                     <Avatar className="h-32 w-32 mb-4 border-4 border-background shadow-lg">
                       <AvatarImage src={speaker.avatarUrl} alt={speaker.name} data-ai-hint={speaker.imageHint} />
                       <AvatarFallback>{speaker.name.charAt(0)}</AvatarFallback>
@@ -352,11 +380,11 @@ export default function HomePage() {
                     <h3 className="font-bold font-headline text-lg">{speaker.name}</h3>
                     <p className="text-primary">{speaker.title}</p>
                     <p className="text-muted-foreground text-sm">{speaker.company}</p>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
           </div>
-        </section>
+        </motion.section>
         
         <section className="py-12 md:py-20">
           <div className="container mx-auto px-4 text-center">
@@ -391,7 +419,7 @@ export default function HomePage() {
               </div>
           </div>
         </section>
-      </main>
+      </motion.main>
       
       {selectedEvent && (
         <DialogContent className="sm:max-w-2xl">
