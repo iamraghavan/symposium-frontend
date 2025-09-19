@@ -1,4 +1,5 @@
 
+
 export type Department = {
   _id: string;
   id: string; // short id
@@ -87,7 +88,7 @@ export type LoggedInUser = {
   name: string;
   email: string;
   role: 'super_admin' | 'department_admin' | 'user';
-  departmentId?: string;
+  department?: string; // This will be the department ID
   picture?: string;
 };
 
@@ -109,5 +110,3 @@ export type ApiErrorResponse = {
   message: string;
   details?: { field: string; msg: string }[];
 };
-
-    

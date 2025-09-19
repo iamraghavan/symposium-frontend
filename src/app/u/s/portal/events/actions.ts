@@ -2,11 +2,12 @@
 'use server'
 
 import { revalidatePath } from 'next/cache';
-import api from '@/lib/api';
 import type { Event } from '@/lib/types';
 import { cookies } from 'next/headers';
+import { formDataToObject } from '@/lib/utils';
 
 type EventApiResponse = {
+    success: boolean;
     data: Event[];
     meta: {
         total: number;
@@ -16,13 +17,54 @@ type EventApiResponse = {
     }
 }
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
+
+async function makeApiRequest(endpoint: string, options: RequestInit = {}) {
+    const token = cookies().get('jwt')?.value;
+    const defaultHeaders: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+    };
+    if (API_KEY) {
+        defaultHeaders['x-api-key'] = API_KEY;
+    }
+    // For public GET requests, token might not be needed.
+    // For write operations, it's required.
+    if (token) {
+        defaultHeaders['Authorization'] = `Bearer ${token}`;
+    }
+
+    const config: RequestInit = {
+        ...options,
+        headers: {
+            ...defaultHeaders,
+            ...options.headers,
+        },
+    };
+
+    const response = await fetch(`${API_BASE_URL}/api/v1${endpoint}`, config);
+    const responseData = await response.json();
+
+    if (!response.ok) {
+        if (responseData.details && Array.isArray(responseData.details)) {
+            const errorMessages = responseData.details.map((d: any) => d.msg).join(', ');
+            throw new Error(errorMessages || responseData.message || `API request failed with status: ${response.status}`);
+        }
+        throw new Error(responseData.message || `API request failed with status: ${response.status}`);
+    }
+    
+    if (responseData.success === false) {
+        throw new Error(responseData.message);
+    }
+    
+    return responseData;
+}
+
+
 export async function getEvents(): Promise<EventApiResponse> {
   try {
-    const token = cookies().get('jwt')?.value;
-    const response = await api<EventApiResponse>('/events', { 
-        authenticated: !!token,
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-    });
+    const response = await makeApiRequest('/events');
     return response;
   } catch (error) {
     console.error("Failed to fetch events:", error);
@@ -30,57 +72,31 @@ export async function getEvents(): Promise<EventApiResponse> {
   }
 }
 
-function formDataToObject(formData: FormData): Record<string, any> {
-  const obj: Record<string, any> = {};
-
-  formData.forEach((value, key) => {
-    // Handle nested objects like 'offline.venueName'
-    const keys = key.split(/\[(\d+)\]\.|\./).filter(Boolean);
-
-    keys.reduce((acc, currentKey, index) => {
-      const isLast = index === keys.length - 1;
-      const isNumeric = /^\d+$/.test(currentKey);
-      
-      if (isLast) {
-          acc[currentKey] = value;
-      } else {
-        const nextKey = keys[index + 1];
-        const isNextNumeric = /^\d+$/.test(nextKey);
-        if (!acc[currentKey]) {
-            acc[currentKey] = isNextNumeric ? [] : {};
-        }
-      }
-      return acc[currentKey];
-    }, obj);
-  });
-
-  return obj;
-}
-
-
 export async function createEvent(formData: FormData) {
     const token = cookies().get('jwt')?.value;
     if (!token) throw new Error("Authentication required.");
 
     const eventData = formDataToObject(formData);
     
-    // Ensure price is a number
     if (eventData.payment && eventData.payment.price) {
         eventData.payment.price = Number(eventData.payment.price);
     }
     
-    // Add departmentId for department admins
-    const user = JSON.parse(cookies().get('loggedInUser')?.value || '{}');
-    if (user.role === 'department_admin' && user.departmentId) {
-        eventData.departmentId = user.departmentId;
+    const userCookie = cookies().get('loggedInUser')?.value;
+    if (userCookie) {
+        const user = JSON.parse(userCookie);
+        if (user.role === 'department_admin' && user.department) {
+             // The backend may derive department from the user token,
+             // but if departmentId is needed, we should send it.
+             // Based on API docs, departmentId is required.
+             eventData.departmentId = user.department;
+        }
     }
 
     try {
-        await api('/events', {
+        await makeApiRequest('/events', {
             method: 'POST',
-            body: eventData,
-            authenticated: true,
-            headers: { 'Authorization': `Bearer ${token}` }
+            body: JSON.stringify(eventData),
         });
         revalidatePath('/u/s/portal/events');
     } catch (error) {
@@ -96,11 +112,9 @@ export async function updateEvent(eventId: string, formData: FormData) {
   const eventData = formDataToObject(formData);
 
   try {
-    await api(`/events/${eventId}`, {
+    await makeApiRequest(`/events/${eventId}`, {
       method: 'PATCH',
-      body: eventData,
-      authenticated: true,
-       headers: { 'Authorization': `Bearer ${token}` }
+      body: JSON.stringify(eventData),
     });
     revalidatePath('/u/s/portal/events');
     revalidatePath(`/u/s/portal/events/${eventId}`);
@@ -115,10 +129,8 @@ export async function deleteEvent(eventId: string) {
   if (!token) throw new Error("Authentication required.");
 
   try {
-    await api(`/events/${eventId}`, {
+    await makeApiRequest(`/events/${eventId}`, {
       method: 'DELETE',
-      authenticated: true,
-       headers: { 'Authorization': `Bearer ${token}` }
     });
     revalidatePath('/u/s/portal/events');
   } catch (error) {
@@ -126,5 +138,3 @@ export async function deleteEvent(eventId: string) {
     throw error;
   }
 }
-
-    
