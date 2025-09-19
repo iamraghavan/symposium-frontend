@@ -3,7 +3,7 @@
 
 import type { ApiErrorResponse } from './types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = 'https://symposium-backend.onrender.com';
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
 
 type ApiOptions = {
@@ -26,11 +26,10 @@ async function api<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
   }
 
   if (authenticated) {
-    const token = localStorage.getItem('jwt');
+    const token = typeof window !== 'undefined' ? localStorage.getItem('jwt') : null;
     if (token) {
       defaultHeaders['Authorization'] = `Bearer ${token}`;
     } else {
-      // Don't throw an error, let the server decide if the endpoint is protected
       console.warn('Authenticated request intended but no token found.');
     }
   }
@@ -66,5 +65,3 @@ async function api<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
 }
 
 export default api;
-
-    

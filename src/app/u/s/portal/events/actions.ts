@@ -7,12 +7,10 @@ import { cookies } from 'next/headers';
 import { formDataToObject } from '@/lib/utils';
 import { getDepartments as getAllDepartments } from '../departments/actions';
 
-type EventApiResponse = ApiSuccessResponse<{ events: Event[] }>
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = 'https://symposium-backend.onrender.com';
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
 
-async function makeApiRequest(endpoint: string, options: RequestInit = {}, authenticated: boolean = false) {
+async function makeApiRequest(endpoint: string, options: RequestInit = {}) {
     const token = cookies().get('jwt')?.value;
     const defaultHeaders: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -22,12 +20,8 @@ async function makeApiRequest(endpoint: string, options: RequestInit = {}, authe
         defaultHeaders['x-api-key'] = API_KEY;
     }
     
-    if (authenticated) {
-        if (token) {
-            defaultHeaders['Authorization'] = `Bearer ${token}`;
-        } else {
-            throw new Error("Authentication required.");
-        }
+    if (token) {
+        defaultHeaders['Authorization'] = `Bearer ${token}`;
     }
 
     const config: RequestInit = {
@@ -57,7 +51,7 @@ async function makeApiRequest(endpoint: string, options: RequestInit = {}, authe
 }
 
 
-export async function getEvents(): Promise<EventApiResponse> {
+export async function getEvents(): Promise<ApiSuccessResponse<{ events: Event[] }>> {
   try {
     const userCookie = cookies().get('loggedInUser')?.value;
     const user: LoggedInUser | null = userCookie ? JSON.parse(userCookie) : null;
@@ -66,23 +60,24 @@ export async function getEvents(): Promise<EventApiResponse> {
         throw new Error("Authentication required.");
     }
     
-    const eventResponse = await makeApiRequest('/events', {}, true) as EventApiResponse;
+    const eventResponse = await makeApiRequest('/events') as ApiSuccessResponse<{ events: Event[] }>;
 
     if (user.role === 'super_admin') {
       const departmentsResponse = await getAllDepartments();
-      const departmentMap = new Map(departmentsResponse.data.departments.map(d => [d._id, d]));
-      const eventsWithDepartments = (eventResponse.data?.events || []).map(event => ({
+      const departmentMap = new Map(departmentsResponse.data.map(d => [d._id, d]));
+      
+      const eventsWithDepartments = (eventResponse.data || []).map(event => ({
         ...event,
         department: departmentMap.get(event.department as string) || event.department
       }));
-      return { ...eventResponse, data: { events: eventsWithDepartments } };
+      return { ...eventResponse, data: eventsWithDepartments };
 
     } else if (user.role === 'department_admin' && user.department) {
-       const eventsWithDepartment = (eventResponse.data?.events || []).map(event => ({
+       const eventsWithDepartment = (eventResponse.data || []).map(event => ({
         ...event,
         department: user.department as Department
       }));
-      return { ...eventResponse, data: { events: eventsWithDepartment } };
+       return { ...eventResponse, data: eventsWithDepartment };
     }
 
     return eventResponse;
@@ -114,7 +109,7 @@ export async function createEvent(formData: FormData) {
         await makeApiRequest('/events', {
             method: 'POST',
             body: JSON.stringify(eventData),
-        }, true);
+        });
         revalidatePath('/u/s/portal/events');
     } catch (error) {
         console.error("Failed to create event:", error);
@@ -129,7 +124,7 @@ export async function updateEvent(eventId: string, formData: FormData) {
     await makeApiRequest(`/events/${eventId}`, {
       method: 'PATCH',
       body: JSON.stringify(eventData),
-    }, true);
+    });
     revalidatePath('/u/s/portal/events');
     revalidatePath(`/u/s/portal/events/${eventId}`);
   } catch (error) {
@@ -142,12 +137,10 @@ export async function deleteEvent(eventId: string) {
   try {
     await makeApiRequest(`/events/${eventId}`, {
       method: 'DELETE',
-    }, true);
+    });
     revalidatePath('/u/s/portal/events');
   } catch (error) {
     console.error("Failed to delete event:", error);
     throw error;
   }
 }
-
-    

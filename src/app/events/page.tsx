@@ -50,18 +50,17 @@ export default function EventsPage() {
     async function fetchData() {
         setIsLoading(true);
         try {
-            // Fetch departments and published events in parallel
             const [deptResponse, eventResponse] = await Promise.all([
                 api<ApiSuccessResponse<{ departments: Department[] }>>('/departments'),
                 api<ApiSuccessResponse<{ events: Event[] }>>('/events?status=published')
             ]);
             
-            const fetchedDepts = deptResponse.data?.departments || [];
+            const fetchedDepts = deptResponse.data || [];
             setDepartments(fetchedDepts);
 
-            if (eventResponse.data?.events) {
+            if (eventResponse.data) {
                  const deptMap = new Map(fetchedDepts.map(d => [d._id, d.name]));
-                 const eventsWithDept = eventResponse.data.events.map(event => ({
+                 const eventsWithDept = eventResponse.data.map(event => ({
                     ...event,
                     department: {
                       _id: event.department as string,
@@ -289,5 +288,3 @@ export default function EventsPage() {
     </Dialog>
   );
 }
-
-    
