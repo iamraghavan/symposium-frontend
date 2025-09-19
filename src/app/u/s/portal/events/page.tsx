@@ -47,7 +47,6 @@ import {
 } from "@/components/ui/select";
 import type { LoggedInUser, Event, Department } from "@/lib/types";
 import { getEvents, createEvent } from "./actions";
-import { getDepartments } from "../departments/actions";
 import { format, parseISO } from "date-fns";
 import {
   Calendar as CalendarIcon,
@@ -56,8 +55,7 @@ import {
   MoreHorizontal,
   Eye,
 } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
-import { useFormState } from 'react-dom';
+import { useState, useEffect, useRef, useActionState } from "react";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import { useRouter } from "next/navigation";
@@ -93,7 +91,7 @@ export default function AdminEventsPage() {
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("17:00");
 
-  const [formState, formAction] = useFormState(createEvent, initialState);
+  const [formState, formAction] = useActionState(createEvent, initialState);
 
   useEffect(() => {
     const userData = localStorage.getItem("loggedInUser");
@@ -106,7 +104,7 @@ export default function AdminEventsPage() {
       setUser(parsedUser);
       fetchEvents();
       if (parsedUser.role === 'super_admin') {
-        fetchDepartments();
+        // fetchDepartments();
       }
     } else {
       router.push("/c/auth/login?login=s_admin");
@@ -136,15 +134,6 @@ export default function AdminEventsPage() {
       } finally {
           setIsLoading(false);
       }
-  }
-
-  const fetchDepartments = async () => {
-    try {
-      const depts = await getDepartments();
-      setDepartments(depts);
-    } catch (error) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch departments.' });
-    }
   }
 
   const formatTableDate = (dateString?: string) => {
