@@ -2,9 +2,10 @@
 'use server'
 
 import { revalidatePath } from 'next/cache';
-import type { Event, LoggedInUser } from '@/lib/types';
+import type { Event, LoggedInUser, Department, ApiSuccessResponse } from '@/lib/types';
 import { cookies } from 'next/headers';
 import { formDataToObject } from '@/lib/utils';
+import { getDepartments } from '../departments/actions';
 
 type EventApiResponse = {
     success: boolean;
@@ -73,14 +74,29 @@ export async function getEvents(): Promise<EventApiResponse> {
 
     if (userCookie) {
         const user: LoggedInUser = JSON.parse(userCookie);
-        isAuthenticated = true; // JWT should be present if user cookie is
+        isAuthenticated = true;
         if (user.role === 'department_admin' && user.department) {
             endpoint = `/events?departmentId=${user.department}`;
         }
     }
     
-    const response = await makeApiRequest(endpoint, {}, isAuthenticated);
-    return response;
+    const [eventResponse, departments] = await Promise.all([
+        makeApiRequest(endpoint, {}, isAuthenticated) as Promise<EventApiResponse>,
+        getDepartments()
+    ]);
+    
+    const departmentMap = new Map(departments.map(d => [d._id, d]));
+
+    const eventsWithDepartments = eventResponse.data.map(event => {
+        const dept = departmentMap.get(event.department as string);
+        return {
+            ...event,
+            department: dept || event.department
+        };
+    });
+
+    return { ...eventResponse, data: eventsWithDepartments };
+
   } catch (error) {
     console.error("Failed to fetch events:", error);
     throw new Error("Could not fetch events.");
@@ -108,7 +124,7 @@ export async function createEvent(formData: FormData) {
         await makeApiRequest('/events', {
             method: 'POST',
             body: JSON.stringify(eventData),
-        }, true); // Authenticated request
+        }, true);
         revalidatePath('/u/s/portal/events');
     } catch (error) {
         console.error("Failed to create event:", error);

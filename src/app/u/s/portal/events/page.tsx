@@ -152,6 +152,13 @@ export default function AdminEventsPage() {
     }
   }
 
+  const getDepartmentName = (department: Department | string) => {
+    if (typeof department === 'object' && department !== null) {
+      return department.name;
+    }
+    return 'N/A';
+  };
+
 
   return (
     <div className="flex flex-col gap-6">
@@ -364,6 +371,7 @@ export default function AdminEventsPage() {
                     <CalendarIcon className="h-4 w-4" />
                     {formatFullDate(event.startAt)}
                 </CardDescription>
+                 <Badge variant="outline" className="w-fit">{getDepartmentName(event.department)}</Badge>
                 </CardHeader>
                 <CardContent className="flex-grow">
                 <p className="text-sm text-muted-foreground line-clamp-2">
@@ -388,5 +396,3 @@ export default function AdminEventsPage() {
     </div>
   );
 }
-
-    
