@@ -5,13 +5,12 @@ import { revalidatePath } from 'next/cache';
 import type { Event, LoggedInUser, Department, ApiSuccessResponse } from '@/lib/types';
 import { cookies } from 'next/headers';
 import { formDataToObject } from '@/lib/utils';
-import { getDepartments as getAllDepartments } from '../departments/actions';
+import { getDepartments } from '../departments/actions';
 
 const API_BASE_URL = 'https://symposium-backend.onrender.com';
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
 
 async function makeApiRequest(endpoint: string, options: RequestInit = {}) {
-    const token = cookies().get('jwt')?.value;
     const defaultHeaders: Record<string, string> = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -20,10 +19,13 @@ async function makeApiRequest(endpoint: string, options: RequestInit = {}) {
         defaultHeaders['x-api-key'] = API_KEY;
     }
     
+    const token = cookies().get('jwt')?.value;
     if (token) {
         defaultHeaders['Authorization'] = `Bearer ${token}`;
+    } else {
+        throw new Error("Authentication required for this server action.");
     }
-
+    
     const config: RequestInit = {
         ...options,
         headers: {
@@ -36,13 +38,9 @@ async function makeApiRequest(endpoint: string, options: RequestInit = {}) {
     const responseData = await response.json();
 
     if (!response.ok) {
-        if (responseData.details && Array.isArray(responseData.details)) {
-            const errorMessages = responseData.details.map((d: any) => d.msg).join(', ');
-            throw new Error(errorMessages || responseData.message || `API request failed with status: ${response.status}`);
-        }
         throw new Error(responseData.message || `API request failed with status: ${response.status}`);
     }
-    
+
     if (responseData.success === false) {
         throw new Error(responseData.message);
     }
@@ -55,32 +53,31 @@ export async function getEvents(): Promise<ApiSuccessResponse<{ events: Event[] 
   try {
     const userCookie = cookies().get('loggedInUser')?.value;
     const user: LoggedInUser | null = userCookie ? JSON.parse(userCookie) : null;
-    
+
     if (!user) {
         throw new Error("Authentication required.");
     }
     
-    const eventResponse = await makeApiRequest('/events') as ApiSuccessResponse<{ events: Event[] }>;
+    const eventResponse = await makeApiRequest('/events');
+
+    let finalEvents: Event[] = eventResponse.data || [];
 
     if (user.role === 'super_admin') {
-      const departmentsResponse = await getAllDepartments();
-      const departmentMap = new Map(departmentsResponse.data.map(d => [d._id, d]));
+      const departmentsResponse = await getDepartments();
+      const departmentMap = new Map(departmentsResponse.map(d => [d._id, d]));
       
-      const eventsWithDepartments = (eventResponse.data || []).map(event => ({
+      finalEvents = finalEvents.map(event => ({
         ...event,
         department: departmentMap.get(event.department as string) || event.department
       }));
-      return { ...eventResponse, data: eventsWithDepartments };
-
     } else if (user.role === 'department_admin' && user.department) {
-       const eventsWithDepartment = (eventResponse.data || []).map(event => ({
+       finalEvents = finalEvents.map(event => ({
         ...event,
         department: user.department as Department
       }));
-       return { ...eventResponse, data: eventsWithDepartment };
     }
 
-    return eventResponse;
+    return { success: true, data: finalEvents };
 
   } catch (error) {
     console.error("Failed to fetch events:", error);

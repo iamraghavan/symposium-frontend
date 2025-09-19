@@ -26,7 +26,11 @@ async function api<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
   }
 
   if (authenticated) {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('jwt') : null;
+    let token: string | null = null;
+    if (typeof window !== 'undefined') {
+        token = localStorage.getItem('jwt');
+    }
+
     if (token) {
       defaultHeaders['Authorization'] = `Bearer ${token}`;
     } else {
@@ -49,14 +53,13 @@ async function api<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
 
   if (!response.ok) {
      const errorMsg = responseData.message || `API request failed with status: ${response.status}`;
-     const error = new Error(errorMsg);
+     const error = new Error(JSON.stringify(responseData));
      (error as any).details = responseData.details;
      throw error;
   }
   
   if (responseData.success === false) {
-      const errorMsg = responseData.message || `API returned success: false`;
-      const error = new Error(errorMsg);
+      const error = new Error(JSON.stringify(responseData));
       (error as any).details = responseData.details;
       throw error;
   }
