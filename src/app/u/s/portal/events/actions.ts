@@ -2,13 +2,11 @@
 'use server'
 
 import { revalidatePath } from 'next/cache';
-import type { Event, LoggedInUser, Department } from '@/lib/types';
+import type { Event, LoggedInUser, Department, ApiSuccessResponse, ApiErrorResponse } from '@/lib/types';
 import { cookies } from 'next/headers';
 import { formDataToObject } from '@/lib/utils';
-import { getDepartments } from '../departments/actions';
 
 const API_BASE_URL = 'https://symposium-backend.onrender.com';
-const API_KEY = process.env.API_KEY;
 
 async function makeApiRequest(endpoint: string, options: RequestInit = {}) {
     const defaultHeaders: Record<string, string> = {
@@ -16,8 +14,9 @@ async function makeApiRequest(endpoint: string, options: RequestInit = {}) {
         'Accept': 'application/json',
     };
 
-    if (API_KEY) {
-        defaultHeaders['x-api-key'] = API_KEY;
+    const apiKey = process.env.API_KEY;
+    if (apiKey) {
+        defaultHeaders['x-api-key'] = apiKey;
     }
     
     const token = cookies().get('jwt')?.value;
@@ -38,28 +37,28 @@ async function makeApiRequest(endpoint: string, options: RequestInit = {}) {
         const responseData = await response.json();
 
         if (!response.ok || responseData.success === false) {
-             throw new Error(responseData.message || `API request failed with status: ${response.status}`);
+             const errorMessage = responseData.message || `API request failed with status: ${response.status}`;
+             console.error('API Request Error in action:', errorMessage, responseData.details);
+             throw new Error(errorMessage);
         }
         
         return responseData;
     } catch (error) {
-        console.error('API Request Error in action:', error);
-        throw error;
+        console.error('Full API Request Error in action:', error);
+        if (error instanceof Error) {
+            throw error;
+        }
+        throw new Error('An unknown error occurred during the API request.');
     }
 }
 
 
-export async function getEvents(): Promise<{ success: boolean; data: Event[] }> {
+export async function getEvents(): Promise<Event[] | null> {
   try {
-    const response = await makeApiRequest('/events/admin');
-    
-    // The API now returns the full department object, so no extra mapping is needed.
-    // The data is ready to be used directly.
-    return { success: true, data: response.data };
-
+    const response: ApiSuccessResponse<{events: Event[]}> = await makeApiRequest('/events/admin');
+    return response.data || [];
   } catch (error) {
     console.error("Failed to fetch events in getEvents():", error);
-    // Rethrow to be caught by the component
     throw new Error("Could not fetch events.");
   }
 }
@@ -78,7 +77,7 @@ export async function createEvent(formData: FormData) {
              eventData.departmentId = typeof user.department === 'object' ? user.department._id : user.department;
         }
     } else {
-        throw new Error("User information not found.");
+        return { error: "User information not found." };
     }
 
     try {
@@ -87,9 +86,10 @@ export async function createEvent(formData: FormData) {
             body: JSON.stringify(eventData),
         });
         revalidatePath('/u/s/portal/events');
+        return { error: null };
     } catch (error) {
         console.error("Failed to create event:", error);
-        throw error;
+        return { error: (error as Error).message };
     }
 }
 

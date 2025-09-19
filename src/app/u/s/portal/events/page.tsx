@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -109,7 +108,7 @@ export default function AdminEventsPage() {
       setIsLoading(true);
       try {
           const eventData = await getEvents();
-          setEvents(eventData.data);
+          setEvents(eventData || []);
       } catch (error) {
           toast({ variant: 'destructive', title: 'Error', description: (error as Error).message });
       } finally {
@@ -126,7 +125,7 @@ export default function AdminEventsPage() {
     }
   }
   
-  const handleCreateEvent = async (formData: FormData) => {
+  const handleCreateEventAction = async (formData: FormData) => {
     if (!startDate || !endDate) {
         toast({ variant: 'destructive', title: 'Error', description: 'Please select start and end dates.' });
         return;
@@ -145,13 +144,16 @@ export default function AdminEventsPage() {
     formData.set('endAt', endAt.toISOString());
     
     try {
-        await createEvent(formData);
+        const result = await createEvent(formData);
+        if (result?.error) {
+             throw new Error(result.error);
+        }
         toast({ title: 'Success', description: 'Event created successfully.' });
         setIsNewEventDialogOpen(false);
         formRef.current?.reset();
-        fetchEvents();
+        await fetchEvents();
     } catch (error) {
-        toast({ variant: 'destructive', title: 'Error', description: (error as Error).message });
+        toast({ variant: 'destructive', title: 'Error creating event', description: (error as Error).message });
     }
   }
   
@@ -164,7 +166,7 @@ export default function AdminEventsPage() {
     }
   }
 
-  const getDepartmentName = (department: Department | string) => {
+  const getDepartmentName = (department: Department | string | undefined) => {
     if (typeof department === 'object' && department !== null) {
       return department.name;
     }
@@ -198,7 +200,7 @@ export default function AdminEventsPage() {
                 Fill in the details below to add a new event to the symposium.
               </DialogDescription>
             </DialogHeader>
-            <form ref={formRef} action={handleCreateEvent}>
+            <form ref={formRef} action={handleCreateEventAction}>
             <div className="grid gap-6 py-4">
               {/* Core Details */}
               <div className="grid grid-cols-4 items-center gap-4">
@@ -368,7 +370,7 @@ export default function AdminEventsPage() {
                 <TableHead>Status</TableHead>
                 <TableHead>Mode</TableHead>
                 <TableHead>Start Date</TableHead>
-                {user?.role === 'super_admin' && <TableHead>Department</TableHead>}
+                <TableHead>Department</TableHead>
                 <TableHead>
                   <span className="sr-only">Actions</span>
                 </TableHead>
@@ -377,7 +379,7 @@ export default function AdminEventsPage() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={user?.role === 'super_admin' ? 6 : 5} className="h-24 text-center">
+                  <TableCell colSpan={6} className="h-24 text-center">
                     Loading events...
                   </TableCell>
                 </TableRow>
@@ -392,9 +394,7 @@ export default function AdminEventsPage() {
                     </TableCell>
                     <TableCell>{event.mode}</TableCell>
                     <TableCell>{formatTableDate(event.startAt)}</TableCell>
-                    {user?.role === 'super_admin' && (
-                      <TableCell>{getDepartmentName(event.department)}</TableCell>
-                    )}
+                    <TableCell>{getDepartmentName(event.department)}</TableCell>
                     <TableCell className="text-right">
                        <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -417,7 +417,7 @@ export default function AdminEventsPage() {
                 ))
               ) : (
                  <TableRow>
-                    <TableCell colSpan={user?.role === 'super_admin' ? 6 : 5} className="h-24 text-center">
+                    <TableCell colSpan={6} className="h-24 text-center">
                         No events found.
                     </TableCell>
                 </TableRow>
