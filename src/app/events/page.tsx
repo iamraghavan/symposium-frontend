@@ -50,9 +50,10 @@ export default function EventsPage() {
     async function fetchData() {
         setIsLoading(true);
         try {
-            const [eventResponse, deptResponse] = await Promise.all([
-                api<ApiSuccessResponse<{events: Event[]}>>('/events?status=published'),
-                api<ApiSuccessResponse<{departments: Department[]}>>('/departments')
+            // Fetch departments and published events in parallel
+            const [deptResponse, eventResponse] = await Promise.all([
+                api<ApiSuccessResponse<{ departments: Department[] }>>('/departments'),
+                api<ApiSuccessResponse<{ events: Event[] }>>('/events?status=published')
             ]);
             
             const fetchedDepts = deptResponse.data?.departments || [];
@@ -65,7 +66,7 @@ export default function EventsPage() {
                     department: {
                       _id: event.department as string,
                       name: deptMap.get(event.department as string) || 'Unknown',
-                    } as Department
+                    } as any
                 }));
                 setAllEvents(eventsWithDept);
                 setFilteredEvents(eventsWithDept);
@@ -142,6 +143,7 @@ export default function EventsPage() {
               <Calendar className="h-4 w-4" />
               {date} at {time}
             </CardDescription>
+             <Badge variant="outline" className="w-fit">{departmentName}</Badge>
           </CardHeader>
           <CardContent className="flex-grow">
             <p className="text-sm text-muted-foreground line-clamp-2">

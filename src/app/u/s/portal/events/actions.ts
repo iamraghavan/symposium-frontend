@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import type { Event, LoggedInUser, Department, ApiSuccessResponse } from '@/lib/types';
 import { cookies } from 'next/headers';
 import { formDataToObject } from '@/lib/utils';
-import { getDepartments } from '../departments/actions';
+import { getDepartments as getAllDepartments } from '../departments/actions';
 
 type EventApiResponse = ApiSuccessResponse<{ events: Event[] }>
 
@@ -66,13 +66,10 @@ export async function getEvents(): Promise<EventApiResponse> {
         throw new Error("Authentication required.");
     }
     
-    // The backend automatically scopes events for department_admin
-    // So we just need to make an authenticated request.
     const eventResponse = await makeApiRequest('/events', {}, true) as EventApiResponse;
 
     if (user.role === 'super_admin') {
-      // For super_admin, we need to fetch all departments to map their names
-      const departmentsResponse = await getDepartments();
+      const departmentsResponse = await getAllDepartments();
       const departmentMap = new Map(departmentsResponse.data.departments.map(d => [d._id, d]));
       const eventsWithDepartments = (eventResponse.data?.events || []).map(event => ({
         ...event,
@@ -81,7 +78,6 @@ export async function getEvents(): Promise<EventApiResponse> {
       return { ...eventResponse, data: { events: eventsWithDepartments } };
 
     } else if (user.role === 'department_admin' && user.department) {
-       // For department_admin, the API returns events for their dept. We attach the dept object.
        const eventsWithDepartment = (eventResponse.data?.events || []).map(event => ({
         ...event,
         department: user.department as Department
