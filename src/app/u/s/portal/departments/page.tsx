@@ -104,8 +104,6 @@ export default function AdminDepartmentsPage() {
     const newDepartmentData = {
         id: formData.get("id") as string,
         name: formData.get("name") as string,
-        headName: formData.get("headName") as string,
-        headEmail: formData.get("headEmail") as string,
     }
 
     try {
@@ -132,8 +130,6 @@ export default function AdminDepartmentsPage() {
     const formData = new FormData(event.currentTarget);
      const updatedDepartmentData = {
         name: formData.get("name") as string,
-        headName: formData.get("headName") as string,
-        headEmail: formData.get("headEmail") as string,
     }
     try {
         await api(`/departments/${editingDepartment._id}`, { method: 'PUT', body: updatedDepartmentData, authenticated: true });
@@ -202,28 +198,16 @@ export default function AdminDepartmentsPage() {
             <form onSubmit={handleCreateDepartment}>
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right">
-                    Department Name
-                  </Label>
-                  <Input id="name" name="name" className="col-span-3" required />
-                </div>
-                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="id" className="text-right">
                     Department ID
                   </Label>
                   <Input id="id" name="id" placeholder="e.g. cse, ece" className="col-span-3" required />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="headName" className="text-right">
-                    Head's Name
+                 <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="name" className="text-right">
+                    Department Name
                   </Label>
-                  <Input id="headName" name="headName" className="col-span-3" required />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="headEmail" className="text-right">
-                    Head's Email
-                  </Label>
-                  <Input id="headEmail" name="headEmail" type="email" className="col-span-3" required />
+                  <Input id="name" name="name" className="col-span-3" required />
                 </div>
               </div>
               <DialogFooter>
@@ -241,9 +225,8 @@ export default function AdminDepartmentsPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Department ID</TableHead>
                 <TableHead>Department Name</TableHead>
-                <TableHead>Department Head</TableHead>
-                <TableHead>Head's Email</TableHead>
                 <TableHead>
                   <span className="sr-only">Actions</span>
                 </TableHead>
@@ -252,17 +235,16 @@ export default function AdminDepartmentsPage() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                    <TableCell colSpan={4} className="h-24 text-center">
+                    <TableCell colSpan={3} className="h-24 text-center">
                         Loading...
                     </TableCell>
                 </TableRow>
               ) : departments.map((dept) => (
                 <TableRow key={dept._id}>
                   <TableCell className="font-medium">
-                    <Badge variant="secondary">{dept.name}</Badge>
+                     <Badge variant="outline">{dept.id}</Badge>
                   </TableCell>
-                  <TableCell>{dept.head?.name || "N/A"}</TableCell>
-                  <TableCell className="text-muted-foreground">{dept.head?.email || "N/A"}</TableCell>
+                  <TableCell> <Badge variant="secondary">{dept.name}</Badge></TableCell>
                   <TableCell>
                     <div className="flex justify-end">
                       <DropdownMenu>
@@ -329,18 +311,6 @@ export default function AdminDepartmentsPage() {
                   </Label>
                   <Input id="edit-name" name="name" className="col-span-3" defaultValue={editingDepartment?.name} required />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-headName" className="text-right">
-                    Head's Name
-                  </Label>
-                  <Input id="edit-headName" name="headName" className="col-span-3" defaultValue={editingDepartment?.head?.name} required />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-headEmail" className="text-right">
-                    Head's Email
-                  </Label>
-                  <Input id="edit-headEmail" name="headEmail" type="email" className="col-span-3" defaultValue={editingDepartment?.head?.email} required />
-                </div>
               </div>
               <DialogFooter>
                  <Button variant="outline" type="button" onClick={() => setEditingDepartment(null)}>Cancel</Button>
@@ -352,3 +322,5 @@ export default function AdminDepartmentsPage() {
     </>
   );
 }
+
+    

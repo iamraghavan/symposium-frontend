@@ -63,14 +63,10 @@ export async function createDepartment(formData: FormData) {
   const departmentData = {
     id: formData.get("id") as string,
     name: formData.get("name") as string,
-    head: {
-        name: formData.get("headName") as string,
-        email: formData.get("headEmail") as string,
-    }
   }
 
-  if (!departmentData.id || !departmentData.name || !departmentData.head.name || !departmentData.head.email) {
-      throw new Error("Missing required fields.");
+  if (!departmentData.id || !departmentData.name) {
+      throw new Error("Missing required fields: ID and Name are required.");
   }
 
   await makeApiRequest('/departments', {
@@ -84,10 +80,6 @@ export async function createDepartment(formData: FormData) {
 export async function updateDepartment(departmentId: string, formData: FormData) {
   const updatedData = {
     name: formData.get("name") as string,
-    head: {
-        name: formData.get("headName") as string,
-        email: formData.get("headEmail") as string,
-    }
   }
 
   await makeApiRequest(`/departments/${departmentId}`, {
@@ -102,3 +94,5 @@ export async function deleteDepartment(departmentId: string) {
     await makeApiRequest(`/departments/${departmentId}`, { method: 'DELETE' }, true);
     revalidatePath('/u/s/portal/departments');
 }
+
+    

@@ -13,7 +13,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { departments } from '@/lib/data';
 import { format, parseISO } from 'date-fns';
 import { useEffect, useState } from 'react';
 import { Calendar, Users, Ticket, Globe, Video } from 'lucide-react';
@@ -39,6 +38,7 @@ export default function EventsPage() {
   const { toast } = useToast();
   const [allEvents, setAllEvents] = useState<Event[]>([]);
   const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -47,21 +47,32 @@ export default function EventsPage() {
   const [priceFilter, setPriceFilter] = useState("all");
 
   useEffect(() => {
-    async function fetchEvents() {
+    async function fetchData() {
         setIsLoading(true);
         try {
-            const response = await api<{ data: Event[] }>('/events?status=published');
-            if (response.data) {
-                setAllEvents(response.data);
-                setFilteredEvents(response.data);
+            const [eventResponse, deptResponse] = await Promise.all([
+                api<{ data: Event[] }>('/events?status=published'),
+                api<{ data: { departments: Department[] } }>('/departments')
+            ]);
+            
+            if (eventResponse.data) {
+                 const eventsWithDept = eventResponse.data.map(event => {
+                    const dept = deptResponse.data.departments.find(d => d._id === event.department);
+                    return { ...event, department: dept || event.department };
+                });
+                setAllEvents(eventsWithDept);
+                setFilteredEvents(eventsWithDept);
+            }
+            if (deptResponse.data.departments) {
+                setDepartments(deptResponse.data.departments);
             }
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch events.'});
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch data.'});
         } finally {
             setIsLoading(false);
         }
     }
-    fetchEvents();
+    fetchData();
   }, [toast]);
 
   useEffect(() => {
@@ -71,9 +82,7 @@ export default function EventsPage() {
       tempEvents = tempEvents.filter(event => event.mode === modeFilter);
     }
     if (departmentFilter !== 'all') {
-      // Assuming event.department can be an object with _id or just a string
       tempEvents = tempEvents.filter(event => 
-        (typeof event.department === 'string' && event.department === departmentFilter) ||
         (typeof event.department === 'object' && event.department._id === departmentFilter)
       );
     }
@@ -95,6 +104,7 @@ export default function EventsPage() {
 
   const EventCard = ({ event }: { event: Event }) => {
     const { date, time } = getFormattedDate(event.startAt);
+    const departmentName = typeof event.department === 'object' ? event.department.name : 'N/A';
     return (
       <DialogTrigger asChild>
          <motion.div
@@ -197,7 +207,7 @@ export default function EventsPage() {
               <SelectContent>
                 <SelectItem value="all">All Departments</SelectItem>
                 {departments.map(dept => (
-                  <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+                  <SelectItem key={dept._id} value={dept._id}>{dept.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

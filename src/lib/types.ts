@@ -4,10 +4,9 @@ export type Department = {
   _id: string;
   id: string; // short id
   name: string;
-  head?: {
-    name: string;
-    email: string;
-  };
+  code: string;
+  shortcode: string;
+  isActive: boolean;
 };
 
 export type User = {
@@ -111,3 +110,5 @@ export type ApiErrorResponse = {
   message: string;
   details?: { field: string; msg: string }[];
 };
+
+    
