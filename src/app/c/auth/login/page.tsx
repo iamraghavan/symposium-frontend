@@ -48,8 +48,8 @@ function LoginPageContent() {
         body: { email, password },
       });
 
-      if (response.success && response.token && response.data.user) {
-        const user = response.data.user;
+      if (response.success && response.token && response.user) {
+        const user = response.user;
 
         if (!isAdmin(user)) {
              toast({
