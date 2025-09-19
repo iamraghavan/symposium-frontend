@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -56,6 +57,7 @@ import {
   Eye,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import { useFormState } from 'react-dom';
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import { useRouter } from "next/navigation";
@@ -67,6 +69,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+const initialState = {
+  message: '',
+  success: false,
+};
 
 export default function AdminEventsPage() {
   const router = useRouter();
@@ -86,6 +93,8 @@ export default function AdminEventsPage() {
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("17:00");
 
+  const [formState, formAction] = useFormState(createEvent, initialState);
+
   useEffect(() => {
     const userData = localStorage.getItem("loggedInUser");
     if (userData) {
@@ -103,6 +112,19 @@ export default function AdminEventsPage() {
       router.push("/c/auth/login?login=s_admin");
     }
   }, [router]);
+
+  useEffect(() => {
+    if (formState.message) {
+      if (formState.success) {
+        toast({ title: 'Success', description: formState.message });
+        setIsNewEventDialogOpen(false);
+        formRef.current?.reset();
+        fetchEvents();
+      } else {
+        toast({ variant: 'destructive', title: 'Error', description: formState.message });
+      }
+    }
+  }, [formState]);
   
   const fetchEvents = async () => {
       setIsLoading(true);
@@ -124,39 +146,7 @@ export default function AdminEventsPage() {
       toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch departments.' });
     }
   }
-  
-  const handleCreateEventAction = async (formData: FormData) => {
-    if (!startDate || !endDate) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Please select start and end dates.' });
-        return;
-    }
-    
-    const [startHour, startMinute] = startTime.split(':').map(Number);
-    const [endHour, endMinute] = endTime.split(':').map(Number);
 
-    const startAt = new Date(startDate);
-    startAt.setHours(startHour, startMinute);
-    
-    const endAt = new Date(endDate);
-    endAt.setHours(endHour, endMinute);
-
-    formData.set('startAt', startAt.toISOString());
-    formData.set('endAt', endAt.toISOString());
-    
-    try {
-        const result = await createEvent(formData);
-        if (result?.error) {
-             throw new Error(result.error);
-        }
-        toast({ title: 'Success', description: 'Event created successfully.' });
-        setIsNewEventDialogOpen(false);
-        formRef.current?.reset();
-        await fetchEvents();
-    } catch (error) {
-        toast({ variant: 'destructive', title: 'Error creating event', description: (error as Error).message });
-    }
-  }
-  
   const formatTableDate = (dateString?: string) => {
     if (!dateString) return "N/A";
     try {
@@ -200,7 +190,7 @@ export default function AdminEventsPage() {
                 Fill in the details below to add a new event to the symposium.
               </DialogDescription>
             </DialogHeader>
-            <form ref={formRef} action={handleCreateEventAction}>
+            <form ref={formRef} action={formAction}>
             <div className="grid gap-6 py-4">
               {/* Core Details */}
               <div className="grid grid-cols-4 items-center gap-4">
@@ -246,9 +236,10 @@ export default function AdminEventsPage() {
                     </Popover>
                     <div className="relative">
                        <Clock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                       <Input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="pl-8" />
+                       <Input name="startTime" type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="pl-8" />
                     </div>
                 </div>
+                <input type="hidden" name="startAt" value={startDate ? new Date(startDate.setHours(Number(startTime.split(':')[0]), Number(startTime.split(':')[1]))).toISOString() : ''} />
               </div>
                <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right">End Date/Time</Label>
@@ -264,9 +255,10 @@ export default function AdminEventsPage() {
                     </Popover>
                      <div className="relative">
                        <Clock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                       <Input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="pl-8" />
+                       <Input name="endTime" type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="pl-8" />
                     </div>
                 </div>
+                 <input type="hidden" name="endAt" value={endDate ? new Date(endDate.setHours(Number(endTime.split(':')[0]), Number(endTime.split(':')[1]))).toISOString() : ''} />
               </div>
 
               {/* Mode */}
@@ -350,7 +342,7 @@ export default function AdminEventsPage() {
               </DialogClose>
               <Button type="submit">Create Event</Button>
             </DialogFooter>
-          </form>
+            </form>
           </DialogContent>
         </Dialog>
       </div>
