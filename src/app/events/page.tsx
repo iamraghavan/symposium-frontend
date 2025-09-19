@@ -13,11 +13,11 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { events as allEvents, departments } from '@/lib/data';
+import { departments } from '@/lib/data';
 import { format, parseISO } from 'date-fns';
 import { useEffect, useState } from 'react';
-import { Calendar, Users, MapPin, Ticket } from 'lucide-react';
-import type { Event } from '@/lib/types';
+import { Calendar, Users, Ticket, Globe, Video } from 'lucide-react';
+import type { Event, Department } from '@/lib/types';
 import {
   Select,
   SelectContent,
@@ -28,89 +28,104 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { motion } from "framer-motion";
+import api from '@/lib/api';
+import { useToast } from '@/hooks/use-toast';
 
 export default function EventsPage() {
-  const [events, setEvents] = useState<Event[]>(allEvents);
-  const [filteredEvents, setFilteredEvents] = useState<Event[]>(allEvents);
-  const [formattedDates, setFormattedDates] = useState<Record<string, {date: string, time: string}>>({});
+  const { toast } = useToast();
+  const [allEvents, setAllEvents] = useState<Event[]>([]);
+  const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [modeFilter, setModeFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [priceFilter, setPriceFilter] = useState("all");
-  const [categoryFilter, setCategoryFilter] = useState("all");
 
   useEffect(() => {
-    const newFormattedDates: Record<string, {date: string, time: string}> = {};
-    allEvents.forEach((event) => {
-      const parsedDate = parseISO(event.date);
-      newFormattedDates[event.id] = {
-        date: format(parsedDate, "MMMM d, yyyy"),
-        time: format(parsedDate, "h:mm a"),
-      };
-    });
-    setFormattedDates(newFormattedDates);
-  }, []);
+    async function fetchEvents() {
+        setIsLoading(true);
+        try {
+            const response = await api<{ data: Event[] }>('/events?status=published');
+            if (response.data) {
+                setAllEvents(response.data);
+                setFilteredEvents(response.data);
+            }
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch events.'});
+        } finally {
+            setIsLoading(false);
+        }
+    }
+    fetchEvents();
+  }, [toast]);
 
   useEffect(() => {
-    let tempEvents = [...events];
+    let tempEvents = [...allEvents];
 
     if (modeFilter !== 'all') {
       tempEvents = tempEvents.filter(event => event.mode === modeFilter);
     }
     if (departmentFilter !== 'all') {
-      tempEvents = tempEvents.filter(event => event.department.id === departmentFilter);
+      // Assuming event.department can be an object with _id or just a string
+      tempEvents = tempEvents.filter(event => 
+        (typeof event.department === 'string' && event.department === departmentFilter) ||
+        (typeof event.department === 'object' && event.department._id === departmentFilter)
+      );
     }
     if (priceFilter !== 'all') {
-      tempEvents = tempEvents.filter(event => priceFilter === 'free' ? event.registrationFee === 0 : event.registrationFee > 0);
+      tempEvents = tempEvents.filter(event => priceFilter === 'free' ? event.payment.price === 0 : event.payment.price > 0);
     }
-    if (categoryFilter !== 'all') {
-      tempEvents = tempEvents.filter(event => event.category === categoryFilter);
-    }
-
+    
     setFilteredEvents(tempEvents);
-  }, [events, modeFilter, departmentFilter, priceFilter, categoryFilter]);
+  }, [allEvents, modeFilter, departmentFilter, priceFilter]);
 
+  const getFormattedDate = (dateString?: string) => {
+    if (!dateString) return { date: "N/A", time: "" };
+    const parsedDate = parseISO(dateString);
+    return {
+      date: format(parsedDate, "MMMM d, yyyy"),
+      time: format(parsedDate, "h:mm a"),
+    };
+  };
 
-  const EventCard = ({ event }: { event: Event }) => (
+  const EventCard = ({ event }: { event: Event }) => {
+    const { date, time } = getFormattedDate(event.startAt);
+    return (
       <DialogTrigger asChild>
          <motion.div
             whileHover={{ scale: 1.03, y: -5 }}
             className="h-full"
         >
         <Card
-          key={event.id}
+          key={event._id}
           className="flex flex-col overflow-hidden h-full shadow-md transition-shadow duration-300 cursor-pointer"
           onClick={() => setSelectedEvent(event)}
         >
           <div className="relative h-48 w-full">
             <Image
-              src={event.imageUrl}
+              src={event.thumbnailUrl || 'https://picsum.photos/seed/event-placeholder/400/250'}
               alt={event.name}
               fill
               className="object-cover"
-              data-ai-hint={event.imageHint}
+              data-ai-hint="event placeholder"
             />
             <Badge className="absolute top-2 right-2" variant={event.mode === 'online' ? 'default' : 'secondary'}>
-                {event.mode === 'online' ? 'Online' : 'Offline'}
+                {event.mode === 'online' ? <Video className='mr-1 h-3 w-3'/> : <Globe className='mr-1 h-3 w-3'/>}
+                {event.mode.charAt(0).toUpperCase() + event.mode.slice(1)}
             </Badge>
           </div>
           <CardHeader>
-            <div className="flex justify-between items-start">
-              <CardTitle className="font-headline text-xl mb-1">
-                {event.name}
-              </CardTitle>
-              <Badge variant="outline">{event.department.name}</Badge>
-            </div>
+            <CardTitle className="font-headline text-xl mb-1 line-clamp-1">
+              {event.name}
+            </CardTitle>
             <CardDescription className="flex items-center gap-2 text-sm">
               <Calendar className="h-4 w-4" />
-              {formattedDates[event.id]?.date} at {formattedDates[event.id]?.time}
+              {date} at {time}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-grow">
@@ -122,17 +137,18 @@ export default function EventsPage() {
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm font-medium">
-                {event.participants.length} Participants
+                0 Participants
               </span>
             </div>
             <Button variant="default" size="sm">
-                {event.registrationFee === 0 ? 'Free' : `$${event.registrationFee}`}
+                {event.payment.price === 0 ? 'Free' : `₹${event.payment.price}`}
             </Button>
           </CardFooter>
         </Card>
         </motion.div>
       </DialogTrigger>
-  )
+    )
+  }
 
   const containerVariants = {
       hidden: { opacity: 0 },
@@ -196,36 +212,31 @@ export default function EventsPage() {
                 <SelectItem value="paid">Paid</SelectItem>
               </SelectContent>
             </Select>
-
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-full sm:w-auto flex-1 min-w-[150px]">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                <SelectItem value="technical">Technical</SelectItem>
-                <SelectItem value="non-technical">Non-Technical</SelectItem>
-              </SelectContent>
-            </Select>
         </div>
         
-        <motion.div 
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          {filteredEvents.map((event) => (
-            <motion.div key={event.id} variants={itemVariants}>
-              <EventCard event={event} />
+        {isLoading ? (
+            <div className="text-center col-span-full py-12">
+                <p className="text-muted-foreground">Loading events...</p>
+            </div>
+        ) : (
+            <motion.div 
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            >
+            {filteredEvents.map((event) => (
+                <motion.div key={event._id} variants={itemVariants}>
+                <EventCard event={event} />
+                </motion.div>
+            ))}
             </motion.div>
-          ))}
-          </motion.div>
-          {filteredEvents.length === 0 && (
-              <div className="text-center col-span-full py-12">
-                  <p className="text-muted-foreground">No events match the current filters.</p>
-              </div>
-          )}
+        )}
+        {!isLoading && filteredEvents.length === 0 && (
+            <div className="text-center col-span-full py-12">
+                <p className="text-muted-foreground">No events match the current filters.</p>
+            </div>
+        )}
       </div>
 
        {selectedEvent && (
@@ -234,15 +245,15 @@ export default function EventsPage() {
             <DialogTitle className="font-headline text-2xl">{selectedEvent.name}</DialogTitle>
           </DialogHeader>
           <div className="py-4 space-y-4 text-sm">
-            <div className="flex items-center gap-2"><span className="font-semibold w-24">Date:</span> <span>{formattedDates[selectedEvent.id]?.date}</span></div>
-            <div className="flex items-center gap-2"><span className="font-semibold w-24">Time:</span> <span>{formattedDates[selectedEvent.id]?.time}</span></div>
-            <div className="flex items-center gap-2"><span className="font-semibold w-24">Venue:</span> <span>{selectedEvent.mode === 'online' ? 'Online' : 'EGS Pillay Engineering College'}</span></div>
+            <div className="flex items-center gap-2"><span className="font-semibold w-24">Date:</span> <span>{getFormattedDate(selectedEvent.startAt).date}</span></div>
+            <div className="flex items-center gap-2"><span className="font-semibold w-24">Time:</span> <span>{getFormattedDate(selectedEvent.startAt).time}</span></div>
+            <div className="flex items-center gap-2"><span className="font-semibold w-24">Venue:</span> <span>{selectedEvent.mode === 'online' ? (selectedEvent.online?.provider || 'Online') : (selectedEvent.offline?.venueName || 'On-campus')}</span></div>
              <div className="flex items-start gap-2">
                 <span className="font-semibold w-24 shrink-0">Description:</span> 
                 <p className="text-muted-foreground">{selectedEvent.description}</p>
             </div>
-            <div className="flex items-center gap-2"><span className="font-semibold w-24">Conducted By:</span> <span>{selectedEvent.department.name}</span></div>
-            <div className="flex items-center gap-2"><span className="font-semibold w-24">Price:</span> <span>{selectedEvent.registrationFee === 0 ? 'Free' : `$${selectedEvent.registrationFee}`}</span></div>
+            <div className="flex items-center gap-2"><span className="font-semibold w-24">Conducted By:</span> <span>{typeof selectedEvent.department === 'object' ? selectedEvent.department.name : 'Department'}</span></div>
+            <div className="flex items-center gap-2"><span className="font-semibold w-24">Price:</span> <span>{selectedEvent.payment.price === 0 ? 'Free' : `₹${selectedEvent.payment.price}`}</span></div>
           </div>
            <div className="flex justify-between items-center pt-4 border-t">
               <p className="text-xs text-muted-foreground">For technical support, email us at web@egspec.org</p>
@@ -252,7 +263,7 @@ export default function EventsPage() {
                   Register
                 </Button>
                 <Button variant="outline" asChild>
-                  <Link href={`/events/${selectedEvent.id}`}>View Full Details</Link>
+                  <Link href={`/events/${selectedEvent._id}`}>View Full Details</Link>
                 </Button>
               </div>
            </div>
@@ -261,3 +272,5 @@ export default function EventsPage() {
     </Dialog>
   );
 }
+
+    
