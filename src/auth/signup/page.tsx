@@ -38,6 +38,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [collegeValue, setCollegeValue] = useState("");
   const [departmentValue, setDepartmentValue] = useState("");
+  const [googleId, setGoogleId] = useState<string | null>(null);
   
   const [colleges, setColleges] = useState<{ value: string; label: string }[]>([]);
   const [departments, setDepartments] = useState<{ value: string; label: string }[]>([]);
@@ -45,6 +46,16 @@ export default function SignupPage() {
   const [loadingDepartments, setLoadingDepartments] = useState(true);
   
   useEffect(() => {
+    const googleProfile = sessionStorage.getItem('google_signup_profile');
+    if (googleProfile) {
+        const profile = JSON.parse(googleProfile);
+        setName(profile.name || '');
+        setEmail(profile.email || '');
+        setGoogleId(profile.googleId || null);
+        // Clean up sessionStorage
+        sessionStorage.removeItem('google_signup_profile');
+    }
+
     async function fetchColleges() {
       try {
         const response = await fetch('https://raw.githubusercontent.com/VarthanV/Indian-Colleges-List/master/colleges.json');
@@ -92,45 +103,6 @@ export default function SignupPage() {
     fetchDepartments();
   }, [toast]);
 
-  const handleGoogleSuccess = async (credentialResponse: any) => {
-    try {
-        const response = await api<ApiSuccessResponse<{ user: LoggedInUser, token: string }>>('/auth/google', {
-            method: 'POST',
-            body: { idToken: credentialResponse.credential }
-        });
-        
-        if (response.success && response.token && response.user) {
-            localStorage.setItem('jwt', response.token);
-            localStorage.setItem('loggedInUser', JSON.stringify(response.user));
-            toast({
-                title: "Login Successful",
-                description: `Welcome, ${response.user.name}!`,
-            });
-             if (response.user.role === 'super_admin' || response.user.role === 'department_admin') {
-                router.push('/u/s/portal/dashboard');
-            } else {
-                router.push('/events');
-            }
-        } else {
-            throw new Error((response as any).message || "Google login failed.");
-        }
-    } catch (error) {
-        toast({
-            variant: "destructive",
-            title: "Login Failed",
-            description: (error as Error).message || "Could not sign in with Google. Please try again.",
-        });
-    }
-  };
-
-  const handleGoogleError = () => {
-    toast({
-        variant: "destructive",
-        title: "Login Failed",
-        description: "An unknown error occurred during Google authentication.",
-    });
-  };
-
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -153,15 +125,22 @@ export default function SignupPage() {
     }
 
     try {
+        const registrationData: any = {
+            name,
+            email,
+            college: selectedCollege.label, // Send the full college name
+            departmentId: departmentValue,
+        };
+
+        if (googleId) {
+            registrationData.googleId = googleId;
+        } else {
+            registrationData.password = password;
+        }
+        
         const response = await api<ApiSuccessResponse<{ user: LoggedInUser, token: string }>>('/auth/register', {
             method: 'POST',
-            body: {
-                name,
-                email,
-                password,
-                college: selectedCollege.label, // Send the full college name
-                departmentId: departmentValue,
-            }
+            body: registrationData
         });
 
         if (response.success && response.token && response.user) {
@@ -171,16 +150,24 @@ export default function SignupPage() {
                 title: "Registration Successful",
                 description: `Welcome, ${response.user.name}!`,
             });
-            router.push('/events');
+            window.location.href = '/events';
         } else {
             throw new Error((response as any).message || "Registration failed.");
         }
 
     } catch (error) {
+        let errorMessage = "Could not create your account. Please try again.";
+        try {
+            const parsedError = JSON.parse((error as Error).message);
+            errorMessage = parsedError.message || errorMessage;
+        } catch (e) {
+            // Not a JSON error message, use the original.
+            errorMessage = (error as Error).message;
+        }
         toast({
             variant: "destructive",
             title: "Registration Failed",
-            description: (error as Error).message || "Could not create your account. Please try again.",
+            description: errorMessage,
         });
     }
   };
@@ -190,9 +177,9 @@ export default function SignupPage() {
       <Card className="w-full max-w-sm">
         <form onSubmit={handleRegister}>
             <CardHeader>
-            <CardTitle className="text-2xl font-headline">Create an Account</CardTitle>
+            <CardTitle className="text-2xl font-headline">{googleId ? "Complete Your Profile" : "Create an Account"}</CardTitle>
             <CardDescription>
-                Enter your information to join the symposium community.
+                {googleId ? "Just a few more details to get you started." : "Enter your information to join the symposium community."}
             </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4">
@@ -209,12 +196,15 @@ export default function SignupPage() {
                 required
                 value={email} 
                 onChange={e => setEmail(e.target.value)}
+                disabled={!!googleId} // Disable email editing if coming from Google
                 />
             </div>
-            <div className="grid gap-2">
-                <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" required value={password} onChange={e => setPassword(e.target.value)} />
-            </div>
+            {!googleId && (
+                <div className="grid gap-2">
+                    <Label htmlFor="password">Password</Label>
+                    <Input id="password" type="password" required value={password} onChange={e => setPassword(e.target.value)} />
+                </div>
+            )}
              <div className="grid gap-2">
                 <Label htmlFor="department">Department</Label>
                 <Combobox 
@@ -241,23 +231,27 @@ export default function SignupPage() {
             </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full">Create account</Button>
-            <div className="relative w-full">
-                <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
-                    Or continue with
-                </span>
-                </div>
-            </div>
-            <div className="w-full flex justify-center">
-               <GoogleLogin
-                    onSuccess={handleGoogleSuccess}
-                    onError={handleGoogleError}
-                />
-            </div>
+            <Button type="submit" className="w-full">{googleId ? "Complete Registration" : "Create Account"}</Button>
+           
+            {!googleId && (
+                 <>
+                    <div className="relative w-full">
+                        <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-background px-2 text-muted-foreground">
+                            Or continue with
+                        </span>
+                        </div>
+                    </div>
+                    <div className="w-full flex justify-center">
+                       <Link href="/" className='w-full'>
+                            <Button variant="outline" className='w-full'>Go to Homepage to use Google Login</Button>
+                       </Link>
+                    </div>
+                 </>
+            )}
             <div className="mt-4 text-center text-sm">
                 Already have an account?{" "}
                 <Link href="/auth/login" className="underline">

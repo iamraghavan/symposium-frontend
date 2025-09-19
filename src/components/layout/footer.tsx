@@ -31,7 +31,9 @@ export function Footer() {
                 <h3 className="font-bold text-white">Your Account</h3>
                 <ul className="space-y-2">
                     <li><Link href="/auth/signup" className="hover:text-white transition-colors">Sign up</Link></li>
-                    <li><Link href="/auth/login" className="hover:text-white transition-colors">Log in</Link></li>
+                    <li><Link href="/auth/login" className="hover:text-white transition-colors">User Login</Link></li>
+                    <li><Link href="/c/auth/login?login=d_admin" className="hover:text-white transition-colors">Department Login</Link></li>
+                    <li><Link href="/c/auth/login?login=s_admin" className="hover:text-white transition-colors">Super Admin Login</Link></li>
                     <li><Link href="#" className="hover:text-white transition-colors">Help</Link></li>
                 </ul>
             </div>
