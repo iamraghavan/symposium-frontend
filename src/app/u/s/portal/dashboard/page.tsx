@@ -32,6 +32,7 @@ import {
   Users,
   DollarSign,
   Trophy,
+  KeyRound,
 } from "lucide-react";
 import { events, users } from "@/lib/data";
 import { format, parseISO } from "date-fns";
@@ -47,16 +48,19 @@ const totalRevenue = events.reduce((acc, event) => acc + event.participants.leng
 export default function AdminDashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<LoggedInUser | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     const userData = localStorage.getItem("loggedInUser");
-    if (userData) {
+    const jwtToken = localStorage.getItem("jwt");
+    if (userData && jwtToken) {
       const parsedUser = JSON.parse(userData);
       if (!isAdmin(parsedUser)) {
         router.push('/');
       } else {
         setUser(parsedUser);
+        setToken(jwtToken);
       }
     } else {
       router.push('/c/auth/login?login=s_admin');
@@ -123,6 +127,20 @@ export default function AdminDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+       <Card>
+        <CardHeader>
+          <CardTitle className="font-headline flex items-center gap-2"><KeyRound/> Authentication Token</CardTitle>
+          <CardDescription>
+            Your current session token. Use this for API testing if required.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+            <pre className="text-xs bg-muted p-4 rounded-lg overflow-x-auto">
+                <code>{token}</code>
+            </pre>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-5">
         <Card className="lg:col-span-3">
@@ -214,3 +232,5 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+
+    
