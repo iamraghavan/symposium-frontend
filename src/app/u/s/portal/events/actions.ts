@@ -2,24 +2,30 @@
 'use server'
 
 import { revalidatePath } from 'next/cache';
-import type { Event, LoggedInUser, Department, ApiSuccessResponse, ApiErrorResponse } from '@/lib/types';
+import type { Event, ApiSuccessResponse, ApiErrorResponse } from '@/lib/types';
 import { cookies } from 'next/headers';
 import { formDataToObject } from '@/lib/utils';
 
 const API_BASE_URL = 'https://symposium-backend.onrender.com';
 
 async function makeApiRequest(endpoint: string, options: RequestInit = {}) {
+    const API_KEY = process.env.API_KEY;
+    const token = cookies().get('jwt')?.value;
+
+    console.log("--- [makeApiRequest Diagnostics] ---");
+    console.log("Endpoint:", endpoint);
+    console.log("API_KEY from process.env:", API_KEY ? `Found (length: ${API_KEY.length})` : "NOT FOUND");
+    console.log("JWT Token from cookies:", token ? `Found (length: ${token.length})` : "NOT FOUND");
+
     const defaultHeaders: Record<string, string> = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
     };
-
-    const apiKey = process.env.API_KEY;
-    if (apiKey) {
-        defaultHeaders['x-api-key'] = apiKey;
+    
+    if (API_KEY) {
+        defaultHeaders['x-api-key'] = API_KEY;
     }
     
-    const token = cookies().get('jwt')?.value;
     if (token) {
         defaultHeaders['Authorization'] = `Bearer ${token}`;
     }
@@ -32,19 +38,26 @@ async function makeApiRequest(endpoint: string, options: RequestInit = {}) {
         },
     };
 
+    console.log("Final Request Headers:", JSON.stringify(config.headers, null, 2));
+
     try {
         const response = await fetch(`${API_BASE_URL}/api/v1${endpoint}`, config);
         const responseData = await response.json();
 
+        console.log("API Response Status:", response.status);
+        console.log("API Response Data:", JSON.stringify(responseData, null, 2));
+        console.log("--- [End Diagnostics] ---");
+
+
         if (!response.ok || responseData.success === false) {
              const errorMessage = responseData.message || `API request failed with status: ${response.status}`;
-             console.error('API Request Error in action:', errorMessage, responseData.details);
              throw new Error(errorMessage);
         }
         
         return responseData;
     } catch (error) {
         console.error('Full API Request Error in action:', error);
+        console.log("--- [End Diagnostics with Error] ---");
         if (error instanceof Error) {
             throw error;
         }
@@ -52,8 +65,7 @@ async function makeApiRequest(endpoint: string, options: RequestInit = {}) {
     }
 }
 
-
-export async function getEvents(): Promise<Event[] | null> {
+export async function getEvents(): Promise<Event[]> {
   try {
     const response: ApiSuccessResponse<{events: Event[]}> = await makeApiRequest('/events/admin');
     return response.data || [];
@@ -66,18 +78,14 @@ export async function getEvents(): Promise<Event[] | null> {
 export async function createEvent(formData: FormData) {
     const eventData = formDataToObject(formData);
     
+    // Convert price to number if it exists
     if (eventData.payment && eventData.payment.price) {
         eventData.payment.price = Number(eventData.payment.price);
     }
     
-    const userCookie = cookies().get('loggedInUser')?.value;
-    if (userCookie) {
-        const user: LoggedInUser = JSON.parse(userCookie);
-        if (user.role === 'department_admin' && user.department) {
-             eventData.departmentId = typeof user.department === 'object' ? user.department._id : user.department;
-        }
-    } else {
-        return { error: "User information not found." };
+    // Department ID might be nested if coming from a super_admin form
+    if (eventData.departmentId) {
+        eventData.department = eventData.departmentId;
     }
 
     try {
@@ -86,10 +94,10 @@ export async function createEvent(formData: FormData) {
             body: JSON.stringify(eventData),
         });
         revalidatePath('/u/s/portal/events');
-        return { error: null };
+        return { error: null, success: true };
     } catch (error) {
         console.error("Failed to create event:", error);
-        return { error: (error as Error).message };
+        return { error: (error as Error).message, success: false };
     }
 }
 
