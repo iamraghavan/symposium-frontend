@@ -7,7 +7,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
 
 type ApiOptions = {
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: Record<string, any>;
   authenticated?: boolean;
   headers?: Record<string, string>;
@@ -30,7 +30,8 @@ async function api<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
     if (token) {
       defaultHeaders['Authorization'] = `Bearer ${token}`;
     } else {
-      console.warn('Authenticated request made without a token.');
+      // Don't throw an error, let the server decide if the endpoint is protected
+      console.warn('Authenticated request intended but no token found.');
     }
   }
 
@@ -48,18 +49,22 @@ async function api<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
   const responseData = await response.json();
 
   if (!response.ok) {
-     if (responseData.details && Array.isArray(responseData.details)) {
-        const errorMessages = responseData.details.map((d: any) => d.msg).join(', ');
-        throw new Error(errorMessages || responseData.message || `API request failed with status: ${response.status}`);
-    }
-    throw new Error(responseData.message || `API request failed with status: ${response.status}`);
+     const errorMsg = responseData.message || `API request failed with status: ${response.status}`;
+     const error = new Error(errorMsg);
+     (error as any).details = responseData.details;
+     throw error;
   }
   
   if (responseData.success === false) {
-      throw new Error(JSON.stringify(responseData));
+      const errorMsg = responseData.message || `API returned success: false`;
+      const error = new Error(errorMsg);
+      (error as any).details = responseData.details;
+      throw error;
   }
 
   return responseData as T;
 }
 
 export default api;
+
+    

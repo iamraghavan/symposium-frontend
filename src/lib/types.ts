@@ -2,11 +2,13 @@
 
 export type Department = {
   _id: string;
-  id: string; // short id
-  name: string;
+  id: string; // short id or uuid
   code: string;
+  name: string;
   shortcode: string;
   isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type User = {
@@ -62,9 +64,9 @@ export type Event = {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
-  imageHint?: string; // Kept for placeholder compatibility
-  participants: User[]; // This might come from a separate endpoint
-  registrationFee: number; // Kept for placeholder compatibility
+  imageHint?: string; 
+  participants: User[]; 
+  registrationFee: number;
 };
 
 
@@ -87,9 +89,9 @@ export type LoggedInUser = {
   name: string;
   email: string;
   role: 'super_admin' | 'department_admin' | 'user';
-  department?: string; // This will be the department ID
+  department?: Department | string; 
   picture?: string;
-  [key: string]: any; // Allow other properties from the API
+  [key: string]: any; 
 };
 
 export type ApiSuccessResponse<T> = {

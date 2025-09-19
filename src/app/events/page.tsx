@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { format, parseISO } from 'date-fns';
 import { useEffect, useState } from 'react';
 import { Calendar, Users, Ticket, Globe, Video } from 'lucide-react';
-import type { Event, Department } from '@/lib/types';
+import type { Event, Department, ApiSuccessResponse } from '@/lib/types';
 import {
   Select,
   SelectContent,
@@ -51,23 +51,28 @@ export default function EventsPage() {
         setIsLoading(true);
         try {
             const [eventResponse, deptResponse] = await Promise.all([
-                api<{ data: Event[] }>('/events?status=published'),
-                api<{ data: { departments: Department[] } }>('/departments')
+                api<ApiSuccessResponse<{events: Event[]}>>('/events?status=published'),
+                api<ApiSuccessResponse<{departments: Department[]}>>('/departments')
             ]);
             
-            if (eventResponse.data) {
-                 const eventsWithDept = eventResponse.data.map(event => {
-                    const dept = deptResponse.data.departments.find(d => d._id === event.department);
-                    return { ...event, department: dept || event.department };
-                });
+            const fetchedDepts = deptResponse.data?.departments || [];
+            setDepartments(fetchedDepts);
+
+            if (eventResponse.data?.events) {
+                 const deptMap = new Map(fetchedDepts.map(d => [d._id, d.name]));
+                 const eventsWithDept = eventResponse.data.events.map(event => ({
+                    ...event,
+                    department: {
+                      _id: event.department as string,
+                      name: deptMap.get(event.department as string) || 'Unknown',
+                    } as Department
+                }));
                 setAllEvents(eventsWithDept);
                 setFilteredEvents(eventsWithDept);
             }
-            if (deptResponse.data.departments) {
-                setDepartments(deptResponse.data.departments);
-            }
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch data.'});
+            console.error(error);
         } finally {
             setIsLoading(false);
         }

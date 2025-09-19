@@ -7,16 +7,7 @@ import { cookies } from 'next/headers';
 import { formDataToObject } from '@/lib/utils';
 import { getDepartments } from '../departments/actions';
 
-type EventApiResponse = {
-    success: boolean;
-    data: Event[];
-    meta: {
-        total: number;
-        page: number;
-        limit: number;
-        hasMore: boolean;
-    }
-}
+type EventApiResponse = ApiSuccessResponse<{ events: Event[] }>
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
@@ -69,36 +60,33 @@ async function makeApiRequest(endpoint: string, options: RequestInit = {}, authe
 export async function getEvents(): Promise<EventApiResponse> {
   try {
     const userCookie = cookies().get('loggedInUser')?.value;
-    let endpoint = '/events';
     const user: LoggedInUser | null = userCookie ? JSON.parse(userCookie) : null;
     
     if (!user) {
         throw new Error("Authentication required.");
     }
     
-    let departments: Department[] = [];
+    // The backend automatically scopes events for department_admin
+    // So we just need to make an authenticated request.
+    const eventResponse = await makeApiRequest('/events', {}, true) as EventApiResponse;
+
     if (user.role === 'super_admin') {
-      endpoint = '/events';
-      departments = await getDepartments();
-    } else if (user.role === 'department_admin' && user.department) {
-      endpoint = `/events?departmentId=${typeof user.department === 'object' ? user.department._id : user.department}`;
-    }
-    
-    const eventResponse = await makeApiRequest(endpoint, {}, true) as EventApiResponse;
-    
-    if (user.role === 'super_admin') {
-      const departmentMap = new Map(departments.map(d => [d._id, d]));
-      const eventsWithDepartments = eventResponse.data.map(event => ({
+      // For super_admin, we need to fetch all departments to map their names
+      const departmentsResponse = await getDepartments();
+      const departmentMap = new Map(departmentsResponse.data.departments.map(d => [d._id, d]));
+      const eventsWithDepartments = (eventResponse.data?.events || []).map(event => ({
         ...event,
         department: departmentMap.get(event.department as string) || event.department
       }));
-      return { ...eventResponse, data: eventsWithDepartments };
+      return { ...eventResponse, data: { events: eventsWithDepartments } };
+
     } else if (user.role === 'department_admin' && user.department) {
-       const eventsWithDepartment = eventResponse.data.map(event => ({
+       // For department_admin, the API returns events for their dept. We attach the dept object.
+       const eventsWithDepartment = (eventResponse.data?.events || []).map(event => ({
         ...event,
         department: user.department as Department
       }));
-      return { ...eventResponse, data: eventsWithDepartment };
+      return { ...eventResponse, data: { events: eventsWithDepartment } };
     }
 
     return eventResponse;
@@ -165,3 +153,5 @@ export async function deleteEvent(eventId: string) {
     throw error;
   }
 }
+
+    
