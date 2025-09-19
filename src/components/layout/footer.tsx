@@ -33,7 +33,6 @@ export function Footer() {
                     <li><Link href="/auth/signup" className="hover:text-white transition-colors">Sign up</Link></li>
                     <li><Link href="/auth/login" className="hover:text-white transition-colors">User Login</Link></li>
                     <li><Link href="/c/auth/login?login=d_admin" className="hover:text-white transition-colors">Department Login</Link></li>
-                    <li><Link href="/c/auth/login?login=s_admin" className="hover:text-white transition-colors">Super Admin Login</Link></li>
                     <li><Link href="#" className="hover:text-white transition-colors">Help</Link></li>
                 </ul>
             </div>
