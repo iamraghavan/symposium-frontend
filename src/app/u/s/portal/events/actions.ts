@@ -2,13 +2,13 @@
 'use server'
 
 import { revalidatePath } from 'next/cache';
-import type { Event, LoggedInUser, Department, ApiSuccessResponse } from '@/lib/types';
+import type { Event, LoggedInUser, ApiSuccessResponse, Department } from '@/lib/types';
 import { cookies } from 'next/headers';
 import { formDataToObject } from '@/lib/utils';
 import { getDepartments } from '../departments/actions';
 
-const API_BASE_URL = 'https://symposium-backend.onrender.com';
-const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_KEY = process.env.API_KEY;
 
 async function makeApiRequest(endpoint: string, options: RequestInit = {}) {
     const defaultHeaders: Record<string, string> = {
@@ -22,8 +22,6 @@ async function makeApiRequest(endpoint: string, options: RequestInit = {}) {
     const token = cookies().get('jwt')?.value;
     if (token) {
         defaultHeaders['Authorization'] = `Bearer ${token}`;
-    } else {
-        throw new Error("Authentication required for this server action.");
     }
     
     const config: RequestInit = {
@@ -49,11 +47,41 @@ async function makeApiRequest(endpoint: string, options: RequestInit = {}) {
 }
 
 
-export async function getEvents(): Promise<ApiSuccessResponse<{ events: Event[] }>> {
+export async function getEvents(): Promise<{ success: boolean; data: Event[] }> {
   try {
-    // Use the dedicated admin endpoint to fetch events
-    const eventResponse = await makeApiRequest('/events/admin');
-    return { success: true, data: eventResponse.data };
+    const userCookie = cookies().get('loggedInUser')?.value;
+    if (!userCookie) {
+      throw new Error("User not logged in");
+    }
+    const user: LoggedInUser = JSON.parse(userCookie);
+    
+    const response = await makeApiRequest('/events/admin');
+    let events = response.data;
+
+    // For super admin, we fetch all departments to map names
+    if (user.role === 'super_admin') {
+      const allDepartments = await getDepartments();
+      const deptMap = new Map(allDepartments.map(d => [d._id, d.name]));
+      events = events.map((event: Event) => ({
+        ...event,
+        department: {
+          ...event.department,
+          name: deptMap.get(typeof event.department === 'string' ? event.department : event.department._id) || 'Unknown',
+        }
+      }));
+    } else if (user.role === 'department_admin' && user.department) {
+      // For department admin, the API scopes events, so we just attach their own department's name
+      const deptName = typeof user.department === 'object' ? user.department.name : 'Department';
+      events = events.map((event: Event) => ({
+          ...event,
+          department: {
+              ...event.department,
+              name: deptName,
+          }
+      }));
+    }
+
+    return { success: true, data: events };
 
   } catch (error) {
     console.error("Failed to fetch events:", error);

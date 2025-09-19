@@ -3,11 +3,10 @@
 
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
-import { formDataToObject } from '@/lib/utils';
 import type { Department, ApiErrorResponse } from '@/lib/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
+const API_KEY = process.env.API_KEY;
 
 async function makeApiRequest(endpoint: string, options: RequestInit = {}, authenticated: boolean = false) {
     const defaultHeaders: Record<string, string> = {
@@ -55,17 +54,18 @@ async function makeApiRequest(endpoint: string, options: RequestInit = {}, authe
 
 
 export async function getDepartments(): Promise<Department[]> {
-  const response = await makeApiRequest('/departments');
-  return response.data.departments;
+  const response = await makeApiRequest('/departments', {}, true);
+  return response.data;
 }
 
 export async function createDepartment(formData: FormData) {
   const departmentData = {
-    id: formData.get("id") as string,
+    shortcode: formData.get("id") as string,
     name: formData.get("name") as string,
+    code: `EGSPEC/${formData.get("id") as string}`
   }
 
-  if (!departmentData.id || !departmentData.name) {
+  if (!departmentData.shortcode || !departmentData.name) {
       throw new Error("Missing required fields: ID and Name are required.");
   }
 
@@ -83,7 +83,7 @@ export async function updateDepartment(departmentId: string, formData: FormData)
   }
 
   await makeApiRequest(`/departments/${departmentId}`, {
-      method: 'PUT',
+      method: 'PATCH',
       body: JSON.stringify(updatedData)
   }, true);
   
@@ -94,5 +94,3 @@ export async function deleteDepartment(departmentId: string) {
     await makeApiRequest(`/departments/${departmentId}`, { method: 'DELETE' }, true);
     revalidatePath('/u/s/portal/departments');
 }
-
-    
