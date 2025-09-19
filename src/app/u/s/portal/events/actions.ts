@@ -51,33 +51,9 @@ async function makeApiRequest(endpoint: string, options: RequestInit = {}) {
 
 export async function getEvents(): Promise<ApiSuccessResponse<{ events: Event[] }>> {
   try {
-    const userCookie = cookies().get('loggedInUser')?.value;
-    const user: LoggedInUser | null = userCookie ? JSON.parse(userCookie) : null;
-
-    if (!user) {
-        throw new Error("Authentication required.");
-    }
-    
-    const eventResponse = await makeApiRequest('/events');
-
-    let finalEvents: Event[] = eventResponse.data || [];
-
-    if (user.role === 'super_admin') {
-      const departmentsResponse = await getDepartments();
-      const departmentMap = new Map(departmentsResponse.map(d => [d._id, d]));
-      
-      finalEvents = finalEvents.map(event => ({
-        ...event,
-        department: departmentMap.get(event.department as string) || event.department
-      }));
-    } else if (user.role === 'department_admin' && user.department) {
-       finalEvents = finalEvents.map(event => ({
-        ...event,
-        department: user.department as Department
-      }));
-    }
-
-    return { success: true, data: finalEvents };
+    // Use the dedicated admin endpoint to fetch events
+    const eventResponse = await makeApiRequest('/events/admin');
+    return { success: true, data: eventResponse.data };
 
   } catch (error) {
     console.error("Failed to fetch events:", error);
