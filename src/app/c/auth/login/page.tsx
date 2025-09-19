@@ -48,8 +48,10 @@ function LoginPageContent() {
         body: { email, password },
       });
 
-      if (response.success && response.token && response.user) {
-        if (!isAdmin(response.user)) {
+      if (response.success && response.token && response.data.user) {
+        const user = response.data.user;
+
+        if (!isAdmin(user)) {
              toast({
                 variant: "destructive",
                 title: "Access Denied",
@@ -58,7 +60,7 @@ function LoginPageContent() {
             return;
         }
 
-        if (loginType && response.user.role !== loginType) {
+        if (loginType && user.role !== loginType) {
              toast({
                 variant: "destructive",
                 title: "Access Denied",
@@ -68,11 +70,11 @@ function LoginPageContent() {
         }
 
         localStorage.setItem('jwt', response.token);
-        localStorage.setItem('loggedInUser', JSON.stringify(response.user));
+        localStorage.setItem('loggedInUser', JSON.stringify(user));
 
         toast({
           title: "Login Successful",
-          description: `Welcome, ${response.user.name}!`,
+          description: `Welcome, ${user.name}!`,
         });
         window.location.href = "/u/s/portal/dashboard";
       } else {

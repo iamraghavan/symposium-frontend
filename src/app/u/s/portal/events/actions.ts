@@ -70,32 +70,38 @@ export async function getEvents(): Promise<EventApiResponse> {
   try {
     const userCookie = cookies().get('loggedInUser')?.value;
     let endpoint = '/events';
-    let isAuthenticated = false;
-
-    if (userCookie) {
-        const user: LoggedInUser = JSON.parse(userCookie);
-        isAuthenticated = true;
-        if (user.role === 'department_admin' && user.department) {
-            endpoint = `/events?departmentId=${user.department}`;
-        }
+    const user: LoggedInUser | null = userCookie ? JSON.parse(userCookie) : null;
+    
+    if (!user) {
+        throw new Error("Authentication required.");
     }
     
-    const [eventResponse, departments] = await Promise.all([
-        makeApiRequest(endpoint, {}, isAuthenticated) as Promise<EventApiResponse>,
-        getDepartments()
-    ]);
+    let departments: Department[] = [];
+    if (user.role === 'super_admin') {
+      endpoint = '/events';
+      departments = await getDepartments();
+    } else if (user.role === 'department_admin' && user.department) {
+      endpoint = `/events?departmentId=${typeof user.department === 'object' ? user.department._id : user.department}`;
+    }
     
-    const departmentMap = new Map(departments.map(d => [d._id, d]));
+    const eventResponse = await makeApiRequest(endpoint, {}, true) as EventApiResponse;
+    
+    if (user.role === 'super_admin') {
+      const departmentMap = new Map(departments.map(d => [d._id, d]));
+      const eventsWithDepartments = eventResponse.data.map(event => ({
+        ...event,
+        department: departmentMap.get(event.department as string) || event.department
+      }));
+      return { ...eventResponse, data: eventsWithDepartments };
+    } else if (user.role === 'department_admin' && user.department) {
+       const eventsWithDepartment = eventResponse.data.map(event => ({
+        ...event,
+        department: user.department as Department
+      }));
+      return { ...eventResponse, data: eventsWithDepartment };
+    }
 
-    const eventsWithDepartments = eventResponse.data.map(event => {
-        const dept = departmentMap.get(event.department as string);
-        return {
-            ...event,
-            department: dept || event.department
-        };
-    });
-
-    return { ...eventResponse, data: eventsWithDepartments };
+    return eventResponse;
 
   } catch (error) {
     console.error("Failed to fetch events:", error);
@@ -114,7 +120,7 @@ export async function createEvent(formData: FormData) {
     if (userCookie) {
         const user: LoggedInUser = JSON.parse(userCookie);
         if (user.role === 'department_admin' && user.department) {
-             eventData.departmentId = user.department;
+             eventData.departmentId = typeof user.department === 'object' ? user.department._id : user.department;
         }
     } else {
         throw new Error("User information not found.");
