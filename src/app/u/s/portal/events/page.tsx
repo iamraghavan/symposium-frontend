@@ -1,16 +1,22 @@
 
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -44,17 +50,24 @@ import { getEvents, createEvent } from "./actions";
 import { getDepartments } from "../departments/actions";
 import { format, parseISO } from "date-fns";
 import {
-  Users,
   Calendar as CalendarIcon,
   PlusCircle,
   Clock,
+  MoreHorizontal,
+  Eye,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import { useRouter } from "next/navigation";
 import { isAdmin } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function AdminEventsPage() {
   const router = useRouter();
@@ -62,6 +75,7 @@ export default function AdminEventsPage() {
   const [user, setUser] = useState<LoggedInUser | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const formRef = useRef<HTMLFormElement>(null);
   
   const [isNewEventDialogOpen, setIsNewEventDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -112,10 +126,7 @@ export default function AdminEventsPage() {
     }
   }
   
-  const handleCreateEvent = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    
+  const handleCreateEvent = async (formData: FormData) => {
     if (!startDate || !endDate) {
         toast({ variant: 'destructive', title: 'Error', description: 'Please select start and end dates.' });
         return;
@@ -137,16 +148,17 @@ export default function AdminEventsPage() {
         await createEvent(formData);
         toast({ title: 'Success', description: 'Event created successfully.' });
         setIsNewEventDialogOpen(false);
+        formRef.current?.reset();
         fetchEvents();
     } catch (error) {
         toast({ variant: 'destructive', title: 'Error', description: (error as Error).message });
     }
   }
   
-  const formatFullDate = (dateString?: string) => {
-    if (!dateString) return "Date not set";
+  const formatTableDate = (dateString?: string) => {
+    if (!dateString) return "N/A";
     try {
-      return format(parseISO(dateString), "MMM d, yyyy 'at' h:mm a");
+      return format(parseISO(dateString), "MMM d, yyyy");
     } catch (error) {
       return "Invalid date";
     }
@@ -158,7 +170,6 @@ export default function AdminEventsPage() {
     }
     return 'N/A';
   };
-
 
   return (
     <div className="flex flex-col gap-6">
@@ -187,7 +198,7 @@ export default function AdminEventsPage() {
                 Fill in the details below to add a new event to the symposium.
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleCreateEvent}>
+            <form ref={formRef} action={handleCreateEvent}>
             <div className="grid gap-6 py-4">
               {/* Core Details */}
               <div className="grid grid-cols-4 items-center gap-4">
@@ -342,57 +353,79 @@ export default function AdminEventsPage() {
         </Dialog>
       </div>
 
-       {isLoading ? (
-            <div className="text-center py-12">Loading events...</div>
-       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {events.map((event) => (
-            <Card
-                key={event._id}
-                className="flex flex-col overflow-hidden hover:shadow-lg transition-shadow duration-300"
-            >
-                <div className="relative h-48 w-full">
-                <Image
-                    src={event.thumbnailUrl || "https://picsum.photos/seed/event/400/250"}
-                    alt={event.name}
-                    fill
-                    className="object-cover"
-                    data-ai-hint="event"
-                />
-                </div>
-                <CardHeader>
-                <div className="flex justify-between items-start">
-                    <CardTitle className="font-headline text-xl mb-1">
-                    {event.name}
-                    </CardTitle>
-                    <Badge variant={event.status === 'published' ? 'default' : 'secondary'}>{event.status}</Badge>
-                </div>
-                <CardDescription className="flex items-center gap-2 text-sm">
-                    <CalendarIcon className="h-4 w-4" />
-                    {formatFullDate(event.startAt)}
-                </CardDescription>
-                 <Badge variant="outline" className="w-fit">{getDepartmentName(event.department)}</Badge>
-                </CardHeader>
-                <CardContent className="flex-grow">
-                <p className="text-sm text-muted-foreground line-clamp-2">
-                    {event.description}
-                </p>
-                </CardContent>
-                <CardFooter className="flex justify-between items-center">
-                 <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">
-                    0 Participants
-                    </span>
-                </div>
-                <Button asChild variant="default" size="sm">
-                    <Link href={`/u/s/portal/events/${event._id}`}>View Details</Link>
-                </Button>
-                </CardFooter>
-            </Card>
-            ))}
-        </div>
-       )}
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-headline">Event List</CardTitle>
+          <CardDescription>
+            A list of all events managed by you.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Event Name</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Mode</TableHead>
+                <TableHead>Start Date</TableHead>
+                {user?.role === 'super_admin' && <TableHead>Department</TableHead>}
+                <TableHead>
+                  <span className="sr-only">Actions</span>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={user?.role === 'super_admin' ? 6 : 5} className="h-24 text-center">
+                    Loading events...
+                  </TableCell>
+                </TableRow>
+              ) : events.length > 0 ? (
+                events.map((event) => (
+                  <TableRow key={event._id}>
+                    <TableCell className="font-medium">{event.name}</TableCell>
+                    <TableCell>
+                      <Badge variant={event.status === 'published' ? 'default' : 'secondary'}>
+                        {event.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{event.mode}</TableCell>
+                    <TableCell>{formatTableDate(event.startAt)}</TableCell>
+                    {user?.role === 'super_admin' && (
+                      <TableCell>{getDepartmentName(event.department)}</TableCell>
+                    )}
+                    <TableCell className="text-right">
+                       <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem asChild>
+                             <Link href={`/u/s/portal/events/${event._id}`}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                <span>View Details</span>
+                             </Link>
+                           </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                 <TableRow>
+                    <TableCell colSpan={user?.role === 'super_admin' ? 6 : 5} className="h-24 text-center">
+                        No events found.
+                    </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   );
 }
