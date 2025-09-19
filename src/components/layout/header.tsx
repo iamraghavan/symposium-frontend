@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { AppWindow, Menu, Search } from "lucide-react";
+import { AppWindow, Menu, Search, LayoutDashboard, LifeBuoy, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -23,7 +23,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import React, { useEffect, useState, useCallback } from "react";
 import type { LoggedInUser } from "@/lib/types";
 import { useRouter } from "next/navigation";
-import { LifeBuoy, LogOut, LayoutDashboard } from "lucide-react";
 import { googleLogout, GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import api from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";

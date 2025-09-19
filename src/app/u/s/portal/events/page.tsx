@@ -47,10 +47,6 @@ import {
   Users,
   Calendar as CalendarIcon,
   PlusCircle,
-  Globe,
-  Video,
-  Smartphone,
-  Upload,
   Clock,
 } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -87,7 +83,9 @@ export default function AdminEventsPage() {
       }
       setUser(parsedUser);
       fetchEvents();
-      fetchDepartments();
+      if (parsedUser.role === 'super_admin') {
+        fetchDepartments();
+      }
     } else {
       router.push("/c/auth/login?login=s_admin");
     }
@@ -99,7 +97,7 @@ export default function AdminEventsPage() {
           const eventData = await getEvents();
           setEvents(eventData.data);
       } catch (error) {
-          toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch events.' });
+          toast({ variant: 'destructive', title: 'Error', description: (error as Error).message });
       } finally {
           setIsLoading(false);
       }
@@ -390,5 +388,3 @@ export default function AdminEventsPage() {
     </div>
   );
 }
-
-    

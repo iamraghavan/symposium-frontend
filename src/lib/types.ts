@@ -90,6 +90,7 @@ export type LoggedInUser = {
   role: 'super_admin' | 'department_admin' | 'user';
   department?: string; // This will be the department ID
   picture?: string;
+  [key: string]: any; // Allow other properties from the API
 };
 
 export type ApiSuccessResponse<T> = {

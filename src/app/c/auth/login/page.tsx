@@ -25,14 +25,15 @@ function LoginPageContent() {
   const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loginType, setLoginType] = useState<'s_admin' | 'd_admin' | null>(null);
+  const [loginType, setLoginType] = useState<'super_admin' | 'department_admin' | null>(null);
   const [title, setTitle] = useState("Admin Login");
 
   useEffect(() => {
     const type = searchParams.get('login');
     if (type === 's_admin' || type === 'd_admin') {
-      setLoginType(type);
-      setTitle(type === 's_admin' ? 'Super Admin Login' : 'Department Admin Login');
+      const role = type === 's_admin' ? 'super_admin' : 'department_admin';
+      setLoginType(role);
+      setTitle(role === 'super_admin' ? 'Super Admin Login' : 'Department Admin Login');
     } else {
       // Redirect or show an error if login type is invalid
       router.push('/');
@@ -42,13 +43,12 @@ function LoginPageContent() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await api<ApiSuccessResponse<{ user: LoggedInUser, token: string }>>('/auth/login', {
+      const response = await api<ApiSuccessResponse<any>>('/auth/login', {
         method: 'POST',
         body: { email, password },
       });
 
       if (response.success && response.token && response.user) {
-        // Check if the role from backend matches the expected role from URL
         if (!isAdmin(response.user)) {
              toast({
                 variant: "destructive",
@@ -58,8 +58,7 @@ function LoginPageContent() {
             return;
         }
 
-        if ((loginType === 's_admin' && response.user.role !== 'super_admin') || 
-            (loginType === 'd_admin' && response.user.role !== 'department_admin')) {
+        if (loginType && response.user.role !== loginType) {
              toast({
                 variant: "destructive",
                 title: "Access Denied",
@@ -77,7 +76,7 @@ function LoginPageContent() {
         });
         window.location.href = "/u/s/portal/dashboard";
       } else {
-        throw new Error(response.message || "Login failed.");
+        throw new Error((response as any).message || "Login failed.");
       }
     } catch (error) {
       let errorMessage = "An unknown error occurred.";
