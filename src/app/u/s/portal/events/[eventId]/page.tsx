@@ -22,58 +22,86 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-
-import { events, winners as allWinners } from "@/lib/data";
-import { parseISO } from "date-fns";
-import { format } from "date-fns-tz";
+import api from "@/lib/api";
+import type { Event, ApiSuccessResponse, Department } from "@/lib/types";
+import { useToast } from "@/hooks/use-toast";
+import { parseISO, format } from "date-fns";
 import { notFound, useParams } from "next/navigation";
-import { Calendar, Users, Trophy, DollarSign, Edit } from "lucide-react";
+import { Calendar, Users, Trophy, DollarSign, Edit, Globe, Video, Phone, Mail } from "lucide-react";
 import React, { useEffect, useState } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function EventDetailPage() {
   const params = useParams();
+  const { toast } = useToast();
   const eventId = params.eventId as string;
-  const [formattedDate, setFormattedDate] = useState("");
-  const [formattedRegistrationDates, setFormattedRegistrationDates] = useState<
-    Record<string, string>
-  >({});
 
-  const event = events.find((e) => e.id === eventId);
+  const [event, setEvent] = useState<Event | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (event) {
-      setFormattedDate(
-        format(parseISO(event.date), "EEEE, MMMM d, yyyy 'at' h:mm a zzz", { timeZone: 'UTC' })
-      );
-      const newFormattedDates: Record<string, string> = {};
-      event.participants.forEach((user) => {
-        newFormattedDates[user.id] = format(
-          parseISO(user.registeredAt),
-          "PP"
-        );
-      });
-      setFormattedRegistrationDates(newFormattedDates);
+    if (eventId) {
+      const fetchEvent = async () => {
+        setIsLoading(true);
+        try {
+          const response = await api<ApiSuccessResponse<{ event: Event }>>(`/events/admin/${eventId}`, { authenticated: true });
+          if(response.success && response.data){
+            setEvent(response.data as unknown as Event);
+          } else {
+             throw new Error("Event data not found in response")
+          }
+        } catch (error) {
+          toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch event details.'});
+          console.error("Failed to fetch event:", error)
+          notFound();
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchEvent();
     }
-  }, [event]);
+  }, [eventId, toast]);
+
+  const getFormattedDate = (dateString?: string) => {
+     if (!dateString) return "Not specified";
+    try {
+      return format(parseISO(dateString), "EEEE, MMMM d, yyyy 'at' h:mm a");
+    } catch (e) {
+      return "Invalid Date";
+    }
+  }
+
+  const getDepartmentName = (department?: Department | string) => {
+    if (!department) return 'N/A';
+    if (typeof department === 'object') return department.name;
+    return 'N/A';
+  }
+
+  if (isLoading) {
+    return (
+      <div className="container py-6 space-y-6">
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-[400px] w-full" />
+      </div>
+    );
+  }
 
   if (!event) {
-    notFound();
+    return notFound();
   }
-  const winners = allWinners.filter(w => w.eventId === event.id);
 
-  const totalRevenue = event.participants.length * event.registrationFee;
-  const totalPrizes = winners.reduce((acc, winner) => acc + winner.prizeAmount, 0);
+  const totalRevenue = 0; // Replace with actual data if available
+  const totalPrizes = 0; // Replace with actual data if available
 
   return (
     <div className="container py-6">
     <Tabs defaultValue="details" className="w-full">
       <TabsList className="grid w-full grid-cols-4">
         <TabsTrigger value="details">Details</TabsTrigger>
-        <TabsTrigger value="users">Registered Users</TabsTrigger>
+        <TabsTrigger value="participants">Participants</TabsTrigger>
         <TabsTrigger value="winners">Winners</TabsTrigger>
         <TabsTrigger value="finance">Finance</TabsTrigger>
       </TabsList>
@@ -92,24 +120,55 @@ export default function EventDetailPage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center gap-4 text-sm">
-                <Calendar className="h-5 w-5 text-muted-foreground" />
-                <span>{formattedDate}</span>
-            </div>
-            <div className="flex items-center gap-4 text-sm">
-                <Users className="h-5 w-5 text-muted-foreground" />
-                <span>{event.participants.length} participants registered</span>
-            </div>
-             <div className="flex items-center gap-4 text-sm">
-                <DollarSign className="h-5 w-5 text-muted-foreground" />
-                <span>${event.registrationFee} registration fee per participant</span>
-            </div>
+             <div className="grid md:grid-cols-2 gap-4 text-sm">
+                <div className="flex items-start gap-3">
+                    <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
+                    <div>
+                        <p className="font-semibold">Event Timing</p>
+                        <p className="text-muted-foreground">{getFormattedDate(event.startAt)} to {getFormattedDate(event.endAt)}</p>
+                    </div>
+                </div>
+                <div className="flex items-start gap-3">
+                    {event.mode === 'online' ? <Video className="h-5 w-5 text-muted-foreground mt-0.5"/> : <Globe className="h-5 w-5 text-muted-foreground mt-0.5"/>}
+                    <div>
+                        <p className="font-semibold">Mode & Venue</p>
+                        <p className="text-muted-foreground capitalize">
+                            {event.mode} {event.mode === 'online' ? `(${event.online?.provider})` : ''} - {event.mode === 'online' ? <a href={event.online?.url} className="text-primary underline">{event.online.url}</a> : event.offline?.venueName}
+                        </p>
+                    </div>
+                </div>
+                <div className="flex items-start gap-3">
+                    <DollarSign className="h-5 w-5 text-muted-foreground mt-0.5" />
+                    <div>
+                        <p className="font-semibold">Registration</p>
+                        <p className="text-muted-foreground">{event.payment.price === 0 ? 'Free' : `${event.payment.currency} ${event.payment.price}`} ({event.payment.method})</p>
+                    </div>
+                </div>
+             </div>
             <Separator />
-            <Badge variant="secondary">{event.department.name}</Badge>
+             <div className="space-y-2">
+                <h3 className="font-semibold">Contacts</h3>
+                {event.contacts?.map((contact, index) => (
+                    <div key={index} className="text-sm flex items-center gap-4 text-muted-foreground">
+                       <span className="font-medium text-foreground">{contact.name}</span>
+                       {contact.email && <div className="flex items-center gap-1.5"><Mail className="h-4 w-4"/>{contact.email}</div>}
+                       {contact.phone && <div className="flex items-center gap-1.5"><Phone className="h-4 w-4"/>{contact.phone}</div>}
+                    </div>
+                ))}
+            </div>
+             <Separator />
+            <div className="flex items-center gap-2">
+                <p className="text-sm font-medium">Department:</p>
+                <Badge variant="secondary">{getDepartmentName(event.department)}</Badge>
+            </div>
+            <div className="flex items-center gap-2">
+                 <p className="text-sm font-medium">Status:</p>
+                 <Badge variant={event.status === 'published' ? 'default' : 'outline'}>{event.status}</Badge>
+            </div>
           </CardContent>
         </Card>
       </TabsContent>
-      <TabsContent value="users">
+      <TabsContent value="participants">
         <Card>
           <CardHeader>
             <CardTitle className="font-headline">Registered Users</CardTitle>
@@ -118,35 +177,13 @@ export default function EventDetailPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead>College</TableHead>
-                  <TableHead>Registered On</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {event.participants.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar>
-                          <AvatarImage src={user.avatarUrl} alt={user.name} data-ai-hint="person" />
-                          <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium">{user.name}</p>
-                          <p className="text-xs text-muted-foreground">{user.email}</p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{user.college}</TableCell>
-                    <TableCell>{formattedRegistrationDates[user.id]}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm h-60">
+              <div className="flex flex-col items-center gap-2 text-center">
+                <Users className="h-10 w-10 text-muted-foreground" />
+                <h3 className="text-xl font-bold tracking-tight">No Participants Yet</h3>
+                <p className="text-sm text-muted-foreground">User registrations will appear here.</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </TabsContent>
@@ -158,45 +195,14 @@ export default function EventDetailPage() {
               Winners and prize money distribution for {event.name}.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-             <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Position</TableHead>
-                  <TableHead>Winner</TableHead>
-                  <TableHead>Prize Amount</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {winners.length > 0 ? winners.map((winner) => (
-                  <TableRow key={winner.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Trophy className={`h-6 w-6 ${winner.position === 1 ? 'text-yellow-500' : winner.position === 2 ? 'text-gray-400' : 'text-orange-400'}`} />
-                        <span className="font-bold text-lg">{winner.position}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                       <div className="flex items-center gap-3">
-                        <Avatar>
-                          <AvatarImage src={winner.user.avatarUrl} alt={winner.user.name} data-ai-hint="person"/>
-                          <AvatarFallback>{winner.user.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium">{winner.user.name}</p>
-                          <p className="text-xs text-muted-foreground">{winner.user.college}</p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-semibold">${winner.prizeAmount.toLocaleString()}</TableCell>
-                  </TableRow>
-                )) : (
-                  <TableRow>
-                    <TableCell colSpan={3} className="text-center text-muted-foreground">No winners recorded yet.</TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+           <CardContent>
+            <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm h-60">
+              <div className="flex flex-col items-center gap-2 text-center">
+                <Trophy className="h-10 w-10 text-muted-foreground" />
+                <h3 className="text-xl font-bold tracking-tight">No Winners Recorded</h3>
+                <p className="text-sm text-muted-foreground">Winner information will appear here once finalized.</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </TabsContent>
@@ -217,7 +223,7 @@ export default function EventDetailPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold font-headline">${totalRevenue.toLocaleString()}</div>
-                  <p className="text-xs text-muted-foreground">From {event.participants.length} registrations</p>
+                  <p className="text-xs text-muted-foreground">From 0 registrations</p>
                 </CardContent>
               </Card>
               <Card>
@@ -227,7 +233,7 @@ export default function EventDetailPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold font-headline">${totalPrizes.toLocaleString()}</div>
-                   <p className="text-xs text-muted-foreground">To {winners.length} winners</p>
+                   <p className="text-xs text-muted-foreground">To 0 winners</p>
                 </CardContent>
               </Card>
                <Card>

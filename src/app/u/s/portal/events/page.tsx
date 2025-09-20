@@ -55,8 +55,11 @@ import {
   Clock,
   MoreHorizontal,
   Eye,
+  Edit,
+  Trash
 } from "lucide-react";
-import { useState, useEffect, useRef, useActionState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useActionState } from "react";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import { useRouter } from "next/navigation";
@@ -68,6 +71,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+
 
 const initialState = {
   message: '',
@@ -75,17 +80,17 @@ const initialState = {
 };
 
 async function getAdminEvents(user: LoggedInUser): Promise<Event[]> {
-    if (!user) throw new Error("User not authenticated");
+  if (!user) throw new Error("User not authenticated");
 
-    let endpoint = '/events/admin'; // Default for super admin
-    if (user.role === 'department_admin') {
-      if (!user._id) throw new Error("Department admin ID is missing.");
-      endpoint = `/events/admin/created-by/${user._id}`;
-    }
+  let endpoint = '/events/admin'; // Default for super admin
+  if (user.role === 'department_admin') {
+    if (!user._id) throw new Error("Department admin ID is missing.");
+    endpoint = `/events/admin/created-by/${user._id}`;
+  }
 
-    const response = await api<ApiSuccessResponse<{ events?: Event[], data?: Event[] }>>(endpoint, { authenticated: true });
-    // Handle both possible response structures for events array
-    return response.data?.events || response.data?.data || response.data || [];
+  const response = await api<ApiSuccessResponse<{ events?: Event[], data?: Event[] }>>(endpoint, { authenticated: true });
+  // Handle both possible response structures for events array: `data` or `data.events`
+  return response.data || (response as any).events || [];
 }
 
 
@@ -109,6 +114,18 @@ export default function AdminEventsPage() {
 
   const [formState, formAction] = useActionState(createEvent, initialState);
 
+  const fetchEvents = async (currentUser: LoggedInUser) => {
+      setIsLoading(true);
+      try {
+          const eventData = await getAdminEvents(currentUser);
+          setEvents(eventData || []);
+      } catch (error) {
+          toast({ variant: 'destructive', title: 'Error', description: "Could not fetch events." });
+      } finally {
+          setIsLoading(false);
+      }
+  }
+
   useEffect(() => {
     const userData = localStorage.getItem("loggedInUser");
     if (userData) {
@@ -118,7 +135,7 @@ export default function AdminEventsPage() {
         return;
       }
       setUser(parsedUser);
-      fetchEvents(parsedUser); // pass user to fetch function
+      fetchEvents(parsedUser);
       if (parsedUser.role === 'super_admin') {
         fetchDepartments();
       }
@@ -138,23 +155,10 @@ export default function AdminEventsPage() {
         toast({ variant: 'destructive', title: 'Error', description: formState.message });
       }
     }
-  }, [formState]);
+  }, [formState, user]);
   
-  const fetchEvents = async (currentUser: LoggedInUser) => {
-      setIsLoading(true);
-      try {
-          const eventData = await getAdminEvents(currentUser);
-          setEvents(eventData || []);
-      } catch (error) {
-          toast({ variant: 'destructive', title: 'Error', description: (error as Error).message });
-      } finally {
-          setIsLoading(false);
-      }
-  }
-
   const fetchDepartments = async () => {
     try {
-      // Use the server action to fetch departments
       const deptData = await getDepartments();
       setDepartments(deptData || []);
     } catch (error) {
@@ -417,6 +421,31 @@ export default function AdminEventsPage() {
                                 <span>View Details</span>
                              </Link>
                            </DropdownMenuItem>
+                           <DropdownMenuItem>
+                            <Edit className="mr-2 h-4 w-4" />
+                            <span>Edit</span>
+                           </DropdownMenuItem>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                               <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-red-600 focus:text-red-600">
+                                 <Trash className="mr-2 h-4 w-4" />
+                                 <span>Delete</span>
+                               </DropdownMenuItem>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This action cannot be undone. This will permanently delete the event
+                                  <span className="font-semibold"> {event.name}</span>.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction>Continue</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
