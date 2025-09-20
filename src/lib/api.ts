@@ -4,7 +4,7 @@
 import type { ApiErrorResponse } from './types';
 
 const API_BASE_URL = 'https://symposium-backend.onrender.com';
-const GLOBAL_API_KEY = process.env.NEXT_PUBLIC_API_KEY;
+const GLOBAL_API_KEY = 'rjfqrur9L0v2XNzx574DI1Djejii70JP5S';
 
 type ApiOptions = {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';

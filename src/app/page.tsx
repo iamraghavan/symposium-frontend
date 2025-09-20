@@ -24,13 +24,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from '@/components/ui/badge';
-import { events as allEvents } from '@/lib/data';
 import { format, parseISO } from 'date-fns';
 import { useEffect, useState } from 'react';
 import { Calendar, Users, ArrowRight, ArrowRightCircle, Lightbulb, Network, Code, Users2, Globe, FileText, Ticket } from 'lucide-react';
-import type { Event } from '@/lib/types';
+import type { Event, ApiSuccessResponse } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { motion } from "framer-motion";
+import api from '@/lib/api';
+import { useToast } from '@/hooks/use-toast';
 
 const GoogleCalendarIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor" {...props}>
@@ -40,27 +41,35 @@ const GoogleCalendarIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 
 export default function HomePage() {
+  const { toast } = useToast();
   const [onlineEvents, setOnlineEvents] = useState<Event[]>([]);
   const [offlineEvents, setOfflineEvents] = useState<Event[]>([]);
-  const [formattedDates, setFormattedDates] = useState<Record<string, {date: string, time: string}>>({});
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
-
   useEffect(() => {
-    const newFormattedDates: Record<string, {date: string, time: string}> = {};
-    allEvents.forEach((event) => {
-      const parsedDate = parseISO(event.date);
-      newFormattedDates[event.id] = {
-        date: format(parsedDate, "MMMM d, yyyy"),
-        time: format(parsedDate, "h:mm a"),
-      };
-    });
-    setFormattedDates(newFormattedDates);
+    const fetchUpcomingEvents = async () => {
+      try {
+        const response = await api<ApiSuccessResponse<{ data: Event[] }>>('/events?limit=20&sort=-startAt&upcoming=true');
+        if (response.success && response.data) {
+          const allEvents = response.data.data;
+          setOnlineEvents(allEvents.filter(event => event.mode === 'online'));
+          setOfflineEvents(allEvents.filter(event => event.mode === 'offline'));
+        }
+      } catch (error) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch upcoming events.' });
+      }
+    };
+    fetchUpcomingEvents();
+  }, [toast]);
 
-    setOnlineEvents(allEvents.filter(event => event.mode === 'online'));
-    setOfflineEvents(allEvents.filter(event => event.mode === 'offline'));
-
-  }, []);
+  const getFormattedDate = (dateString?: string) => {
+    if (!dateString) return { date: "N/A", time: "" };
+    const parsedDate = parseISO(dateString);
+    return {
+      date: format(parsedDate, "MMMM d, yyyy"),
+      time: format(parsedDate, "h:mm a"),
+    };
+  };
 
   const speakers = [
     {
@@ -99,38 +108,41 @@ export default function HomePage() {
     visible: { opacity: 1, y: 0 },
   };
 
-  const EventCard = ({ event }: { event: Event }) => (
+  const EventCard = ({ event }: { event: Event }) => {
+     const { date, time } = getFormattedDate(event.startAt);
+     const departmentName = typeof event.department === 'object' ? event.department.name : 'N/A';
+     const price = event.payment.price;
+
+    return (
       <motion.div
         whileHover={{ scale: 1.03, y: -5 }}
         className="h-full"
       >
         <Card
-          key={event.id}
+          key={event._id}
           className="flex flex-col overflow-hidden h-full shadow-md transition-shadow duration-300 cursor-pointer"
           onClick={() => setSelectedEvent(event)}
         >
           <div className="relative h-48 w-full">
             <Image
-              src={event.imageUrl}
+              src={event.thumbnailUrl || 'https://picsum.photos/seed/event/400/250'}
               alt={event.name}
               fill
               className="object-cover"
-              data-ai-hint={event.imageHint}
+              data-ai-hint={event.imageHint || 'event placeholder'}
             />
             <Badge className="absolute top-2 right-2" variant={event.mode === 'online' ? 'default' : 'secondary'}>
                 {event.mode === 'online' ? 'Online' : 'Offline'}
             </Badge>
           </div>
           <CardHeader>
-            <div className="flex justify-between items-start">
-              <CardTitle className="font-headline text-xl mb-1">
+             <CardTitle className="font-headline text-xl mb-1 line-clamp-1">
                 {event.name}
               </CardTitle>
-              <Badge variant="outline">{event.department.name}</Badge>
-            </div>
-            <CardDescription className="flex items-center gap-2 text-sm">
+             <Badge variant="outline" className="w-fit">{departmentName}</Badge>
+            <CardDescription className="flex items-center gap-2 text-sm pt-1">
               <Calendar className="h-4 w-4" />
-              {formattedDates[event.id]?.date} at {formattedDates[event.id]?.time}
+              {date} at {time}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-grow">
@@ -142,18 +154,19 @@ export default function HomePage() {
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm font-medium">
-                {event.participants.length} Participants
+                0 Participants
               </span>
             </div>
             <Button asChild variant="default" size="sm" onClick={(e) => e.stopPropagation()}>
-                <Link href={`/events/${event.id}`}>
-                {event.registrationFee === 0 ? 'Free' : `$${event.registrationFee}`}
+                <Link href={`/events/${event._id}`}>
+                 {price === 0 ? 'Free' : `$${price}`}
                 </Link>
             </Button>
           </CardFooter>
         </Card>
       </motion.div>
   );
+}
 
   const ViewAllCard = () => (
     <motion.div
@@ -304,7 +317,7 @@ export default function HomePage() {
               >
               <CarouselContent>
                   {onlineEvents.slice(0, 5).map((event) => (
-                  <CarouselItem key={event.id} className="md:basis-1/2 lg:basis-1/4">
+                  <CarouselItem key={event._id} className="md:basis-1/2 lg:basis-1/4">
                       <div className="p-1 h-full">
                       <EventCard event={event} />
                       </div>
@@ -339,7 +352,7 @@ export default function HomePage() {
               >
               <CarouselContent>
                   {offlineEvents.slice(0,5).map((event) => (
-                  <CarouselItem key={event.id} className="md:basis-1/2 lg:basis-1/4">
+                  <CarouselItem key={event._id} className="md:basis-1/2 lg:basis-1/4">
                       <div className="p-1 h-full">
                       <EventCard event={event} />
                       </div>
@@ -427,15 +440,15 @@ export default function HomePage() {
             <DialogTitle className="font-headline text-2xl">{selectedEvent.name}</DialogTitle>
           </DialogHeader>
           <div className="py-4 space-y-4 text-sm">
-            <div className="flex items-center gap-2"><span className="font-semibold w-24">Date:</span> <span>{formattedDates[selectedEvent.id]?.date}</span></div>
-            <div className="flex items-center gap-2"><span className="font-semibold w-24">Time:</span> <span>{formattedDates[selectedEvent.id]?.time}</span></div>
+            <div className="flex items-center gap-2"><span className="font-semibold w-24">Date:</span> <span>{getFormattedDate(selectedEvent.startAt).date}</span></div>
+            <div className="flex items-center gap-2"><span className="font-semibold w-24">Time:</span> <span>{getFormattedDate(selectedEvent.startAt).time}</span></div>
             <div className="flex items-center gap-2"><span className="font-semibold w-24">Venue:</span> <span>{selectedEvent.mode === 'online' ? 'Online' : 'EGS Pillay Engineering College'}</span></div>
              <div className="flex items-start gap-2">
                 <span className="font-semibold w-24 shrink-0">Description:</span> 
                 <p className="text-muted-foreground">{selectedEvent.description}</p>
             </div>
-            <div className="flex items-center gap-2"><span className="font-semibold w-24">Conducted By:</span> <span>{selectedEvent.department.name}</span></div>
-            <div className="flex items-center gap-2"><span className="font-semibold w-24">Price:</span> <span>{selectedEvent.registrationFee === 0 ? 'Free' : `$${selectedEvent.registrationFee}`}</span></div>
+            <div className="flex items-center gap-2"><span className="font-semibold w-24">Conducted By:</span> <span>{typeof selectedEvent.department === 'object' && selectedEvent.department.name}</span></div>
+            <div className="flex items-center gap-2"><span className="font-semibold w-24">Price:</span> <span>{selectedEvent.payment.price === 0 ? 'Free' : `$${selectedEvent.payment.price}`}</span></div>
           </div>
            <div className="flex justify-between items-center pt-4 border-t">
               <p className="text-xs text-muted-foreground">For technical support, email us at web@egspec.org</p>
@@ -445,7 +458,7 @@ export default function HomePage() {
                   Register
                 </Button>
                 <Button variant="outline" asChild>
-                  <Link href={`/events/${selectedEvent.id}`}>View Full Details</Link>
+                  <Link href={`/events/${selectedEvent._id}`}>View Full Details</Link>
                 </Button>
               </div>
            </div>
