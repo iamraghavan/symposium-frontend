@@ -59,6 +59,10 @@ async function api<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
   }
   
   if (responseData.success === false) {
+      if (responseData.isNewUser) {
+        const error = new Error(JSON.stringify(responseData));
+        throw error;
+      }
       const error = new Error(JSON.stringify(responseData));
       (error as any).details = responseData.details;
       throw error;

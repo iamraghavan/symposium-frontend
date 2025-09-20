@@ -1,5 +1,4 @@
 
-
 export type Department = {
   _id: string;
   id: string; // short id or uuid
@@ -44,7 +43,7 @@ export type Event = {
   department: Department | string;
   createdBy: User | string;
   payment: {
-    method: 'free' | 'gateway' | 'qr_code';
+    method: 'none' | 'gateway' | 'qr_code';
     gatewayProvider?: 'razorpay' | 'stripe';
     gatewayLink?: string;
     price: number;
@@ -97,7 +96,7 @@ export type ApiSuccessResponse<T> = {
   token?: string;
   user?: LoggedInUser;
   apiKey?: string;
-  data?: T;
+  data: T;
   meta?: {
     total: number;
     page: number;
@@ -110,4 +109,11 @@ export type ApiErrorResponse = {
   success: false;
   message: string;
   details?: { field: string; msg: string }[];
+  isNewUser?: boolean;
+  profile?: {
+    googleId: string;
+    name: string;
+    email: string;
+    picture?: string;
+  }
 };
