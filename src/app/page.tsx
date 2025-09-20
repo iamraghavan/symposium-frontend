@@ -43,9 +43,9 @@ export default function HomePage() {
   useEffect(() => {
     const fetchUpcomingEvents = async () => {
       try {
-        const response = await api<ApiSuccessResponse<{ data: Event[] }>>('/events?limit=20&sort=-startAt&upcoming=true');
+        const response = await api<ApiSuccessResponse<Event[]>>('/events?limit=20&sort=-startAt&upcoming=true');
         if (response.success && response.data) {
-          const allEvents = response.data.data;
+          const allEvents = response.data;
           setOnlineEvents(allEvents.filter(event => event.mode === 'online'));
           setOfflineEvents(allEvents.filter(event => event.mode === 'offline'));
         }
@@ -150,7 +150,7 @@ export default function HomePage() {
                 0 Participants
               </span>
             </div>
-            <Button asChild variant="default" size="sm" onClick={(e) => e.stopPropagation()}>
+            <Button asChild variant="default" size="sm">
                 <Link href={`/events/${event._id}`}>
                  {price === 0 ? 'Free' : `$${price}`}
                 </Link>
