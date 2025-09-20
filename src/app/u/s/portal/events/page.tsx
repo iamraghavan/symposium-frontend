@@ -113,7 +113,7 @@ export default function AdminEventsPage() {
   const [editStartTime, setEditStartTime] = useState("09:00");
   const [editEndTime, setEditEndTime] = useState("17:00");
 
-  const [createFormState, createFormAction] = useActionState(createEvent.bind(null, user?._id || '', userApiKey || ''), createInitialState);
+  const [createFormState, createFormAction] = useActionState(createEvent.bind(null, userApiKey || ''), createInitialState);
   const [updateFormState, updateFormAction] = useActionState(updateEvent, updateInitialState);
 
   const fetchEvents = async () => {
@@ -268,6 +268,7 @@ export default function AdminEventsPage() {
               </DialogDescription>
             </DialogHeader>
             <form ref={createFormRef} action={createFormAction}>
+              <input type="hidden" name="createdBy" value={user?._id || ''} />
               <div className="grid gap-6 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="name" className="text-right">Name</Label>
@@ -281,7 +282,8 @@ export default function AdminEventsPage() {
                  <Label htmlFor="thumbnailUrl" className="text-right">Thumbnail URL</Label>
                 <Input id="thumbnailUrl" name="thumbnailUrl" placeholder="https://example.com/image.jpg" className="col-span-3"/>
               </div>
-              {user?.role === 'super_admin' && (
+
+              {user?.role === 'super_admin' ? (
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="department" className="text-right">Department</Label>
                     <Select name="department">
@@ -295,7 +297,10 @@ export default function AdminEventsPage() {
                         </SelectContent>
                     </Select>
                 </div>
+              ) : (
+                 <input type="hidden" name="department" value={user?.department as string || ''} />
               )}
+              
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right">Start Date/Time</Label>
                 <div className="col-span-3 grid grid-cols-2 gap-2">

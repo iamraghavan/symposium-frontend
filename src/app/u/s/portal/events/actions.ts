@@ -62,9 +62,13 @@ export async function getDepartments(apiKey: string): Promise<Department[]> {
   }
 }
 
-export async function createEvent(userId: string, apiKey: string, prevState: any, formData: FormData) {
-  if (!userId || !apiKey) {
-    return { message: 'Authentication error. User or API Key not provided.', success: false };
+export async function createEvent(apiKey: string, prevState: any, formData: FormData) {
+  const createdBy = formData.get('createdBy') as string;
+  if (!createdBy) {
+    return { message: 'Authentication error. User ID not provided.', success: false };
+  }
+   if (!apiKey) {
+    return { message: 'Authentication error: API Key is missing.', success: false };
   }
 
   const payload: Record<string, any> = {
@@ -75,6 +79,7 @@ export async function createEvent(userId: string, apiKey: string, prevState: any
     startAt: formData.get('startAt'),
     endAt: formData.get('endAt'),
     department: formData.get('department'),
+    createdBy: createdBy,
     status: formData.get('status'),
     payment: {
       method: formData.get('payment.method') || 'free',
@@ -174,4 +179,3 @@ export async function deleteEvent(eventId: string): Promise<{ success: boolean; 
         return { success: false, message: (error as Error).message };
     }
 }
-
