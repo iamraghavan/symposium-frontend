@@ -22,15 +22,14 @@ async function api<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
     if (typeof window !== 'undefined') {
       userApiKey = localStorage.getItem('userApiKey');
     }
-    if (userApiKey) {
-      apiKey = userApiKey;
+    if (!userApiKey) {
+        // Fallback to global key is probably not what we want for authenticated routes.
+        // It's better to fail fast.
+        const errorMsg = 'API key is missing for an authenticated request.';
+        console.error(errorMsg);
+        throw new Error(JSON.stringify({ message: errorMsg }));
     }
-  }
-
-  if (!apiKey) {
-    const errorMsg = 'API key is missing.';
-    console.error(errorMsg);
-    throw new Error(JSON.stringify({ message: errorMsg }));
+    apiKey = userApiKey;
   }
 
   const defaultHeaders: Record<string, string> = {

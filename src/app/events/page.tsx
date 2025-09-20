@@ -46,15 +46,15 @@ export default function EventsPage() {
         try {
             const [deptResponse, eventResponse] = await Promise.all([
                 api<ApiSuccessResponse<{ departments: Department[] }>>('/departments?limit=100'),
-                api<ApiSuccessResponse<{ data: Event[] }>>('/events?status=published&limit=100')
+                api<ApiSuccessResponse<Event[]>>('/events?status=published&limit=100')
             ]);
             
             const fetchedDepts = deptResponse.data?.departments || [];
             setDepartments(fetchedDepts);
 
-            if (eventResponse.data?.data) {
+            if (eventResponse.data) {
                  const deptMap = new Map(fetchedDepts.map(d => [d._id, d.name]));
-                 const eventsWithDept = eventResponse.data.data.map(event => ({
+                 const eventsWithDept = eventResponse.data.map(event => ({
                     ...event,
                     department: {
                       _id: event.department as string,
