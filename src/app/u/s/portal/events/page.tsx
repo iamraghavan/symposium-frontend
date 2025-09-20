@@ -84,21 +84,6 @@ const updateInitialState = {
   success: false,
 };
 
-async function getAdminEvents(user: LoggedInUser): Promise<Event[]> {
-  if (!user) throw new Error("User not authenticated");
-
-  let endpoint = '/events/admin'; // Default for super admin
-  if (user.role === 'department_admin') {
-    if (!user._id) throw new Error("Department admin ID is missing.");
-    endpoint = `/events/admin/created-by/${user._id}`;
-  }
-
-  const response = await api<ApiSuccessResponse<{ events?: Event[], data?: Event[] }>>(endpoint, { authenticated: true });
-  // Handle both possible response structures for events array: `data` or `events`
-  return response.data || (response as any).events || [];
-}
-
-
 export default function AdminEventsPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -129,6 +114,20 @@ export default function AdminEventsPage() {
 
   const [createFormState, createFormAction] = useActionState(createEvent, createInitialState);
   const [updateFormState, updateFormAction] = useActionState(updateEvent, updateInitialState);
+
+  async function getAdminEvents(user: LoggedInUser): Promise<Event[]> {
+    if (!user) throw new Error("User not authenticated");
+
+    let endpoint = '/events/admin'; // Default for super admin
+    if (user.role === 'department_admin') {
+      if (!user._id) throw new Error("Department admin ID is missing.");
+      endpoint = `/events/admin/created-by/${user._id}`;
+    }
+
+    const response = await api<ApiSuccessResponse<{ events?: Event[], data?: Event[] }>>(endpoint, { authenticated: true });
+    // Handle both possible response structures for events array: `data` or `events`
+    return response.data || (response as any).events || [];
+  }
 
   const fetchEvents = async (currentUser: LoggedInUser) => {
       setIsLoading(true);
@@ -511,7 +510,7 @@ export default function AdminEventsPage() {
               </DialogDescription>
             </DialogHeader>
             <form ref={editFormRef} action={updateFormAction}>
-              <input type="hidden" name="eventId" value={editingEvent?._id} />
+              <input type="hidden" name="eventId" value={editingEvent?._id || ''} />
               <div className="grid gap-6 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="edit-name" className="text-right">Name</Label>
