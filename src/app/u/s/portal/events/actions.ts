@@ -3,7 +3,6 @@
 
 import { revalidatePath } from 'next/cache';
 import type { Event, ApiSuccessResponse, LoggedInUser, Department } from '@/lib/types';
-import { formDataToObject } from '@/lib/utils';
 import { cookies } from 'next/headers';
 
 const API_BASE_URL = 'https://symposium-backend.onrender.com';
@@ -48,6 +47,24 @@ async function makeApiRequest(endpoint: string, apiKey: string, options: Request
 }
 
 
+export async function getAdminEvents(apiKey: string, user: LoggedInUser): Promise<Event[]> {
+  if (!apiKey) {
+    throw new Error("API Key is missing.");
+  }
+  if (!user) {
+    throw new Error("User not found.");
+  }
+  
+  let endpoint = '/events/admin';
+    if (user.role === 'department_admin') {
+      if (!user._id) throw new Error("Department admin ID is missing.");
+      endpoint = `/events/admin/created-by/${user._id}`;
+    }
+
+  const response = await makeApiRequest(endpoint, apiKey);
+  return (response as ApiSuccessResponse<{data: Event[]}>).data || [];
+}
+
 export async function getDepartments(apiKey: string): Promise<Department[]> {
   if (!apiKey) {
     console.error("[getDepartments] API key is missing.");
@@ -65,57 +82,76 @@ export async function getDepartments(apiKey: string): Promise<Department[]> {
 export async function createEvent(apiKey: string, prevState: any, formData: FormData) {
   const createdBy = formData.get('createdBy') as string;
   if (!createdBy) {
-    return { message: 'Authentication error. User ID not provided.', success: false };
+    return { message: 'Authentication error. User not logged in.', success: false };
   }
    if (!apiKey) {
     return { message: 'Authentication error: API Key is missing.', success: false };
   }
+  
+  try {
+    const payload: Record<string, any> = {
+      name: formData.get('name'),
+      description: formData.get('description'),
+      thumbnailUrl: formData.get('thumbnailUrl'),
+      mode: formData.get('mode'),
+      startAt: formData.get('startAt'),
+      endAt: formData.get('endAt'),
+      department: formData.get('department'),
+      createdBy: createdBy,
+      status: formData.get('status'),
+      departmentSite: formData.get('departmentSite'),
+      contactEmail: formData.get('contactEmail'),
+      extra: {},
+    };
 
-  const payload: Record<string, any> = {
-    name: formData.get('name'),
-    description: formData.get('description'),
-    thumbnailUrl: formData.get('thumbnailUrl'),
-    mode: formData.get('mode'),
-    startAt: formData.get('startAt'),
-    endAt: formData.get('endAt'),
-    department: formData.get('department'),
-    createdBy: createdBy,
-    status: formData.get('status'),
-    payment: {
-      method: formData.get('payment.method') || 'free',
-      price: Number(formData.get('payment.price') || 0),
-      currency: formData.get('payment.currency') || 'INR'
-    },
-    contacts: [{
-      name: formData.get('contacts[0].name'),
-      email: formData.get('contacts[0].email'),
-      phone: formData.get('contacts[0].phone'),
-    }]
-  };
-
-  if (payload.mode === 'online') {
-      payload.online = {
-          provider: formData.get('online.provider'),
-          url: formData.get('online.url')
-      };
-  } else if (payload.mode === 'offline') {
-      payload.offline = {
-          venueName: formData.get('offline.venueName'),
-          address: formData.get('offline.address')
-      };
-  }
-    
-    try {
-        await makeApiRequest('/events', apiKey, {
-            method: 'POST',
-            body: JSON.stringify(payload),
-        });
-
-        revalidatePath('/u/s/portal/events');
-        return { message: 'Event created successfully.', success: true };
-    } catch (error) {
-        return { message: (error as Error).message, success: false };
+    // Contacts
+    const contactName = formData.get('contacts[0].name');
+    const contactEmail = formData.get('contacts[0].email');
+    const contactPhone = formData.get('contacts[0].phone');
+    if(contactName || contactEmail || contactPhone) {
+        payload.contacts = [{
+            name: contactName,
+            email: contactEmail,
+            phone: contactPhone
+        }];
     }
+
+    // Payment
+    const paymentMethod = formData.get('payment.method') as string;
+    payload.payment = { method: paymentMethod };
+    if (paymentMethod === 'gateway') {
+        payload.payment.price = Number(formData.get('payment.price') || 0);
+        payload.payment.currency = formData.get('payment.currency') || 'INR';
+        payload.payment.gatewayProvider = formData.get('payment.gatewayProvider')
+    } else if (paymentMethod === 'qr_code') {
+        payload.payment.price = Number(formData.get('payment.price') || 0);
+        payload.payment.currency = formData.get('payment.currency') || 'INR';
+    }
+
+
+    if (payload.mode === 'online') {
+        payload.online = {
+            provider: formData.get('online.provider'),
+            url: formData.get('online.url')
+        };
+    } else if (payload.mode === 'offline') {
+        payload.offline = {
+            venueName: formData.get('offline.venueName'),
+            address: formData.get('offline.address'),
+            mapLink: formData.get('offline.mapLink')
+        };
+    }
+      
+      await makeApiRequest('/events', apiKey, {
+          method: 'POST',
+          body: JSON.stringify(payload),
+      });
+
+      revalidatePath('/u/s/portal/events');
+      return { message: 'Event created successfully.', success: true };
+  } catch (error) {
+      return { message: (error as Error).message, success: false };
+  }
 }
 
 export async function updateEvent(prevState: any, formData: FormData) {

@@ -46,8 +46,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { LoggedInUser, Event, Department, ApiSuccessResponse } from "@/lib/types";
-import { createEvent, updateEvent, deleteEvent } from "./actions";
-import api from "@/lib/api";
+import { createEvent, updateEvent, deleteEvent, getAdminEvents, getDepartments } from "./actions";
+
 import { format, parseISO } from "date-fns";
 import {
   Calendar as CalendarIcon,
@@ -101,6 +101,7 @@ export default function AdminEventsPage() {
 
   // Form State for Create Dialog
   const [createEventMode, setCreateEventMode] = useState("offline");
+  const [createPaymentMethod, setCreatePaymentMethod] = useState("none");
   const [createStartDate, setCreateStartDate] = useState<Date>();
   const [createEndDate, setCreateEndDate] = useState<Date>();
   const [createStartTime, setCreateStartTime] = useState("09:00");
@@ -116,42 +117,7 @@ export default function AdminEventsPage() {
   const [createFormState, createFormAction] = useActionState(createEvent.bind(null, userApiKey || ''), createInitialState);
   const [updateFormState, updateFormAction] = useActionState(updateEvent, updateInitialState);
 
-  const fetchEvents = async () => {
-      setIsLoading(true);
-      try {
-        const loggedInUserStr = localStorage.getItem("loggedInUser");
-        if (!loggedInUserStr) throw new Error("User not logged in");
-        const loggedInUser = JSON.parse(loggedInUserStr);
-
-        let endpoint = '/events/admin';
-        if (loggedInUser.role === 'department_admin') {
-          if (!loggedInUser._id) throw new Error("Department admin ID is missing.");
-          endpoint = `/events/admin/created-by/${loggedInUser._id}`;
-        }
-        
-        const response = await api<ApiSuccessResponse<{ data?: Event[] }>>(endpoint, { authenticated: true });
-        
-        setEvents(response.data || []);
-
-      } catch (error) {
-          toast({ variant: 'destructive', title: 'Error', description: (error as Error).message || "Could not fetch events." });
-      } finally {
-          setIsLoading(false);
-      }
-  }
   
-  async function fetchDepartments() {
-    try {
-        const response = await api<ApiSuccessResponse<{ departments: Department[] }>>('/departments?limit=100', { authenticated: true });
-        if (response.success && response.data) {
-            setDepartments(response.data.departments);
-        }
-    } catch (error) {
-         toast({ variant: 'destructive', title: 'Error', description: "Could not fetch departments for form." });
-    }
-  }
-
-
   useEffect(() => {
     const userData = localStorage.getItem("loggedInUser");
     const apiKeyData = localStorage.getItem("userApiKey");
@@ -163,14 +129,43 @@ export default function AdminEventsPage() {
       }
       setUser(parsedUser);
       setUserApiKey(apiKeyData);
-      fetchEvents();
-      if (parsedUser.role === 'super_admin') {
-        fetchDepartments();
-      }
+
+      const fetchEventsAndDepartments = async () => {
+        setIsLoading(true);
+        try {
+          const [eventsData, departmentsData] = await Promise.all([
+            getAdminEvents(apiKeyData, parsedUser),
+            parsedUser.role === 'super_admin' ? getDepartments(apiKeyData) : Promise.resolve([])
+          ]);
+          setEvents(eventsData);
+          setDepartments(departmentsData);
+        } catch (error) {
+          toast({ variant: 'destructive', title: 'Error', description: (error as Error).message || "Could not fetch initial data." });
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      
+      fetchEventsAndDepartments();
+      
     } else {
       router.push("/c/auth/login?login=s_admin");
     }
-  }, [router]);
+  }, [router, toast]);
+  
+  const refetchEvents = async () => {
+    if (user && userApiKey) {
+      setIsLoading(true);
+      try {
+        const eventsData = await getAdminEvents(userApiKey, user);
+        setEvents(eventsData);
+      } catch (error) {
+        toast({ variant: 'destructive', title: 'Error', description: (error as Error).message || "Could not refetch events." });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  }
 
   useEffect(() => {
     if (createFormState.message) {
@@ -178,7 +173,7 @@ export default function AdminEventsPage() {
         toast({ title: 'Success', description: createFormState.message });
         setIsNewEventDialogOpen(false);
         createFormRef.current?.reset();
-        fetchEvents(); // refetch events on success
+        refetchEvents(); // refetch events on success
       } else {
         toast({ variant: 'destructive', title: 'Error', description: createFormState.message });
       }
@@ -191,7 +186,7 @@ export default function AdminEventsPage() {
         toast({ title: 'Success', description: updateFormState.message });
         setEditingEvent(null);
         editFormRef.current?.reset();
-        fetchEvents();
+        refetchEvents();
       } else {
         toast({ variant: 'destructive', title: 'Error', description: updateFormState.message });
       }
@@ -215,7 +210,7 @@ export default function AdminEventsPage() {
       const result = await deleteEvent(eventId);
        if (result.success) {
         toast({ title: "Success", description: result.message });
-        fetchEvents();
+        refetchEvents();
       } else {
          throw new Error(result.message);
       }
@@ -269,6 +264,9 @@ export default function AdminEventsPage() {
             </DialogHeader>
             <form ref={createFormRef} action={createFormAction}>
               <input type="hidden" name="createdBy" value={user?._id || ''} />
+               {user?.role === 'department_admin' && (
+                <input type="hidden" name="department" value={user?.department || ''} />
+              )}
               <div className="grid gap-6 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="name" className="text-right">Name</Label>
@@ -283,7 +281,7 @@ export default function AdminEventsPage() {
                 <Input id="thumbnailUrl" name="thumbnailUrl" placeholder="https://example.com/image.jpg" className="col-span-3"/>
               </div>
 
-              {user?.role === 'super_admin' ? (
+              {user?.role === 'super_admin' && (
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="department" className="text-right">Department</Label>
                     <Select name="department">
@@ -297,8 +295,6 @@ export default function AdminEventsPage() {
                         </SelectContent>
                     </Select>
                 </div>
-              ) : (
-                 <input type="hidden" name="department" value={user?.department as string || ''} />
               )}
               
               <div className="grid grid-cols-4 items-center gap-4">
@@ -350,6 +346,7 @@ export default function AdminEventsPage() {
                     <div className="grid gap-2 mt-3">
                       <Input name="offline.venueName" placeholder="Venue Name" />
                       <Input name="offline.address" placeholder="Full Address" />
+                      <Input name="offline.mapLink" placeholder="Google Maps Link" />
                     </div>
                   )}
                   {createEventMode === "online" && (
@@ -370,18 +367,27 @@ export default function AdminEventsPage() {
               <div className="grid grid-cols-4 items-start gap-4">
                   <Label className="text-right pt-2">Payment</Label>
                   <div className="col-span-3 grid gap-3">
-                      <Select name="payment.method">
-                           <SelectTrigger><SelectValue placeholder="Select Payment Method" /></SelectTrigger>
-                           <SelectContent>
-                              <SelectItem value="free">Free</SelectItem>
-                              <SelectItem value="gateway">Online Gateway</SelectItem>
-                              <SelectItem value="qr_code">QR Code</SelectItem>
-                          </SelectContent>
-                      </Select>
-                      <div className="grid grid-cols-2 gap-2">
-                          <Input name="payment.price" type="number" placeholder="Price (e.g., 100)" />
-                          <Input name="payment.currency" placeholder="Currency (e.g., INR)" defaultValue="INR" />
-                      </div>
+                      <RadioGroup name="payment.method" defaultValue="none" onValueChange={setCreatePaymentMethod} className="flex gap-4">
+                          <div className="flex items-center space-x-2"><RadioGroupItem value="none" id="pay-none" /><Label htmlFor="pay-none">Free</Label></div>
+                          <div className="flex items-center space-x-2"><RadioGroupItem value="gateway" id="pay-gateway" /><Label htmlFor="pay-gateway">Gateway</Label></div>
+                          <div className="flex items-center space-x-2"><RadioGroupItem value="qr" id="pay-qr" /><Label htmlFor="pay-qr">QR Code</Label></div>
+                      </RadioGroup>
+
+                      {(createPaymentMethod === 'gateway' || createPaymentMethod === 'qr') && (
+                         <div className="grid grid-cols-2 gap-2">
+                           <Input name="payment.price" type="number" placeholder="Price (e.g., 100)" />
+                           <Input name="payment.currency" placeholder="Currency (e.g., INR)" defaultValue="INR" />
+                        </div>
+                      )}
+                      {createPaymentMethod === 'gateway' && (
+                        <Select name="payment.gatewayProvider">
+                            <SelectTrigger><SelectValue placeholder="Select Gateway Provider" /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="razorpay">Razorpay</SelectItem>
+                                <SelectItem value="stripe">Stripe</SelectItem>
+                            </SelectContent>
+                        </Select>
+                      )}
                   </div>
               </div>
               <div className="grid grid-cols-4 items-start gap-4">
@@ -392,6 +398,15 @@ export default function AdminEventsPage() {
                     <Input name="contacts[0].phone" placeholder="Contact Phone" />
                  </div>
               </div>
+               <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="departmentSite" className="text-right">Department Site</Label>
+                <Input id="departmentSite" name="departmentSite" placeholder="https://dept.example.com" className="col-span-3"/>
+              </div>
+               <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="contactEmail" className="text-right">Contact Email</Label>
+                <Input id="contactEmail" name="contactEmail" type="email" placeholder="contact@example.com" className="col-span-3"/>
+              </div>
+
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="status" className="text-right">Status</Label>
                 <Select name="status" defaultValue="draft">
