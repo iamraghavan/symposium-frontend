@@ -13,7 +13,9 @@ async function makeApiRequest(endpoint: string, options: RequestInit = {}) {
     const userApiKey = cookies().get('apiKey')?.value;
     
     if (!userApiKey) {
-        throw new Error("API key cookie not found.");
+        // This part is for server actions that need authentication.
+        // It relies on the cookie being correctly passed.
+        throw new Error("API key cookie not found. Please log in again.");
     }
 
     const defaultHeaders: Record<string, string> = {
@@ -48,35 +50,6 @@ async function makeApiRequest(endpoint: string, options: RequestInit = {}) {
     }
 }
 
-export async function getEvents(): Promise<Event[]> {
-  try {
-    const userCookie = cookies().get('loggedInUser');
-    if (!userCookie) {
-        throw new Error("Authentication error: User cookie not found.");
-    }
-
-    const user: LoggedInUser = JSON.parse(userCookie.value);
-    let endpoint = '/events/admin'; // Default for super admin
-
-    if (user.role === 'department_admin') {
-      if (!user._id) {
-        throw new Error("Authentication error: Department admin ID is missing.");
-      }
-      endpoint = `/events/admin/created-by/${user._id}`;
-    }
-
-    const response: ApiSuccessResponse<{ events?: Event[], data?: Event[] }> = await makeApiRequest(endpoint);
-    // The API response nests the events array in a 'data' property.
-    return response.data || [];
-  } catch (error) {
-    // Re-throw the error to be caught by the page component.
-    if (error instanceof Error) {
-        throw new Error(error.message);
-    }
-    throw new Error("Could not fetch events.");
-  }
-}
-
 
 export async function getDepartments(): Promise<Department[]> {
   try {
@@ -93,7 +66,13 @@ export async function createEvent(prevState: any, formData: FormData) {
     
     const userCookie = cookies().get('loggedInUser');
     if (!userCookie) return { message: 'Authentication error: User not logged in.', success: false };
-    const user: LoggedInUser = JSON.parse(userCookie.value);
+    
+    let user: LoggedInUser;
+    try {
+      user = JSON.parse(userCookie.value);
+    } catch (e) {
+      return { message: 'Authentication error: Invalid user data.', success: false };
+    }
 
     const payload: Record<string, any> = {
       name: eventData.name,

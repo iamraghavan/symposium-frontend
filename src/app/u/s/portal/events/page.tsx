@@ -45,9 +45,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { LoggedInUser, Event, Department } from "@/lib/types";
-import { getEvents, createEvent } from "./actions";
-import { getDepartments } from "../departments/actions";
+import type { LoggedInUser, Event, Department, ApiSuccessResponse } from "@/lib/types";
+import { createEvent, getDepartments } from "./actions";
+import api from "@/lib/api";
 import { format, parseISO } from "date-fns";
 import {
   Calendar as CalendarIcon,
@@ -73,6 +73,21 @@ const initialState = {
   message: '',
   success: false,
 };
+
+async function getAdminEvents(user: LoggedInUser): Promise<Event[]> {
+    if (!user) throw new Error("User not authenticated");
+
+    let endpoint = '/events/admin'; // Default for super admin
+    if (user.role === 'department_admin') {
+      if (!user._id) throw new Error("Department admin ID is missing.");
+      endpoint = `/events/admin/created-by/${user._id}`;
+    }
+
+    const response = await api<ApiSuccessResponse<{ events?: Event[], data?: Event[] }>>(endpoint, { authenticated: true });
+    // Handle both possible response structures for events array
+    return response.data?.events || response.data?.data || response.data || [];
+}
+
 
 export default function AdminEventsPage() {
   const router = useRouter();
@@ -103,7 +118,7 @@ export default function AdminEventsPage() {
         return;
       }
       setUser(parsedUser);
-      fetchEvents();
+      fetchEvents(parsedUser); // pass user to fetch function
       if (parsedUser.role === 'super_admin') {
         fetchDepartments();
       }
@@ -118,17 +133,17 @@ export default function AdminEventsPage() {
         toast({ title: 'Success', description: formState.message });
         setIsNewEventDialogOpen(false);
         formRef.current?.reset();
-        fetchEvents();
+        if(user) fetchEvents(user); // refetch events on success
       } else {
         toast({ variant: 'destructive', title: 'Error', description: formState.message });
       }
     }
   }, [formState]);
   
-  const fetchEvents = async () => {
+  const fetchEvents = async (currentUser: LoggedInUser) => {
       setIsLoading(true);
       try {
-          const eventData = await getEvents();
+          const eventData = await getAdminEvents(currentUser);
           setEvents(eventData || []);
       } catch (error) {
           toast({ variant: 'destructive', title: 'Error', description: (error as Error).message });
@@ -139,6 +154,7 @@ export default function AdminEventsPage() {
 
   const fetchDepartments = async () => {
     try {
+      // Use the server action to fetch departments
       const deptData = await getDepartments();
       setDepartments(deptData || []);
     } catch (error) {
