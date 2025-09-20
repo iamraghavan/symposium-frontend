@@ -115,25 +115,19 @@ export default function AdminEventsPage() {
   const [createFormState, createFormAction] = useActionState(createEvent, createInitialState);
   const [updateFormState, updateFormAction] = useActionState(updateEvent, updateInitialState);
 
-  async function getAdminEvents(user: LoggedInUser): Promise<Event[]> {
-    if (!user) throw new Error("User not authenticated");
-
-    let endpoint = '/events/admin'; // Default for super admin
-    if (user.role === 'department_admin') {
-      if (!user._id) throw new Error("Department admin ID is missing.");
-      endpoint = `/events/admin/created-by/${user._id}`;
-    }
-
-    const response = await api<ApiSuccessResponse<{ data?: Event[] }>>(endpoint, { authenticated: true });
-    
-    return response.data || [];
-  }
-
   const fetchEvents = async (currentUser: LoggedInUser) => {
       setIsLoading(true);
       try {
-          const eventData = await getAdminEvents(currentUser);
-          setEvents(eventData || []);
+        let endpoint = '/events/admin'; // Default for super admin
+        if (currentUser.role === 'department_admin') {
+          if (!currentUser._id) throw new Error("Department admin ID is missing.");
+          endpoint = `/events/admin/created-by/${currentUser._id}`;
+        }
+        
+        const response = await api<ApiSuccessResponse<{ data?: Event[] }>>(endpoint, { authenticated: true });
+        
+        setEvents(response.data || []);
+
       } catch (error) {
           toast({ variant: 'destructive', title: 'Error', description: (error as Error).message || "Could not fetch events." });
       } finally {
@@ -182,7 +176,7 @@ export default function AdminEventsPage() {
         toast({ variant: 'destructive', title: 'Error', description: createFormState.message });
       }
     }
-  }, [createFormState, user]);
+  }, [createFormState]);
   
    useEffect(() => {
     if (updateFormState.message) {
@@ -195,7 +189,7 @@ export default function AdminEventsPage() {
         toast({ variant: 'destructive', title: 'Error', description: updateFormState.message });
       }
     }
-  }, [updateFormState, user]);
+  }, [updateFormState]);
 
   useEffect(() => {
     if (editingEvent) {
@@ -267,7 +261,8 @@ export default function AdminEventsPage() {
               </DialogDescription>
             </DialogHeader>
             <form ref={createFormRef} action={createFormAction}>
-            <div className="grid gap-6 py-4">
+              <input type="hidden" name="createdBy" value={user?._id || ''} />
+              <div className="grid gap-6 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="name" className="text-right">Name</Label>
                 <Input id="name" name="name" placeholder="e.g. Hackathon 2024" className="col-span-3"/>

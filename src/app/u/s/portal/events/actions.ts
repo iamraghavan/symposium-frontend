@@ -50,8 +50,6 @@ async function makeApiRequest(endpoint: string, options: RequestInit = {}) {
 
 export async function getDepartments(): Promise<Department[]> {
   try {
-    // This is called from the client component, so it needs a different API handler.
-    // Or we just make it a client-side call directly. For now, this is unused server-side.
     return [];
   } catch (error) {
     console.error("[getDepartments] Failed to fetch departments:", error);
@@ -60,49 +58,51 @@ export async function getDepartments(): Promise<Department[]> {
 }
 
 export async function createEvent(prevState: any, formData: FormData) {
-    
-    const userCookie = cookies().get('loggedInUser');
-    if (!userCookie) return { message: 'Authentication error. User not logged in.', success: false };
-    
-    let user: LoggedInUser;
-    try {
-      user = JSON.parse(userCookie.value);
-    } catch (e) {
-      return { message: 'Authentication error: Invalid user data.', success: false };
-    }
+  const createdBy = formData.get('createdBy') as string;
+  if (!createdBy) {
+    return { message: 'Authentication error. User not logged in.', success: false };
+  }
 
-    const payload: Record<string, any> = {
-      name: formData.get('name'),
-      description: formData.get('description'),
-      thumbnailUrl: formData.get('thumbnailUrl'),
-      mode: formData.get('mode'),
-      startAt: formData.get('startAt'),
-      endAt: formData.get('endAt'),
-      departmentId: user.role === 'department_admin' ? user.department?._id : formData.get('departmentId'),
-      status: formData.get('status'),
-      payment: {
-        method: formData.get('payment.method') || 'none',
-        price: Number(formData.get('payment.price') || 0),
-        currency: formData.get('payment.currency') || 'INR'
-      },
-      contacts: [{
-        name: formData.get('contacts[0].name'),
-        email: formData.get('contacts[0].email'),
-        phone: formData.get('contacts[0].phone'),
-      }]
-    };
+  // Find user from cookies to determine role and department
+  const userCookie = cookies().get('loggedInUser');
+  if (!userCookie) {
+    return { message: 'Authentication error: User cookie not found.', success: false };
+  }
+  const user: LoggedInUser = JSON.parse(userCookie.value);
 
-    if (payload.mode === 'online') {
-        payload.online = {
-            provider: formData.get('online.provider'),
-            url: formData.get('online.url')
-        };
-    } else if (payload.mode === 'offline') {
-        payload.offline = {
-            venueName: formData.get('offline.venueName'),
-            address: formData.get('offline.address')
-        };
-    }
+
+  const payload: Record<string, any> = {
+    name: formData.get('name'),
+    description: formData.get('description'),
+    thumbnailUrl: formData.get('thumbnailUrl'),
+    mode: formData.get('mode'),
+    startAt: formData.get('startAt'),
+    endAt: formData.get('endAt'),
+    departmentId: user.role === 'department_admin' ? user.department?._id : formData.get('departmentId'),
+    status: formData.get('status'),
+    payment: {
+      method: formData.get('payment.method') || 'free',
+      price: Number(formData.get('payment.price') || 0),
+      currency: formData.get('payment.currency') || 'INR'
+    },
+    contacts: [{
+      name: formData.get('contacts[0].name'),
+      email: formData.get('contacts[0].email'),
+      phone: formData.get('contacts[0].phone'),
+    }]
+  };
+
+  if (payload.mode === 'online') {
+      payload.online = {
+          provider: formData.get('online.provider'),
+          url: formData.get('online.url')
+      };
+  } else if (payload.mode === 'offline') {
+      payload.offline = {
+          venueName: formData.get('offline.venueName'),
+          address: formData.get('offline.address')
+      };
+  }
     
     try {
         await makeApiRequest('/events', {
