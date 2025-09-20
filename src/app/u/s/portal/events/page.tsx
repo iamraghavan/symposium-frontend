@@ -46,7 +46,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { LoggedInUser, Event, Department, ApiSuccessResponse } from "@/lib/types";
-import { createEvent, getDepartments, updateEvent, deleteEvent } from "./actions";
+import { createEvent, updateEvent, deleteEvent } from "./actions";
 import api from "@/lib/api";
 import { format, parseISO } from "date-fns";
 import {
@@ -124,9 +124,9 @@ export default function AdminEventsPage() {
       endpoint = `/events/admin/created-by/${user._id}`;
     }
 
-    const response = await api<ApiSuccessResponse<{ events?: Event[], data?: Event[] }>>(endpoint, { authenticated: true });
-    // Handle both possible response structures for events array: `data` or `events`
-    return response.data || (response as any).events || [];
+    const response = await api<ApiSuccessResponse<{ data?: Event[] }>>(endpoint, { authenticated: true });
+    
+    return response.data || [];
   }
 
   const fetchEvents = async (currentUser: LoggedInUser) => {
@@ -140,6 +140,18 @@ export default function AdminEventsPage() {
           setIsLoading(false);
       }
   }
+  
+  async function fetchDepartments() {
+    try {
+        const response = await api<ApiSuccessResponse<{ data: Department[] }>>('/departments?limit=100', { authenticated: true });
+        if (response.success && response.data) {
+            setDepartments(response.data);
+        }
+    } catch (error) {
+         toast({ variant: 'destructive', title: 'Error', description: "Could not fetch departments for form." });
+    }
+  }
+
 
   useEffect(() => {
     const userData = localStorage.getItem("loggedInUser");
@@ -196,20 +208,16 @@ export default function AdminEventsPage() {
   }, [editingEvent]);
 
   
-  const fetchDepartments = async () => {
-    try {
-      const deptData = await getDepartments();
-      setDepartments(deptData || []);
-    } catch (error) {
-       toast({ variant: 'destructive', title: 'Error', description: "Could not fetch departments for form." });
-    }
-  }
 
   const handleDelete = async (eventId: string) => {
     try {
-      await deleteEvent(eventId);
-      toast({ title: "Success", description: "Event deleted successfully." });
-      if(user) fetchEvents(user);
+      const result = await deleteEvent(eventId);
+       if (result.success) {
+        toast({ title: "Success", description: result.message });
+        if(user) fetchEvents(user);
+      } else {
+         throw new Error(result.message);
+      }
     } catch (error) {
       toast({ variant: 'destructive', title: 'Error', description: (error as Error).message || "Could not delete event." });
     }

@@ -6,7 +6,6 @@ import { cookies } from 'next/headers';
 import type { Event, ApiSuccessResponse, LoggedInUser, Department } from '@/lib/types';
 import { formDataToObject } from '@/lib/utils';
 
-// Hardcode the API_BASE_URL to ensure it's available in the server action.
 const API_BASE_URL = 'https://symposium-backend.onrender.com';
 
 async function makeApiRequest(endpoint: string, options: RequestInit = {}) {
@@ -51,8 +50,9 @@ async function makeApiRequest(endpoint: string, options: RequestInit = {}) {
 
 export async function getDepartments(): Promise<Department[]> {
   try {
-    const response: ApiSuccessResponse<{ data: Department[] }> = await makeApiRequest('/departments?limit=100');
-    return response.data || [];
+    // This is called from the client component, so it needs a different API handler.
+    // Or we just make it a client-side call directly. For now, this is unused server-side.
+    return [];
   } catch (error) {
     console.error("[getDepartments] Failed to fetch departments:", error);
     throw new Error("Could not fetch departments.");
@@ -60,8 +60,9 @@ export async function getDepartments(): Promise<Department[]> {
 }
 
 export async function createEvent(prevState: any, formData: FormData) {
+    
     const userCookie = cookies().get('loggedInUser');
-    if (!userCookie) return { message: 'Authentication error: User not logged in.', success: false };
+    if (!userCookie) return { message: 'Authentication error. User not logged in.', success: false };
     
     let user: LoggedInUser;
     try {
