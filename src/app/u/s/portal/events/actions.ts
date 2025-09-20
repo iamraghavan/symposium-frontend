@@ -4,8 +4,10 @@
 import { revalidatePath } from 'next/cache';
 import type { Event, ApiSuccessResponse, LoggedInUser, Department } from '@/lib/types';
 import { formDataToObject } from '@/lib/utils';
+import { cookies } from 'next/headers';
 
 const API_BASE_URL = 'https://symposium-backend.onrender.com';
+
 
 async function makeApiRequest(endpoint: string, apiKey: string, options: RequestInit = {}) {
     if (!apiKey) {
@@ -32,6 +34,7 @@ async function makeApiRequest(endpoint: string, apiKey: string, options: Request
 
         if (!response.ok || responseData.success === false) {
              const errorMessage = responseData.message || `API request failed with status: ${response.status}`;
+             console.error("API Error Details:", responseData.details);
              throw new Error(errorMessage);
         }
         
@@ -45,12 +48,17 @@ async function makeApiRequest(endpoint: string, apiKey: string, options: Request
 }
 
 
-export async function getDepartments(): Promise<Department[]> {
-  try {
+export async function getDepartments(apiKey: string): Promise<Department[]> {
+  if (!apiKey) {
+    console.error("[getDepartments] API key is missing.");
     return [];
+  }
+  try {
+    const response = await makeApiRequest('/departments?limit=100', apiKey);
+    return (response as ApiSuccessResponse<{departments: Department[]}>).data?.departments || [];
   } catch (error) {
     console.error("[getDepartments] Failed to fetch departments:", error);
-    throw new Error("Could not fetch departments.");
+    return [];
   }
 }
 
@@ -66,7 +74,7 @@ export async function createEvent(userId: string, apiKey: string, prevState: any
     mode: formData.get('mode'),
     startAt: formData.get('startAt'),
     endAt: formData.get('endAt'),
-    departmentId: formData.get('departmentId'), // Super admin will provide this
+    department: formData.get('department'),
     status: formData.get('status'),
     payment: {
       method: formData.get('payment.method') || 'free',
@@ -106,27 +114,64 @@ export async function createEvent(userId: string, apiKey: string, prevState: any
 }
 
 export async function updateEvent(prevState: any, formData: FormData) {
-    const eventData = formDataToObject(formData);
-    const eventId = eventData.eventId;
-
-    if (!eventId) {
+    const apiKey = cookies().get('apiKey')?.value;
+     if (!apiKey) {
+      return { message: 'Authentication error: API Key is missing.', success: false };
+    }
+    const eventId = formData.get('eventId');
+     if (!eventId) {
         return { message: 'Event ID is missing.', success: false };
     }
-    
-    // This action needs to be fully implemented with API key handling like createEvent
-    // For now, it's a placeholder to avoid breaking the form.
-    console.log("Updating event (not implemented)", eventData);
 
-    return { message: 'Update not fully implemented.', success: false };
+    const payload: Record<string, any> = {
+        name: formData.get('name'),
+        description: formData.get('description'),
+        thumbnailUrl: formData.get('thumbnailUrl'),
+        mode: formData.get('mode'),
+        startAt: formData.get('startAt'),
+        endAt: formData.get('endAt'),
+        status: formData.get('status'),
+    };
+    if (payload.mode === 'online') {
+      payload.online = {
+          provider: formData.get('online.provider'),
+          url: formData.get('online.url')
+      };
+    } else if (payload.mode === 'offline') {
+        payload.offline = {
+            venueName: formData.get('offline.venueName'),
+            address: formData.get('offline.address')
+        };
+    }
+
+    try {
+        await makeApiRequest(`/events/${eventId}`, apiKey, {
+            method: 'PATCH',
+            body: JSON.stringify(payload),
+        });
+
+        revalidatePath('/u/s/portal/events');
+        return { message: 'Event updated successfully.', success: true };
+    } catch (error) {
+        return { message: (error as Error).message, success: false };
+    }
 }
 
 export async function deleteEvent(eventId: string): Promise<{ success: boolean; message: string }> {
+    const apiKey = cookies().get('apiKey')?.value;
+     if (!apiKey) {
+      return { success: false, message: 'Authentication error: API Key is missing.' };
+    }
     if (!eventId) {
         return { success: false, message: 'Event ID is missing.' };
     }
 
-    // This action also needs API key handling.
-    console.log("Deleting event (not implemented)", eventId);
-
-    return { success: false, message: 'Delete not fully implemented.' };
+    try {
+        await makeApiRequest(`/events/${eventId}`, apiKey, { method: 'DELETE' });
+        revalidatePath('/u/s/portal/events');
+        return { success: true, message: 'Event deleted successfully.' };
+    } catch (error) {
+        return { success: false, message: (error as Error).message };
+    }
 }
+

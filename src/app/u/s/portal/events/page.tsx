@@ -119,7 +119,10 @@ export default function AdminEventsPage() {
   const fetchEvents = async () => {
       setIsLoading(true);
       try {
-        const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser") || '{}');
+        const loggedInUserStr = localStorage.getItem("loggedInUser");
+        if (!loggedInUserStr) throw new Error("User not logged in");
+        const loggedInUser = JSON.parse(loggedInUserStr);
+
         let endpoint = '/events/admin';
         if (loggedInUser.role === 'department_admin') {
           if (!loggedInUser._id) throw new Error("Department admin ID is missing.");
@@ -139,9 +142,9 @@ export default function AdminEventsPage() {
   
   async function fetchDepartments() {
     try {
-        const response = await api<ApiSuccessResponse<{ data: Department[] }>>('/departments?limit=100', { authenticated: true });
+        const response = await api<ApiSuccessResponse<{ departments: Department[] }>>('/departments?limit=100', { authenticated: true });
         if (response.success && response.data) {
-            setDepartments(response.data);
+            setDepartments(response.data.departments);
         }
     } catch (error) {
          toast({ variant: 'destructive', title: 'Error', description: "Could not fetch departments for form." });
@@ -280,8 +283,8 @@ export default function AdminEventsPage() {
               </div>
               {user?.role === 'super_admin' && (
                 <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="departmentId" className="text-right">Department</Label>
-                    <Select name="departmentId">
+                    <Label htmlFor="department" className="text-right">Department</Label>
+                    <Select name="department">
                         <SelectTrigger className="col-span-3">
                             <SelectValue placeholder="Select a department" />
                         </SelectTrigger>
