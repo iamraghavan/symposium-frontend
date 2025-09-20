@@ -13,8 +13,6 @@ async function makeApiRequest(endpoint: string, options: RequestInit = {}) {
     const userApiKey = cookies().get('apiKey')?.value;
     
     if (!userApiKey) {
-        // This part is for server actions that need authentication.
-        // It relies on the cookie being correctly passed.
         throw new Error("API key cookie not found. Please log in again.");
     }
 
@@ -62,8 +60,6 @@ export async function getDepartments(): Promise<Department[]> {
 }
 
 export async function createEvent(prevState: any, formData: FormData) {
-    const eventData = formDataToObject(formData);
-    
     const userCookie = cookies().get('loggedInUser');
     if (!userCookie) return { message: 'Authentication error: User not logged in.', success: false };
     
@@ -75,35 +71,35 @@ export async function createEvent(prevState: any, formData: FormData) {
     }
 
     const payload: Record<string, any> = {
-      name: eventData.name,
-      description: eventData.description,
-      thumbnailUrl: eventData.thumbnailUrl,
-      mode: eventData.mode,
-      startAt: eventData.startAt,
-      endAt: eventData.endAt,
-      departmentId: user.role === 'department_admin' ? user.department : eventData.departmentId,
-      status: eventData.status,
+      name: formData.get('name'),
+      description: formData.get('description'),
+      thumbnailUrl: formData.get('thumbnailUrl'),
+      mode: formData.get('mode'),
+      startAt: formData.get('startAt'),
+      endAt: formData.get('endAt'),
+      departmentId: user.role === 'department_admin' ? user.department?._id : formData.get('departmentId'),
+      status: formData.get('status'),
       payment: {
-        method: eventData['payment.method'],
-        price: Number(eventData['payment.price'] || 0),
-        currency: eventData['payment.currency']
+        method: formData.get('payment.method') || 'none',
+        price: Number(formData.get('payment.price') || 0),
+        currency: formData.get('payment.currency') || 'INR'
       },
       contacts: [{
-        name: eventData['contacts[0].name'],
-        email: eventData['contacts[0].email'],
-        phone: eventData['contacts[0].phone'],
+        name: formData.get('contacts[0].name'),
+        email: formData.get('contacts[0].email'),
+        phone: formData.get('contacts[0].phone'),
       }]
     };
 
     if (payload.mode === 'online') {
         payload.online = {
-            provider: eventData['online.provider'],
-            url: eventData['online.url']
+            provider: formData.get('online.provider'),
+            url: formData.get('online.url')
         };
     } else if (payload.mode === 'offline') {
         payload.offline = {
-            venueName: eventData['offline.venueName'],
-            address: eventData['offline.address']
+            venueName: formData.get('offline.venueName'),
+            address: formData.get('offline.address')
         };
     }
     
