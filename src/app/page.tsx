@@ -150,10 +150,8 @@ export default function HomePage() {
                 0 Participants
               </span>
             </div>
-            <Button asChild variant="default" size="sm">
-                <Link href={`/events/${event._id}`}>
-                 {price === 0 ? 'Free' : `$${price}`}
-                </Link>
+            <Button variant="default" size="sm">
+              {price === 0 ? 'Free' : `$${price}`}
             </Button>
           </CardFooter>
         </Card>
