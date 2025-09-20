@@ -3,24 +3,23 @@
 
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
-import type { Event, ApiSuccessResponse } from '@/lib/types';
+import type { Event, ApiSuccessResponse, LoggedInUser } from '@/lib/types';
 import { formDataToObject } from '@/lib/utils';
 
 const API_BASE_URL = process.env.API_BASE_URL;
-const API_KEY = process.env.API_KEY;
 
 async function makeApiRequest(endpoint: string, options: RequestInit = {}) {
     const userApiKey = cookies().get('apiKey')?.value;
-    const key = userApiKey || API_KEY;
-
+    
+    if (!userApiKey) {
+        throw new Error("API key is missing from cookies.");
+    }
+    
     const defaultHeaders: Record<string, string> = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        'x-api-key': userApiKey,
     };
-    
-    if (key) {
-        defaultHeaders['x-api-key'] = key;
-    }
     
     const config: RequestInit = {
         ...options,
@@ -52,7 +51,20 @@ async function makeApiRequest(endpoint: string, options: RequestInit = {}) {
 
 export async function getEvents(): Promise<Event[]> {
   try {
-    const response: ApiSuccessResponse<{ events: Event[]}> = await makeApiRequest('/events/admin');
+    const userCookie = cookies().get('loggedInUser');
+    if (!userCookie) {
+        throw new Error("User not logged in.");
+    }
+
+    const user: LoggedInUser = JSON.parse(userCookie.value);
+    let endpoint = '/events/admin'; // Default for super admin
+
+    // If department admin, use the specific endpoint
+    if (user.role === 'department_admin') {
+      endpoint = `/events/admin/created-by/${user._id}`;
+    }
+
+    const response: ApiSuccessResponse<{ events: Event[]}> = await makeApiRequest(endpoint);
     return response.data || [];
   } catch (error) {
     console.error("Failed to fetch events in getEvents():", error);

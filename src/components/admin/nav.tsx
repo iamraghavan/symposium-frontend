@@ -73,6 +73,7 @@ export function AdminNav() {
     localStorage.removeItem("loggedInUser");
     localStorage.removeItem("userApiKey");
     eraseCookie('apiKey');
+    eraseCookie('loggedInUser');
     window.location.href = "/";
   };
   

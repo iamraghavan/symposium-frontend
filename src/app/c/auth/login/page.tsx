@@ -78,9 +78,14 @@ function LoginPageContent() {
             return;
         }
 
+        // Store user and API key
         localStorage.setItem('userApiKey', response.apiKey);
         localStorage.setItem('loggedInUser', JSON.stringify(user));
-        setCookie('apiKey', response.apiKey, 7); // Set cookie for server-side access
+        
+        // Set cookies for server-side access
+        setCookie('apiKey', response.apiKey, 7);
+        setCookie('loggedInUser', JSON.stringify(user), 7);
+
 
         toast({
           title: "Login Successful",
