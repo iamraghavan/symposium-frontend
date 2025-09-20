@@ -119,3 +119,64 @@ export async function createEvent(prevState: any, formData: FormData) {
         return { message: (error as Error).message, success: false };
     }
 }
+
+export async function updateEvent(prevState: any, formData: FormData) {
+    const eventData = formDataToObject(formData);
+    const eventId = eventData.eventId;
+
+    if (!eventId) {
+        return { message: 'Event ID is missing.', success: false };
+    }
+    
+    const payload: Record<string, any> = {
+      name: eventData.name,
+      description: eventData.description,
+      thumbnailUrl: eventData.thumbnailUrl,
+      mode: eventData.mode,
+      startAt: eventData.startAt,
+      endAt: eventData.endAt,
+      status: eventData.status,
+    };
+
+    if (payload.mode === 'online') {
+        payload.online = {
+            provider: eventData['online.provider'],
+            url: eventData['online.url']
+        };
+    } else if (payload.mode === 'offline') {
+        payload.offline = {
+            venueName: eventData['offline.venueName'],
+            address: eventData['offline.address']
+        };
+    }
+    
+    try {
+        await makeApiRequest(`/events/${eventId}`, {
+            method: 'PATCH',
+            body: JSON.stringify(payload),
+        });
+
+        revalidatePath('/u/s/portal/events');
+        revalidatePath(`/u/s/portal/events/${eventId}`);
+        return { message: 'Event updated successfully.', success: true };
+    } catch (error) {
+        return { message: (error as Error).message, success: false };
+    }
+}
+
+export async function deleteEvent(eventId: string): Promise<{ success: boolean; message: string }> {
+    if (!eventId) {
+        return { success: false, message: 'Event ID is missing.' };
+    }
+
+    try {
+        await makeApiRequest(`/events/${eventId}`, {
+            method: 'DELETE',
+        });
+
+        revalidatePath('/u/s/portal/events');
+        return { success: true, message: 'Event deleted successfully.' };
+    } catch (error) {
+        return { success: false, message: (error as Error).message };
+    }
+}

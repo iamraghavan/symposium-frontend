@@ -46,7 +46,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { LoggedInUser, Event, Department, ApiSuccessResponse } from "@/lib/types";
-import { createEvent, getDepartments } from "./actions";
+import { createEvent, getDepartments, updateEvent, deleteEvent } from "./actions";
 import api from "@/lib/api";
 import { format, parseISO } from "date-fns";
 import {
@@ -58,8 +58,7 @@ import {
   Edit,
   Trash
 } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
-import { useActionState } from "react";
+import { useState, useEffect, useRef, useActionState, startTransition } from "react";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import { useRouter } from "next/navigation";
@@ -74,10 +73,16 @@ import {
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 
-const initialState = {
+const createInitialState = {
   message: '',
   success: false,
 };
+
+const updateInitialState = {
+  message: '',
+  success: false,
+};
+
 
 async function getAdminEvents(user: LoggedInUser): Promise<Event[]> {
   if (!user) throw new Error("User not authenticated");
@@ -89,7 +94,7 @@ async function getAdminEvents(user: LoggedInUser): Promise<Event[]> {
   }
 
   const response = await api<ApiSuccessResponse<{ events?: Event[], data?: Event[] }>>(endpoint, { authenticated: true });
-  // Handle both possible response structures for events array: `data` or `data.events`
+  // Handle both possible response structures for events array: `data` or `events`
   return response.data || (response as any).events || [];
 }
 
@@ -100,19 +105,30 @@ export default function AdminEventsPage() {
   const [user, setUser] = useState<LoggedInUser | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
-  const formRef = useRef<HTMLFormElement>(null);
+  const createFormRef = useRef<HTMLFormElement>(null);
+  const editFormRef = useRef<HTMLFormElement>(null);
   
   const [isNewEventDialogOpen, setIsNewEventDialogOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+
   const [isLoading, setIsLoading] = useState(true);
 
-  // Form State
-  const [eventMode, setEventMode] = useState("offline");
-  const [startDate, setStartDate] = useState<Date>();
-  const [endDate, setEndDate] = useState<Date>();
-  const [startTime, setStartTime] = useState("09:00");
-  const [endTime, setEndTime] = useState("17:00");
+  // Form State for Create Dialog
+  const [createEventMode, setCreateEventMode] = useState("offline");
+  const [createStartDate, setCreateStartDate] = useState<Date>();
+  const [createEndDate, setCreateEndDate] = useState<Date>();
+  const [createStartTime, setCreateStartTime] = useState("09:00");
+  const [createEndTime, setCreateEndTime] = useState("17:00");
 
-  const [formState, formAction] = useActionState(createEvent, initialState);
+  // Form State for Edit Dialog
+  const [editEventMode, setEditEventMode] = useState("offline");
+  const [editStartDate, setEditStartDate] = useState<Date>();
+  const [editEndDate, setEditEndDate] = useState<Date>();
+  const [editStartTime, setEditStartTime] = useState("09:00");
+  const [editEndTime, setEditEndTime] = useState("17:00");
+
+  const [createFormState, createFormAction] = useActionState(createEvent, createInitialState);
+  const [updateFormState, updateFormAction] = useActionState(updateEvent, updateInitialState);
 
   const fetchEvents = async (currentUser: LoggedInUser) => {
       setIsLoading(true);
@@ -120,7 +136,7 @@ export default function AdminEventsPage() {
           const eventData = await getAdminEvents(currentUser);
           setEvents(eventData || []);
       } catch (error) {
-          toast({ variant: 'destructive', title: 'Error', description: "Could not fetch events." });
+          toast({ variant: 'destructive', title: 'Error', description: (error as Error).message || "Could not fetch events." });
       } finally {
           setIsLoading(false);
       }
@@ -145,17 +161,41 @@ export default function AdminEventsPage() {
   }, [router]);
 
   useEffect(() => {
-    if (formState.message) {
-      if (formState.success) {
-        toast({ title: 'Success', description: formState.message });
+    if (createFormState.message) {
+      if (createFormState.success) {
+        toast({ title: 'Success', description: createFormState.message });
         setIsNewEventDialogOpen(false);
-        formRef.current?.reset();
+        createFormRef.current?.reset();
         if(user) fetchEvents(user); // refetch events on success
       } else {
-        toast({ variant: 'destructive', title: 'Error', description: formState.message });
+        toast({ variant: 'destructive', title: 'Error', description: createFormState.message });
       }
     }
-  }, [formState, user]);
+  }, [createFormState, user]);
+  
+   useEffect(() => {
+    if (updateFormState.message) {
+      if (updateFormState.success) {
+        toast({ title: 'Success', description: updateFormState.message });
+        setEditingEvent(null);
+        editFormRef.current?.reset();
+        if(user) fetchEvents(user);
+      } else {
+        toast({ variant: 'destructive', title: 'Error', description: updateFormState.message });
+      }
+    }
+  }, [updateFormState, user]);
+
+  useEffect(() => {
+    if (editingEvent) {
+      setEditEventMode(editingEvent.mode);
+      if(editingEvent.startAt) setEditStartDate(parseISO(editingEvent.startAt));
+      if(editingEvent.endAt) setEditEndDate(parseISO(editingEvent.endAt));
+      if(editingEvent.startAt) setEditStartTime(format(parseISO(editingEvent.startAt), "HH:mm"));
+      if(editingEvent.endAt) setEditEndTime(format(parseISO(editingEvent.endAt), "HH:mm"));
+    }
+  }, [editingEvent]);
+
   
   const fetchDepartments = async () => {
     try {
@@ -163,6 +203,16 @@ export default function AdminEventsPage() {
       setDepartments(deptData || []);
     } catch (error) {
        toast({ variant: 'destructive', title: 'Error', description: "Could not fetch departments for form." });
+    }
+  }
+
+  const handleDelete = async (eventId: string) => {
+    try {
+      await deleteEvent(eventId);
+      toast({ title: "Success", description: "Event deleted successfully." });
+      if(user) fetchEvents(user);
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: (error as Error).message || "Could not delete event." });
     }
   }
 
@@ -209,9 +259,8 @@ export default function AdminEventsPage() {
                 Fill in the details below to add a new event to the symposium.
               </DialogDescription>
             </DialogHeader>
-            <form ref={formRef} action={formAction}>
+            <form ref={createFormRef} action={createFormAction}>
             <div className="grid gap-6 py-4">
-              {/* Core Details */}
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="name" className="text-right">Name</Label>
                 <Input id="name" name="name" placeholder="e.g. Hackathon 2024" className="col-span-3"/>
@@ -239,62 +288,58 @@ export default function AdminEventsPage() {
                     </Select>
                 </div>
               )}
-              
-              {/* Scheduling */}
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right">Start Date/Time</Label>
                 <div className="col-span-3 grid grid-cols-2 gap-2">
                     <Popover>
                         <PopoverTrigger asChild>
-                            <Button variant={"outline"} className={cn("justify-start text-left font-normal", !startDate && "text-muted-foreground")}>
+                            <Button variant={"outline"} className={cn("justify-start text-left font-normal", !createStartDate && "text-muted-foreground")}>
                             <CalendarIcon className="mr-2 h-4 w-4" />
-                            {startDate ? format(startDate, "PPP") : <span>Pick a start date</span>}
+                            {createStartDate ? format(createStartDate, "PPP") : <span>Pick a start date</span>}
                             </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus /></PopoverContent>
+                        <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={createStartDate} onSelect={setCreateStartDate} initialFocus /></PopoverContent>
                     </Popover>
                     <div className="relative">
                        <Clock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                       <Input name="startTime" type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="pl-8" />
+                       <Input name="startTime" type="time" value={createStartTime} onChange={e => setCreateStartTime(e.target.value)} className="pl-8" />
                     </div>
                 </div>
-                <input type="hidden" name="startAt" value={startDate ? new Date(startDate.setHours(Number(startTime.split(':')[0]), Number(startTime.split(':')[1]))).toISOString() : ''} />
+                <input type="hidden" name="startAt" value={createStartDate ? new Date(createStartDate.setHours(Number(createStartTime.split(':')[0]), Number(createStartTime.split(':')[1]))).toISOString() : ''} />
               </div>
                <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right">End Date/Time</Label>
                  <div className="col-span-3 grid grid-cols-2 gap-2">
                     <Popover>
                         <PopoverTrigger asChild>
-                            <Button variant={"outline"} className={cn("justify-start text-left font-normal", !endDate && "text-muted-foreground")}>
+                            <Button variant={"outline"} className={cn("justify-start text-left font-normal", !createEndDate && "text-muted-foreground")}>
                             <CalendarIcon className="mr-2 h-4 w-4" />
-                            {endDate ? format(endDate, "PPP") : <span>Pick an end date</span>}
+                            {createEndDate ? format(createEndDate, "PPP") : <span>Pick an end date</span>}
                             </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={endDate} onSelect={setEndDate} initialFocus /></PopoverContent>
+                        <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={createEndDate} onSelect={setCreateEndDate} initialFocus /></PopoverContent>
                     </Popover>
                      <div className="relative">
                        <Clock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                       <Input name="endTime" type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="pl-8" />
+                       <Input name="endTime" type="time" value={createEndTime} onChange={e => setCreateEndTime(e.target.value)} className="pl-8" />
                     </div>
                 </div>
-                 <input type="hidden" name="endAt" value={endDate ? new Date(endDate.setHours(Number(endTime.split(':')[0]), Number(endTime.split(':')[1]))).toISOString() : ''} />
+                 <input type="hidden" name="endAt" value={createEndDate ? new Date(createEndDate.setHours(Number(createEndTime.split(':')[0]), Number(createEndTime.split(':')[1]))).toISOString() : ''} />
               </div>
-
-              {/* Mode */}
               <div className="grid grid-cols-4 items-start gap-4">
                 <Label className="text-right pt-2">Event Mode</Label>
                 <div className="col-span-3">
-                  <RadioGroup name="mode" defaultValue="offline" onValueChange={setEventMode} className="flex gap-4">
+                  <RadioGroup name="mode" defaultValue="offline" onValueChange={setCreateEventMode} className="flex gap-4">
                     <div className="flex items-center space-x-2"><RadioGroupItem value="offline" id="offline" /><Label htmlFor="offline">Offline</Label></div>
                     <div className="flex items-center space-x-2"><RadioGroupItem value="online" id="online" /><Label htmlFor="online">Online</Label></div>
                   </RadioGroup>
-                  {eventMode === "offline" && (
+                  {createEventMode === "offline" && (
                     <div className="grid gap-2 mt-3">
                       <Input name="offline.venueName" placeholder="Venue Name" />
                       <Input name="offline.address" placeholder="Full Address" />
                     </div>
                   )}
-                  {eventMode === "online" && (
+                  {createEventMode === "online" && (
                     <div className="grid gap-2 mt-3">
                         <Select name="online.provider">
                              <SelectTrigger><SelectValue placeholder="Select Online Provider" /></SelectTrigger>
@@ -309,27 +354,23 @@ export default function AdminEventsPage() {
                   )}
                 </div>
               </div>
-
-               {/* Payment */}
-                <div className="grid grid-cols-4 items-start gap-4">
-                    <Label className="text-right pt-2">Payment</Label>
-                    <div className="col-span-3 grid gap-3">
-                        <Select name="payment.method">
-                             <SelectTrigger><SelectValue placeholder="Select Payment Method" /></SelectTrigger>
-                             <SelectContent>
-                                <SelectItem value="free">Free</SelectItem>
-                                <SelectItem value="gateway">Online Gateway</SelectItem>
-                                <SelectItem value="qr_code">QR Code</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <div className="grid grid-cols-2 gap-2">
-                            <Input name="payment.price" type="number" placeholder="Price (e.g., 100)" />
-                            <Input name="payment.currency" placeholder="Currency (e.g., INR)" defaultValue="INR" />
-                        </div>
-                    </div>
-                </div>
-
-              {/* Contacts */}
+              <div className="grid grid-cols-4 items-start gap-4">
+                  <Label className="text-right pt-2">Payment</Label>
+                  <div className="col-span-3 grid gap-3">
+                      <Select name="payment.method">
+                           <SelectTrigger><SelectValue placeholder="Select Payment Method" /></SelectTrigger>
+                           <SelectContent>
+                              <SelectItem value="free">Free</SelectItem>
+                              <SelectItem value="gateway">Online Gateway</SelectItem>
+                              <SelectItem value="qr_code">QR Code</SelectItem>
+                          </SelectContent>
+                      </Select>
+                      <div className="grid grid-cols-2 gap-2">
+                          <Input name="payment.price" type="number" placeholder="Price (e.g., 100)" />
+                          <Input name="payment.currency" placeholder="Currency (e.g., INR)" defaultValue="INR" />
+                      </div>
+                  </div>
+              </div>
               <div className="grid grid-cols-4 items-start gap-4">
                  <Label className="text-right pt-2">Contact</Label>
                  <div className="col-span-3 grid gap-2">
@@ -338,8 +379,6 @@ export default function AdminEventsPage() {
                     <Input name="contacts[0].phone" placeholder="Contact Phone" />
                  </div>
               </div>
-              
-              {/* Status */}
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="status" className="text-right">Status</Label>
                 <Select name="status" defaultValue="draft">
@@ -353,7 +392,6 @@ export default function AdminEventsPage() {
                     </SelectContent>
                 </Select>
               </div>
-
             </div>
             <DialogFooter>
               <DialogClose asChild>
@@ -421,7 +459,7 @@ export default function AdminEventsPage() {
                                 <span>View Details</span>
                              </Link>
                            </DropdownMenuItem>
-                           <DropdownMenuItem>
+                           <DropdownMenuItem onSelect={() => setEditingEvent(event)}>
                             <Edit className="mr-2 h-4 w-4" />
                             <span>Edit</span>
                            </DropdownMenuItem>
@@ -442,7 +480,7 @@ export default function AdminEventsPage() {
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction>Continue</AlertDialogAction>
+                                <AlertDialogAction onClick={() => handleDelete(event._id)}>Continue</AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
@@ -462,6 +500,123 @@ export default function AdminEventsPage() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Edit Event Dialog */}
+      <Dialog open={!!editingEvent} onOpenChange={() => setEditingEvent(null)}>
+          <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="font-headline">Edit Event</DialogTitle>
+              <DialogDescription>
+                Update the details for &quot;{editingEvent?.name}&quot;.
+              </DialogDescription>
+            </DialogHeader>
+            <form ref={editFormRef} action={updateFormAction}>
+              <input type="hidden" name="eventId" value={editingEvent?._id} />
+              <div className="grid gap-6 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-name" className="text-right">Name</Label>
+                  <Input id="edit-name" name="name" defaultValue={editingEvent?.name} className="col-span-3"/>
+                </div>
+                <div className="grid grid-cols-4 items-start gap-4">
+                  <Label htmlFor="edit-description" className="text-right pt-2">Description</Label>
+                  <Textarea id="edit-description" name="description" defaultValue={editingEvent?.description} className="col-span-3"/>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-thumbnailUrl" className="text-right">Thumbnail URL</Label>
+                  <Input id="edit-thumbnailUrl" name="thumbnailUrl" defaultValue={editingEvent?.thumbnailUrl} className="col-span-3"/>
+                </div>
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-right">Start Date/Time</Label>
+                  <div className="col-span-3 grid grid-cols-2 gap-2">
+                      <Popover>
+                          <PopoverTrigger asChild>
+                              <Button variant={"outline"} className={cn("justify-start text-left font-normal", !editStartDate && "text-muted-foreground")}>
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {editStartDate ? format(editStartDate, "PPP") : <span>Pick a start date</span>}
+                              </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={editStartDate} onSelect={setEditStartDate} initialFocus /></PopoverContent>
+                      </Popover>
+                      <div className="relative">
+                        <Clock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input name="startTime" type="time" value={editStartTime} onChange={e => setEditStartTime(e.target.value)} className="pl-8" />
+                      </div>
+                  </div>
+                  <input type="hidden" name="startAt" value={editStartDate ? new Date(editStartDate.setHours(Number(editStartTime.split(':')[0]), Number(editStartTime.split(':')[1]))).toISOString() : ''} />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-right">End Date/Time</Label>
+                  <div className="col-span-3 grid grid-cols-2 gap-2">
+                      <Popover>
+                          <PopoverTrigger asChild>
+                              <Button variant={"outline"} className={cn("justify-start text-left font-normal", !editEndDate && "text-muted-foreground")}>
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {editEndDate ? format(editEndDate, "PPP") : <span>Pick an end date</span>}
+                              </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={editEndDate} onSelect={setEditEndDate} initialFocus /></PopoverContent>
+                      </Popover>
+                      <div className="relative">
+                        <Clock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input name="endTime" type="time" value={editEndTime} onChange={e => setEditEndTime(e.target.value)} className="pl-8" />
+                      </div>
+                  </div>
+                  <input type="hidden" name="endAt" value={editEndDate ? new Date(editEndDate.setHours(Number(editEndTime.split(':')[0]), Number(editEndTime.split(':')[1]))).toISOString() : ''} />
+                </div>
+
+                <div className="grid grid-cols-4 items-start gap-4">
+                  <Label className="text-right pt-2">Event Mode</Label>
+                  <div className="col-span-3">
+                    <RadioGroup name="mode" value={editEventMode} onValueChange={setEditEventMode} className="flex gap-4">
+                      <div className="flex items-center space-x-2"><RadioGroupItem value="offline" id="edit-offline" /><Label htmlFor="edit-offline">Offline</Label></div>
+                      <div className="flex items-center space-x-2"><RadioGroupItem value="online" id="edit-online" /><Label htmlFor="edit-online">Online</Label></div>
+                    </RadioGroup>
+                    {editEventMode === "offline" && (
+                      <div className="grid gap-2 mt-3">
+                        <Input name="offline.venueName" placeholder="Venue Name" defaultValue={editingEvent?.offline?.venueName} />
+                        <Input name="offline.address" placeholder="Full Address" defaultValue={editingEvent?.offline?.address} />
+                      </div>
+                    )}
+                    {editEventMode === "online" && (
+                      <div className="grid gap-2 mt-3">
+                          <Select name="online.provider" defaultValue={editingEvent?.online?.provider}>
+                              <SelectTrigger><SelectValue placeholder="Select Online Provider" /></SelectTrigger>
+                              <SelectContent>
+                                  <SelectItem value="google_meet">Google Meet</SelectItem>
+                                  <SelectItem value="zoom">Zoom</SelectItem>
+                                  <SelectItem value="other">Other</SelectItem>
+                              </SelectContent>
+                          </Select>
+                          <Input name="online.url" placeholder="Meeting URL" defaultValue={editingEvent?.online?.url}/>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-status" className="text-right">Status</Label>
+                  <Select name="status" defaultValue={editingEvent?.status}>
+                      <SelectTrigger className="col-span-3">
+                          <SelectValue placeholder="Select event status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                          <SelectItem value="draft">Draft</SelectItem>
+                          <SelectItem value="published">Published</SelectItem>
+                          <SelectItem value="cancelled">Cancelled</SelectItem>
+                      </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline" type="button" onClick={() => setEditingEvent(null)}>Cancel</Button>
+                </DialogClose>
+                <Button type="submit">Save Changes</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+      </Dialog>
     </div>
   );
 }
