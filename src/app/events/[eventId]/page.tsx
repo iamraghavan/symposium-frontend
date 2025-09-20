@@ -18,7 +18,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { events, winners as allWinners } from "@/lib/data";
+import { winners as allWinners } from "@/lib/data";
 import { parseISO, format, differenceInDays } from 'date-fns';
 import { notFound, useParams } from "next/navigation";
 import { Calendar, Users, Trophy, DollarSign, Building, Globe, Info, Clock, Ticket } from "lucide-react";
@@ -44,14 +44,14 @@ export default function EventDetailPage() {
     const fetchEventData = async () => {
       setIsLoading(true);
       try {
-        const response = await api<ApiSuccessResponse<{ data: Event }>>(`/events/${eventId}`);
+        const response = await api<ApiSuccessResponse<Event>>(`/events/${eventId}`);
         if (response.success && response.data) {
-          setEvent(response.data.data);
+          setEvent(response.data);
           // Assuming winners are fetched from another endpoint or are part of the event object in the future.
           // For now, we use the mock data filtered by the fetched event's ID.
-          setWinners(allWinners.filter(w => w.eventId === response.data?.data?._id));
+          setWinners(allWinners.filter(w => w.eventId === response.data?._id));
         } else {
-           throw new Error(response.message || "Event not found");
+           throw new Error((response as any).message || "Event not found");
         }
       } catch (error) {
         toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch event details.'});
