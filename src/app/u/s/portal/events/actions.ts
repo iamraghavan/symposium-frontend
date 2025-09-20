@@ -33,7 +33,7 @@ async function makeApiRequest(endpoint: string, apiKey: string, options: Request
 
         if (!response.ok || responseData.success === false) {
              const errorMessage = responseData.message || `API request failed with status: ${response.status}`;
-             console.error("API Error Details:", responseData.details);
+             console.error("API Error Details:", responseData); // LOG THE ERROR RESPONSE
              throw new Error(errorMessage);
         }
         
@@ -56,8 +56,7 @@ export async function getAdminEvents(apiKey: string, user: LoggedInUser): Promis
   }
   
   let endpoint = '/events/admin';
-    if (user.role === 'department_admin') {
-      if (!user._id) throw new Error("Department admin ID is missing.");
+    if (user.role === 'department_admin' && user._id) {
       endpoint = `/events/admin/created-by/${user._id}`;
     }
 
@@ -89,13 +88,16 @@ export async function createEvent(apiKey: string, prevState: any, formData: Form
   }
   
   try {
+    const startAt = formData.get('startAt') ? new Date(formData.get('startAt') as string).toISOString() : new Date().toISOString();
+    const endAt = formData.get('endAt') ? new Date(formData.get('endAt') as string).toISOString() : new Date().toISOString();
+
     const payload: Record<string, any> = {
       name: formData.get('name'),
       description: formData.get('description'),
       thumbnailUrl: formData.get('thumbnailUrl'),
       mode: formData.get('mode'),
-      startAt: formData.get('startAt'),
-      endAt: formData.get('endAt'),
+      startAt: startAt,
+      endAt: endAt,
       department: formData.get('department'),
       createdBy: createdBy,
       status: formData.get('status'),
@@ -110,20 +112,21 @@ export async function createEvent(apiKey: string, prevState: any, formData: Form
     const contactPhone = formData.get('contacts[0].phone');
     if(contactName || contactEmail || contactPhone) {
         payload.contacts = [{
-            name: contactName,
-            email: contactEmail,
-            phone: contactPhone
+            name: contactName || undefined,
+            email: contactEmail || undefined,
+            phone: contactPhone || undefined
         }];
     }
 
     // Payment
     const paymentMethod = formData.get('payment.method') as string;
     payload.payment = { method: paymentMethod };
-    if (paymentMethod === 'gateway') {
+     if (paymentMethod === 'gateway') {
         payload.payment.price = Number(formData.get('payment.price') || 0);
         payload.payment.currency = formData.get('payment.currency') || 'INR';
         payload.payment.gatewayProvider = formData.get('payment.gatewayProvider')
-    } else if (paymentMethod === 'qr_code') {
+    } else if (paymentMethod === 'qr_code') { // Note: your schema has 'qr', not 'qr_code'
+        payload.payment.method = 'qr';
         payload.payment.price = Number(formData.get('payment.price') || 0);
         payload.payment.currency = formData.get('payment.currency') || 'INR';
     }
@@ -142,6 +145,8 @@ export async function createEvent(apiKey: string, prevState: any, formData: Form
         };
     }
       
+      console.log('Payload being sent to API:', JSON.stringify(payload, null, 2)); // LOG THE PAYLOAD
+      
       await makeApiRequest('/events', apiKey, {
           method: 'POST',
           body: JSON.stringify(payload),
@@ -150,6 +155,7 @@ export async function createEvent(apiKey: string, prevState: any, formData: Form
       revalidatePath('/u/s/portal/events');
       return { message: 'Event created successfully.', success: true };
   } catch (error) {
+      console.error('Error in createEvent action:', error); // LOG THE ERROR
       return { message: (error as Error).message, success: false };
   }
 }
