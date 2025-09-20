@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import api from '@/lib/api';
-import type { ApiSuccessResponse, LoggedInUser } from '@/lib/types';
+import type { LoggedInUser } from '@/lib/types';
 import { isAdmin } from "@/lib/utils";
 
 function LoginPageContent() {
@@ -35,7 +35,6 @@ function LoginPageContent() {
       setLoginType(role);
       setTitle(role === 'super_admin' ? 'Super Admin Login' : 'Department Admin Login');
     } else {
-      // Redirect or show an error if login type is invalid
       router.push('/');
     }
   }, [searchParams, router]);
@@ -43,12 +42,12 @@ function LoginPageContent() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await api<ApiSuccessResponse<any>>('/auth/login', {
+      const response = await api<any>('/auth/login', {
         method: 'POST',
         body: { email, password },
       });
 
-      if (response.success && response.token && response.user) {
+      if (response.success && response.user && response.apiKey) {
         const user = response.user;
 
         if (!isAdmin(user)) {
@@ -69,7 +68,7 @@ function LoginPageContent() {
             return;
         }
 
-        localStorage.setItem('jwt', response.token);
+        localStorage.setItem('userApiKey', response.apiKey);
         localStorage.setItem('loggedInUser', JSON.stringify(user));
 
         toast({

@@ -42,8 +42,8 @@ export function Header() {
     setIsClient(true);
   }, []);
 
-  const completeLogin = useCallback((token: string, user: LoggedInUser) => {
-    localStorage.setItem('jwt', token);
+  const completeLogin = useCallback((apiKey: string, user: LoggedInUser) => {
+    localStorage.setItem('userApiKey', apiKey);
     localStorage.setItem('loggedInUser', JSON.stringify(user));
     setUser(user);
     toast({
@@ -74,8 +74,8 @@ export function Header() {
         body: { idToken: credentialResponse.credential },
       });
 
-      if (response.success && response.token && response.user) {
-        completeLogin(response.token, response.user);
+      if (response.success && response.apiKey && response.user) {
+        completeLogin(response.apiKey, response.user);
       } else {
         throw new Error(response.message || "Google login failed: Invalid response from server.");
       }
@@ -105,7 +105,7 @@ export function Header() {
   const handleLogout = () => {
     googleLogout();
     localStorage.removeItem("loggedInUser");
-    localStorage.removeItem("jwt");
+    localStorage.removeItem("userApiKey");
     setUser(null);
     toast({ title: "Logged out successfully" });
     window.location.href = "/";

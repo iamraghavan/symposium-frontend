@@ -4,7 +4,7 @@
 import type { ApiErrorResponse } from './types';
 
 const API_BASE_URL = 'https://symposium-backend.onrender.com';
-const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
+const GLOBAL_API_KEY = process.env.NEXT_PUBLIC_API_KEY;
 
 type ApiOptions = {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -16,27 +16,28 @@ type ApiOptions = {
 async function api<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
   const { method = 'GET', body, authenticated = false, headers = {} } = options;
 
+  let apiKey = GLOBAL_API_KEY;
+  if (authenticated) {
+    let userApiKey: string | null = null;
+    if (typeof window !== 'undefined') {
+      userApiKey = localStorage.getItem('userApiKey');
+    }
+    if (userApiKey) {
+      apiKey = userApiKey;
+    }
+  }
+
+  if (!apiKey) {
+    const errorMsg = 'API key is missing.';
+    console.error(errorMsg);
+    throw new Error(JSON.stringify({ message: errorMsg }));
+  }
+
   const defaultHeaders: Record<string, string> = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
+    'x-api-key': apiKey,
   };
-  
-  if (API_KEY) {
-      defaultHeaders['x-api-key'] = API_KEY;
-  }
-
-  if (authenticated) {
-    let token: string | null = null;
-    if (typeof window !== 'undefined') {
-        token = localStorage.getItem('jwt');
-    }
-
-    if (token) {
-      defaultHeaders['Authorization'] = `Bearer ${token}`;
-    } else {
-      console.warn('Authenticated request intended but no token found.');
-    }
-  }
 
   const config: RequestInit = {
     method,

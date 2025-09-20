@@ -48,19 +48,19 @@ const totalRevenue = events.reduce((acc, event) => acc + event.participants.leng
 export default function AdminDashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<LoggedInUser | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+  const [apiKey, setApiKey] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     const userData = localStorage.getItem("loggedInUser");
-    const jwtToken = localStorage.getItem("jwt");
-    if (userData && jwtToken) {
+    const userApiKey = localStorage.getItem("userApiKey");
+    if (userData && userApiKey) {
       const parsedUser = JSON.parse(userData);
       if (!isAdmin(parsedUser)) {
         router.push('/');
       } else {
         setUser(parsedUser);
-        setToken(jwtToken);
+        setApiKey(userApiKey);
       }
     } else {
       router.push('/c/auth/login?login=s_admin');
@@ -130,14 +130,14 @@ export default function AdminDashboardPage() {
 
        <Card>
         <CardHeader>
-          <CardTitle className="font-headline flex items-center gap-2"><KeyRound/> Authentication Token</CardTitle>
+          <CardTitle className="font-headline flex items-center gap-2"><KeyRound/> Your API Key</CardTitle>
           <CardDescription>
-            Your current session token. Use this for API testing if required.
+            This key is used to authenticate your requests to the API.
           </CardDescription>
         </CardHeader>
         <CardContent>
             <pre className="text-xs bg-muted p-4 rounded-lg overflow-x-auto">
-                <code>{token}</code>
+                <code>{apiKey}</code>
             </pre>
         </CardContent>
       </Card>
@@ -232,5 +232,3 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
-
-    

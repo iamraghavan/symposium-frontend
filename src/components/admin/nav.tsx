@@ -67,7 +67,7 @@ export function AdminNav() {
 
   const handleLogout = () => {
     localStorage.removeItem("loggedInUser");
-    localStorage.removeItem("jwt");
+    localStorage.removeItem("userApiKey");
     window.location.href = "/";
   };
   
