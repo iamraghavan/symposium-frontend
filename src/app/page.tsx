@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import Image from 'next/image';
@@ -49,7 +50,7 @@ export default function HomePage() {
   useEffect(() => {
     const fetchUpcomingEvents = async () => {
       try {
-        const response = await api<ApiSuccessResponse<{ data: Event[] }>>('/events?limit=20&sort=-startAt&upcoming=true');
+        const response = await api<ApiSuccessResponse<Event[]>>('/events?limit=20&sort=-startAt&upcoming=true');
         if (response.success && response.data) {
           const allEvents = response.data;
           setOnlineEvents(allEvents.filter(event => event.mode === 'online'));
@@ -315,15 +316,15 @@ export default function HomePage() {
               }}
               className="w-full"
               >
-              <CarouselContent>
+              <CarouselContent className="px-4">
                   {onlineEvents.slice(0, 5).map((event) => (
-                  <CarouselItem key={event._id} className="md:basis-1/2 lg:basis-1/4">
+                  <CarouselItem key={event._id} className="md:basis-1/2 lg:basis-1/3">
                       <div className="p-1 h-full">
                       <EventCard event={event} />
                       </div>
                   </CarouselItem>
                   ))}
-                  <CarouselItem className="md:basis-1/2 lg:basis-1/4">
+                  <CarouselItem className="md:basis-1/2 lg:basis-1/3">
                       <div className="p-1 h-full">
                       <ViewAllCard />
                       </div>
@@ -350,15 +351,15 @@ export default function HomePage() {
               }}
               className="w-full"
               >
-              <CarouselContent>
+              <CarouselContent className="px-4">
                   {offlineEvents.slice(0,5).map((event) => (
-                  <CarouselItem key={event._id} className="md:basis-1/2 lg:basis-1/4">
+                  <CarouselItem key={event._id} className="md:basis-1/2 lg:basis-1/3">
                       <div className="p-1 h-full">
                       <EventCard event={event} />
                       </div>
                   </CarouselItem>
                   ))}
-                  <CarouselItem className="md:basis-1/2 lg:basis-1/4">
+                  <CarouselItem className="md:basis-1/2 lg:basis-1/3">
                       <div className="p-1 h-full">
                       <ViewAllCard />
                       </div>
