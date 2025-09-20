@@ -88,6 +88,7 @@ export default function AdminEventsPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [user, setUser] = useState<LoggedInUser | null>(null);
+  const [userApiKey, setUserApiKey] = useState<string | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const createFormRef = useRef<HTMLFormElement>(null);
@@ -112,16 +113,17 @@ export default function AdminEventsPage() {
   const [editStartTime, setEditStartTime] = useState("09:00");
   const [editEndTime, setEditEndTime] = useState("17:00");
 
-  const [createFormState, createFormAction] = useActionState(createEvent, createInitialState);
+  const [createFormState, createFormAction] = useActionState(createEvent.bind(null, user?._id || '', userApiKey || ''), createInitialState);
   const [updateFormState, updateFormAction] = useActionState(updateEvent, updateInitialState);
 
-  const fetchEvents = async (currentUser: LoggedInUser) => {
+  const fetchEvents = async () => {
       setIsLoading(true);
       try {
-        let endpoint = '/events/admin'; // Default for super admin
-        if (currentUser.role === 'department_admin') {
-          if (!currentUser._id) throw new Error("Department admin ID is missing.");
-          endpoint = `/events/admin/created-by/${currentUser._id}`;
+        const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser") || '{}');
+        let endpoint = '/events/admin';
+        if (loggedInUser.role === 'department_admin') {
+          if (!loggedInUser._id) throw new Error("Department admin ID is missing.");
+          endpoint = `/events/admin/created-by/${loggedInUser._id}`;
         }
         
         const response = await api<ApiSuccessResponse<{ data?: Event[] }>>(endpoint, { authenticated: true });
@@ -149,14 +151,16 @@ export default function AdminEventsPage() {
 
   useEffect(() => {
     const userData = localStorage.getItem("loggedInUser");
-    if (userData) {
+    const apiKeyData = localStorage.getItem("userApiKey");
+    if (userData && apiKeyData) {
       const parsedUser = JSON.parse(userData) as LoggedInUser;
       if (!isAdmin(parsedUser)) {
         router.push("/");
         return;
       }
       setUser(parsedUser);
-      fetchEvents(parsedUser);
+      setUserApiKey(apiKeyData);
+      fetchEvents();
       if (parsedUser.role === 'super_admin') {
         fetchDepartments();
       }
@@ -171,7 +175,7 @@ export default function AdminEventsPage() {
         toast({ title: 'Success', description: createFormState.message });
         setIsNewEventDialogOpen(false);
         createFormRef.current?.reset();
-        if(user) fetchEvents(user); // refetch events on success
+        fetchEvents(); // refetch events on success
       } else {
         toast({ variant: 'destructive', title: 'Error', description: createFormState.message });
       }
@@ -184,7 +188,7 @@ export default function AdminEventsPage() {
         toast({ title: 'Success', description: updateFormState.message });
         setEditingEvent(null);
         editFormRef.current?.reset();
-        if(user) fetchEvents(user);
+        fetchEvents();
       } else {
         toast({ variant: 'destructive', title: 'Error', description: updateFormState.message });
       }
@@ -208,7 +212,7 @@ export default function AdminEventsPage() {
       const result = await deleteEvent(eventId);
        if (result.success) {
         toast({ title: "Success", description: result.message });
-        if(user) fetchEvents(user);
+        fetchEvents();
       } else {
          throw new Error(result.message);
       }
@@ -261,7 +265,6 @@ export default function AdminEventsPage() {
               </DialogDescription>
             </DialogHeader>
             <form ref={createFormRef} action={createFormAction}>
-              <input type="hidden" name="createdBy" value={user?._id || ''} />
               <div className="grid gap-6 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="name" className="text-right">Name</Label>
