@@ -88,14 +88,15 @@ export async function createEvent(apiKey: string, prevState: any, formData: Form
   }
   
   try {
-    const startAt = formData.get('startAt') ? new Date(formData.get('startAt') as string).toISOString() : new Date().toISOString();
-    const endAt = formData.get('endAt') ? new Date(formData.get('endAt') as string).toISOString() : new Date().toISOString();
+    const startAt = formData.get('startAt') as string;
+    const endAt = formData.get('endAt') as string;
+    const mode = formData.get('mode') as string;
 
     const payload: Record<string, any> = {
       name: formData.get('name'),
       description: formData.get('description'),
       thumbnailUrl: formData.get('thumbnailUrl'),
-      mode: formData.get('mode'),
+      mode: mode,
       startAt: startAt,
       endAt: endAt,
       department: formData.get('department'),
@@ -120,24 +121,25 @@ export async function createEvent(apiKey: string, prevState: any, formData: Form
 
     // Payment
     const paymentMethod = formData.get('payment.method') as string;
-    payload.payment = { method: paymentMethod };
-     if (paymentMethod === 'gateway') {
-        payload.payment.price = Number(formData.get('payment.price') || 0);
-        payload.payment.currency = formData.get('payment.currency') || 'INR';
-        payload.payment.gatewayProvider = formData.get('payment.gatewayProvider')
-    } else if (paymentMethod === 'qr_code') { // Note: your schema has 'qr', not 'qr_code'
-        payload.payment.method = 'qr';
-        payload.payment.price = Number(formData.get('payment.price') || 0);
-        payload.payment.currency = formData.get('payment.currency') || 'INR';
+    const paymentPayload: Record<string, any> = { method: paymentMethod };
+
+    if (paymentMethod === 'gateway') {
+        paymentPayload.price = Number(formData.get('payment.price') || 0);
+        paymentPayload.currency = formData.get('payment.currency') || 'INR';
+        paymentPayload.gatewayProvider = formData.get('payment.gatewayProvider');
+    } else if (paymentMethod === 'qr') {
+        paymentPayload.price = Number(formData.get('payment.price') || 0);
+        paymentPayload.currency = formData.get('payment.currency') || 'INR';
     }
+    payload.payment = paymentPayload;
 
 
-    if (payload.mode === 'online') {
+    if (mode === 'online') {
         payload.online = {
             provider: formData.get('online.provider'),
             url: formData.get('online.url')
         };
-    } else if (payload.mode === 'offline') {
+    } else if (mode === 'offline') {
         payload.offline = {
             venueName: formData.get('offline.venueName'),
             address: formData.get('offline.address'),
