@@ -28,7 +28,7 @@ import { Button } from "@/components/ui/button";
 import { winners as allWinners } from "@/lib/data";
 import { parseISO, format, differenceInDays } from 'date-fns';
 import { notFound, useParams } from "next/navigation";
-import { Calendar, Users, Trophy, DollarSign, Globe, Info, Clock, Ticket, ExternalLink, Phone, Mail, Link as LinkIcon } from "lucide-react";
+import { Calendar, Users, Trophy, Globe, Info, Clock, Ticket, ExternalLink, Phone, Mail, Link as LinkIcon, IndianRupee, Building } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import api from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -53,6 +53,7 @@ export default function EventDetailPage() {
         const response = await api<ApiSuccessResponse<Event>>(`/events/${eventId}`);
         if (response.success && response.data) {
           setEvent(response.data);
+          // This should be replaced with an API call in the future
           setWinners(allWinners.filter(w => w.eventId === response.data?._id));
         } else {
            throw new Error((response as any).message || "Event not found");
@@ -71,9 +72,7 @@ export default function EventDetailPage() {
   if (isLoading) {
     return (
       <div className="bg-background">
-        <div className="relative h-64 md:h-80 w-full text-white">
-          <Skeleton className="h-full w-full" />
-        </div>
+        <Skeleton className="h-64 md:h-80 w-full rounded-none" />
         <div className="container mx-auto px-4 md:px-6 py-8 md:py-12">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
               <div className="lg:col-span-2 space-y-8">
@@ -99,21 +98,23 @@ export default function EventDetailPage() {
   const paymentMethodText = event.payment.method === 'none' ? 'Free' : event.payment.method === 'gateway' ? 'Online Gateway' : 'QR Code';
 
   return (
-    <div className="bg-background">
+    <div className="bg-background text-foreground">
       {/* Hero Section */}
-      <section className="relative h-64 md:h-80 w-full text-white">
+      <section className="relative h-64 md:h-80 w-full">
         <Image
           src={event.thumbnailUrl || 'https://picsum.photos/seed/event-hero/1200/400'}
           alt={`${event.name} banner`}
           fill
+          priority
           className="object-cover"
           data-ai-hint={event.imageHint || 'event banner'}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
         <div className="relative h-full flex flex-col justify-end container mx-auto px-4 md:px-6 pb-8">
-          <h1 className="text-3xl md:text-5xl font-bold font-headline">{event.name}</h1>
-          <p className="text-lg md:text-xl font-medium text-gray-200 mt-2">
-            Submit by {format(parseISO(event.endAt), "MMMM d, yyyy")}
+          <Badge variant="secondary" className="w-fit mb-2">{departmentName}</Badge>
+          <h1 className="text-3xl md:text-5xl font-bold font-headline text-white">{event.name}</h1>
+          <p className="text-lg md:text-xl font-medium text-gray-200 mt-1">
+            Happening on {format(parseISO(event.startAt), "MMMM d, yyyy")}
           </p>
         </div>
       </section>
@@ -132,31 +133,39 @@ export default function EventDetailPage() {
               {/* Left Column */}
               <div className="lg:col-span-2 space-y-8">
                 <div>
-                    <p className="text-lg text-muted-foreground">{event.description}</p>
-                     <Button className="mt-6">
-                        <Ticket className="mr-2 h-4 w-4"/>
-                        Register Now
-                    </Button>
+                  <h2 className="text-2xl font-bold font-headline mb-4">About the Event</h2>
+                  <p className="text-lg text-muted-foreground leading-relaxed">{event.description}</p>
                 </div>
                 
                 <div id="contacts">
-                  <h3 className="text-2xl font-bold font-headline mb-4">Contacts</h3>
+                  <h2 className="text-2xl font-bold font-headline mb-4">Contact Information</h2>
                   <Card>
-                    <CardContent className="p-6 space-y-4">
+                    <CardContent className="p-6 grid gap-6">
                       {event.contacts?.map((contact, index) => (
                         <div key={index} className="flex items-start gap-4">
-                          <Avatar className="mt-1">
+                          <Avatar className="mt-1 h-12 w-12">
                             <AvatarFallback>{contact.name.charAt(0)}</AvatarFallback>
                           </Avatar>
                           <div>
-                            <p className="font-semibold">{contact.name}</p>
+                            <p className="font-semibold text-lg">{contact.name}</p>
                             <div className="text-sm text-muted-foreground space-y-1 mt-1">
-                              {contact.email && <a href={`mailto:${contact.email}`} className="flex items-center gap-2 hover:text-primary"><Mail className="h-4 w-4" />{contact.email}</a>}
-                              {contact.phone && <a href={`tel:${contact.phone}`} className="flex items-center gap-2 hover:text-primary"><Phone className="h-4 w-4" />{contact.phone}</a>}
+                              {contact.email && <a href={`mailto:${contact.email}`} className="flex items-center gap-2 hover:text-primary transition-colors"><Mail className="h-4 w-4" />{contact.email}</a>}
+                              {contact.phone && <a href={`tel:${contact.phone}`} className="flex items-center gap-2 hover:text-primary transition-colors"><Phone className="h-4 w-4" />{contact.phone}</a>}
                             </div>
                           </div>
                         </div>
                       ))}
+                       {event.contactEmail && (
+                         <div className="flex items-start gap-4">
+                           <Avatar className="mt-1 h-12 w-12">
+                            <AvatarFallback>M</AvatarFallback>
+                          </Avatar>
+                           <div>
+                            <p className="font-semibold text-lg">Event Manager</p>
+                             <a href={`mailto:${event.contactEmail}`} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"><Mail className="h-4 w-4" />{event.contactEmail}</a>
+                           </div>
+                         </div>
+                       )}
                     </CardContent>
                   </Card>
                 </div>
@@ -164,78 +173,70 @@ export default function EventDetailPage() {
               </div>
               {/* Right Sidebar */}
               <div className="lg:col-span-1 space-y-6">
+                 <Card className="overflow-hidden">
+                  <CardContent className="p-0">
+                    <div className="bg-primary/10 p-4 text-center">
+                       <h3 className="font-bold text-lg text-primary">Registration is Open!</h3>
+                    </div>
+                     <div className="p-4">
+                        <Button size="lg" className="w-full">
+                            <Ticket className="mr-2 h-5 w-5"/>
+                            Register Now
+                        </Button>
+                     </div>
+                  </CardContent>
+                </Card>
                 <Card>
                   <CardHeader>
                     <CardTitle className="font-headline">Event Details</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                     <Badge variant="secondary" className="w-full justify-center bg-teal-100 text-teal-800 hover:bg-teal-200">
-                        <Clock className="mr-1.5 h-4 w-4"/>
-                        {daysLeft > 0 ? `${daysLeft} more days to submit` : 'Submissions closed'}
-                    </Badge>
-                    
-                    <div className="space-y-3 text-sm">
-                       <div className="flex items-start">
-                         <Calendar className="mr-3 h-4 w-4 text-muted-foreground mt-0.5" />
-                         <div>
-                           <h3 className="font-semibold text-sm">Date & Time</h3>
-                           <p className="text-muted-foreground">{format(parseISO(event.startAt), "MMM d, yyyy, h:mm a")} - {format(parseISO(event.endAt), "h:mm a")}</p>
-                         </div>
-                       </div>
-                       <div className="flex items-start">
-                         <Globe className="mr-3 h-4 w-4 text-muted-foreground mt-0.5" />
-                         <div>
-                           <h3 className="font-semibold text-sm">Mode & Location</h3>
-                           <p className="text-muted-foreground capitalize">
-                            {event.mode} - {event.mode === 'online' ? <a href={event.online?.url} target="_blank" rel="noopener noreferrer" className="text-primary underline flex items-center gap-1">Meeting Link <ExternalLink className="h-3 w-3"/></a> : event.offline?.venueName}
-                           </p>
-                           {event.mode === 'offline' && <p className="text-xs text-muted-foreground">{event.offline?.address}</p>}
-                         </div>
-                       </div>
-                       <div className="flex items-start">
-                         <DollarSign className="mr-3 h-4 w-4 text-muted-foreground mt-0.5" />
-                         <div>
-                           <h3 className="font-semibold text-sm">Registration Fee</h3>
-                           <p className="text-muted-foreground">{event.payment.price > 0 ? `${event.payment.currency} ${event.payment.price}` : 'Free'} ({paymentMethodText})</p>
-                         </div>
-                       </div>
-                       <div className="flex items-start">
-                         <Users className="mr-3 h-4 w-4 text-muted-foreground mt-0.5" />
-                         <div>
-                           <h3 className="font-semibold text-sm">Participants</h3>
-                           <p className="text-muted-foreground">0 registered</p>
-                         </div>
-                       </div>
+                  <CardContent className="space-y-4 text-sm">
+                    <div className="flex items-start">
+                      <Calendar className="mr-3 h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                      <div>
+                        <h3 className="font-semibold">Date & Time</h3>
+                        <p className="text-muted-foreground">{format(parseISO(event.startAt), "MMM d, yyyy, h:mm a")} - {format(parseISO(event.endAt), "h:mm a")}</p>
+                      </div>
                     </div>
-
-                     <hr />
-                     <div className="space-y-3 text-sm">
-                        <div className="flex items-start">
-                            <Info className="mr-3 h-4 w-4 text-muted-foreground mt-0.5"/>
-                            <div>
-                                <h3 className="font-semibold text-sm">Managed By</h3>
-                                <Badge variant="outline">{departmentName}</Badge>
-                            </div>
-                        </div>
-                        {event.departmentSite && (
-                          <div className="flex items-start">
-                              <LinkIcon className="mr-3 h-4 w-4 text-muted-foreground mt-0.5"/>
-                              <div>
-                                  <h3 className="font-semibold text-sm">Event Website</h3>
-                                  <a href={event.departmentSite} target="_blank" rel="noopener noreferrer" className="text-primary underline flex items-center gap-1">{event.departmentSite} <ExternalLink className="h-3 w-3"/></a>
-                              </div>
-                          </div>
-                        )}
+                    <div className="flex items-start">
+                      <Globe className="mr-3 h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                      <div>
+                        <h3 className="font-semibold">Mode & Location</h3>
+                        <p className="text-muted-foreground capitalize">
+                          {event.mode}
+                        </p>
+                        {event.mode === 'online' ? 
+                          <a href={event.online?.url} target="_blank" rel="noopener noreferrer" className="text-primary underline flex items-center gap-1 text-xs">Meeting Link <ExternalLink className="h-3 w-3"/></a> 
+                          : 
+                          <p className="text-muted-foreground">{event.offline?.venueName}, {event.offline?.address}</p>
+                        }
+                      </div>
+                    </div>
+                    <div className="flex items-start">
+                      <IndianRupee className="mr-3 h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                      <div>
+                        <h3 className="font-semibold">Registration Fee</h3>
+                        <p className="text-muted-foreground">{event.payment.price > 0 ? `${event.payment.currency} ${event.payment.price}` : 'Free'} <span className="text-xs">({paymentMethodText})</span></p>
+                      </div>
+                    </div>
+                     <div className="flex items-start">
+                         <Building className="mr-3 h-4 w-4 text-muted-foreground mt-0.5 shrink-0"/>
+                         <div>
+                             <h3 className="font-semibold">Managed By</h3>
+                             <Badge variant="outline">{departmentName}</Badge>
+                         </div>
                      </div>
+                    {event.departmentSite && (
+                      <div className="flex items-start">
+                          <LinkIcon className="mr-3 h-4 w-4 text-muted-foreground mt-0.5 shrink-0"/>
+                          <div>
+                              <h3 className="font-semibold">Event Website</h3>
+                              <a href={event.departmentSite} target="_blank" rel="noopener noreferrer" className="text-primary underline flex items-center gap-1 text-xs">{new URL(event.departmentSite).hostname} <ExternalLink className="h-3 w-3"/></a>
+                          </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
-                 <Card className="bg-muted/50">
-                    <CardContent className="p-4">
-                        <p className="text-sm text-center text-muted-foreground">
-                            Questions? <a href={`mailto:${event.contactEmail}`} className="text-primary underline">Email the event manager</a>
-                        </p>
-                    </CardContent>
-                 </Card>
               </div>
             </div>
           </TabsContent>
@@ -243,14 +244,15 @@ export default function EventDetailPage() {
           <TabsContent value="participants">
               <Card>
                   <CardHeader>
-                      <CardTitle>Participants</CardTitle>
+                      <CardTitle className="font-headline">Participants</CardTitle>
+                      <CardDescription>A list of participants who have registered for this event.</CardDescription>
                   </CardHeader>
                   <CardContent>
                        <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm h-60">
                             <div className="flex flex-col items-center gap-2 text-center">
                                 <Users className="h-10 w-10 text-muted-foreground" />
                                 <h3 className="text-xl font-bold tracking-tight">No Participants Yet</h3>
-                                <p className="text-sm text-muted-foreground">User registrations will appear here.</p>
+                                <p className="text-sm text-muted-foreground">User registrations will appear here once available.</p>
                             </div>
                         </div>
                   </CardContent>
@@ -260,7 +262,8 @@ export default function EventDetailPage() {
           <TabsContent value="winners">
              <Card>
                 <CardHeader>
-                    <CardTitle>Winners</CardTitle>
+                    <CardTitle className="font-headline">Event Winners</CardTitle>
+                    <CardDescription>Prizes and winners for this event.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     {winners.length > 0 ? (
@@ -269,7 +272,7 @@ export default function EventDetailPage() {
                             <TableRow>
                             <TableHead>Position</TableHead>
                             <TableHead>Winner</TableHead>
-                            <TableHead>Prize Amount</TableHead>
+                            <TableHead className="text-right">Prize Amount</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -293,7 +296,7 @@ export default function EventDetailPage() {
                                     </div>
                                 </div>
                                 </TableCell>
-                                <TableCell className="font-semibold">${winner.prizeAmount.toLocaleString()}</TableCell>
+                                <TableCell className="font-semibold text-right">₹{winner.prizeAmount.toLocaleString()}</TableCell>
                             </TableRow>
                             ))}
                         </TableBody>
@@ -303,7 +306,7 @@ export default function EventDetailPage() {
                             <div className="flex flex-col items-center gap-2 text-center">
                                 <Trophy className="h-10 w-10 text-muted-foreground" />
                                 <h3 className="text-xl font-bold tracking-tight">Winners Not Announced</h3>
-                                <p className="text-sm text-muted-foreground">Winners have not been announced yet. Stay tuned!</p>
+                                <p className="text-sm text-muted-foreground">Winners have not been announced for this event yet. Stay tuned!</p>
                             </div>
                         </div>
                     )}
@@ -315,3 +318,5 @@ export default function EventDetailPage() {
     </div>
   );
 }
+
+    
