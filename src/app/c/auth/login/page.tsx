@@ -19,6 +19,16 @@ import api from '@/lib/api';
 import type { LoggedInUser } from '@/lib/types';
 import { isAdmin } from "@/lib/utils";
 
+function setCookie(name: string, value: string, days: number) {
+    let expires = "";
+    if (days) {
+        const date = new Date();
+        date.setTime(date.getTime() + (days*24*60*60*1000));
+        expires = "; expires=" + date.toUTCString();
+    }
+    document.cookie = name + "=" + (value || "")  + expires + "; path=/";
+}
+
 function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -70,6 +80,7 @@ function LoginPageContent() {
 
         localStorage.setItem('userApiKey', response.apiKey);
         localStorage.setItem('loggedInUser', JSON.stringify(user));
+        setCookie('apiKey', response.apiKey, 7); // Set cookie for server-side access
 
         toast({
           title: "Login Successful",

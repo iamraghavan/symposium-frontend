@@ -28,6 +28,21 @@ import api from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { isAdmin } from "@/lib/utils";
 
+
+function setCookie(name: string, value: string, days: number) {
+    let expires = "";
+    if (days) {
+        const date = new Date();
+        date.setTime(date.getTime() + (days*24*60*60*1000));
+        expires = "; expires=" + date.toUTCString();
+    }
+    document.cookie = name + "=" + (value || "")  + expires + "; path=/";
+}
+
+function eraseCookie(name: string) {   
+    document.cookie = name+'=; Max-Age=-99999999; path=/;';  
+}
+
 export function Header() {
   const router = useRouter();
   const { toast } = useToast();
@@ -45,6 +60,7 @@ export function Header() {
   const completeLogin = useCallback((apiKey: string, user: LoggedInUser) => {
     localStorage.setItem('userApiKey', apiKey);
     localStorage.setItem('loggedInUser', JSON.stringify(user));
+    setCookie('apiKey', apiKey, 7);
     setUser(user);
     toast({
         title: "Login Successful",
@@ -106,6 +122,7 @@ export function Header() {
     googleLogout();
     localStorage.removeItem("loggedInUser");
     localStorage.removeItem("userApiKey");
+    eraseCookie('apiKey');
     setUser(null);
     toast({ title: "Logged out successfully" });
     window.location.href = "/";

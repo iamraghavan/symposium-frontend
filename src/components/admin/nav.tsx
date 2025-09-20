@@ -46,6 +46,10 @@ const allMenuItems = [
   { href: "/u/s/portal/finance", label: "Finance", icon: Banknote, requiredRole: "super_admin" },
 ];
 
+function eraseCookie(name: string) {   
+    document.cookie = name+'=; Max-Age=-99999999; path=/;';  
+}
+
 export function AdminNav() {
   const pathname = usePathname();
   const router = useRouter();
@@ -68,6 +72,7 @@ export function AdminNav() {
   const handleLogout = () => {
     localStorage.removeItem("loggedInUser");
     localStorage.removeItem("userApiKey");
+    eraseCookie('apiKey');
     window.location.href = "/";
   };
   
