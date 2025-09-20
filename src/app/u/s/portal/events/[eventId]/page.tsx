@@ -30,55 +30,106 @@ import type { Event, ApiSuccessResponse, Department } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { parseISO, format } from "date-fns";
 import { notFound, useParams } from "next/navigation";
-import { Calendar, Users, Trophy, DollarSign, Edit, Globe, Video, Phone, Mail } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import { Calendar, Users, Trophy, DollarSign, Edit, Globe, Video, Phone, Mail, Clock } from "lucide-react";
+import React, { useEffect, useState, useRef } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarPicker } from "@/components/ui/calendar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useActionState } from "react";
+import { cn } from "@/lib/utils";
+import { updateEvent } from "../actions";
+
+const updateInitialState = {
+  message: '',
+  success: false,
+};
 
 export default function EventDetailPage() {
   const params = useParams();
   const { toast } = useToast();
+  const editFormRef = useRef<HTMLFormElement>(null);
   const eventId = params.eventId as string;
 
   const [event, setEvent] = useState<Event | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
+  // Form State for Edit Dialog
+  const [editEventMode, setEditEventMode] = useState("offline");
+  const [editStartDate, setEditStartDate] = useState<Date>();
+  const [editEndDate, setEditEndDate] = useState<Date>();
+  const [editStartTime, setEditStartTime] = useState("09:00");
+  const [editEndTime, setEditEndTime] = useState("17:00");
+  
+  const [updateFormState, updateFormAction] = useActionState(updateEvent, updateInitialState);
+
+  const fetchEvent = async () => {
+    setIsLoading(true);
+    try {
+      const response = await api<ApiSuccessResponse<{ event: Event }>>(`/events/admin/${eventId}`, { authenticated: true });
+      if (response.success && response.data) {
+        setEvent(response.data as unknown as Event);
+      } else {
+        throw new Error("Event data not found in response");
+      }
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch event details.' });
+      console.error("Failed to fetch event:", error);
+      notFound();
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (eventId) {
-      const fetchEvent = async () => {
-        setIsLoading(true);
-        try {
-          const response = await api<ApiSuccessResponse<{ event: Event }>>(`/events/admin/${eventId}`, { authenticated: true });
-          if(response.success && response.data){
-            setEvent(response.data as unknown as Event);
-          } else {
-             throw new Error("Event data not found in response")
-          }
-        } catch (error) {
-          toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch event details.'});
-          console.error("Failed to fetch event:", error)
-          notFound();
-        } finally {
-          setIsLoading(false);
-        }
-      };
       fetchEvent();
     }
   }, [eventId, toast]);
+  
+  useEffect(() => {
+    if (updateFormState.message) {
+      if (updateFormState.success) {
+        toast({ title: 'Success', description: updateFormState.message });
+        setIsEditDialogOpen(false);
+        fetchEvent(); // Refetch data after successful update
+      } else {
+        toast({ variant: 'destructive', title: 'Error', description: updateFormState.message });
+      }
+    }
+  }, [updateFormState, toast]);
+
+  useEffect(() => {
+    if (event) {
+      setEditEventMode(event.mode);
+      if (event.startAt) setEditStartDate(parseISO(event.startAt));
+      if (event.endAt) setEditEndDate(parseISO(event.endAt));
+      if (event.startAt) setEditStartTime(format(parseISO(event.startAt), "HH:mm"));
+      if (event.endAt) setEditEndTime(format(parseISO(event.endAt), "HH:mm"));
+    }
+  }, [event]);
 
   const getFormattedDate = (dateString?: string) => {
-     if (!dateString) return "Not specified";
+    if (!dateString) return "Not specified";
     try {
       return format(parseISO(dateString), "EEEE, MMMM d, yyyy 'at' h:mm a");
     } catch (e) {
       return "Invalid Date";
     }
-  }
+  };
 
   const getDepartmentName = (department?: Department | string) => {
     if (!department) return 'N/A';
     if (typeof department === 'object') return department.name;
     return 'N/A';
-  }
+  };
 
   if (isLoading) {
     return (
@@ -93,164 +144,282 @@ export default function EventDetailPage() {
     return notFound();
   }
 
-  const totalRevenue = 0; // Replace with actual data if available
-  const totalPrizes = 0; // Replace with actual data if available
+  const totalRevenue = 0;
+  const totalPrizes = 0;
 
   return (
-    <div className="container py-6">
-    <Tabs defaultValue="details" className="w-full">
-      <TabsList className="grid w-full grid-cols-4">
-        <TabsTrigger value="details">Details</TabsTrigger>
-        <TabsTrigger value="participants">Participants</TabsTrigger>
-        <TabsTrigger value="winners">Winners</TabsTrigger>
-        <TabsTrigger value="finance">Finance</TabsTrigger>
-      </TabsList>
-      <TabsContent value="details">
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-start">
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight font-headline mb-1">{event.name}</h1>
-                <p className="text-muted-foreground">{event.description}</p>
-              </div>
-              <Button variant="outline" size="sm">
-                <Edit className="mr-2 h-4 w-4"/>
-                Edit Event
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-             <div className="grid md:grid-cols-2 gap-4 text-sm">
-                <div className="flex items-start gap-3">
+    <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <div className="container py-6">
+        <Tabs defaultValue="details" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="participants">Participants</TabsTrigger>
+            <TabsTrigger value="winners">Winners</TabsTrigger>
+            <TabsTrigger value="finance">Finance</TabsTrigger>
+          </TabsList>
+          <TabsContent value="details">
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h1 className="text-2xl font-bold tracking-tight font-headline mb-1">{event.name}</h1>
+                    <p className="text-muted-foreground">{event.description}</p>
+                  </div>
+                  <DialogTrigger asChild>
+                     <Button variant="outline" size="sm">
+                       <Edit className="mr-2 h-4 w-4"/>
+                       Edit Event
+                     </Button>
+                  </DialogTrigger>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4 text-sm">
+                  <div className="flex items-start gap-3">
                     <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
                     <div>
-                        <p className="font-semibold">Event Timing</p>
-                        <p className="text-muted-foreground">{getFormattedDate(event.startAt)} to {getFormattedDate(event.endAt)}</p>
+                      <p className="font-semibold">Event Timing</p>
+                      <p className="text-muted-foreground">{getFormattedDate(event.startAt)} to {getFormattedDate(event.endAt)}</p>
                     </div>
-                </div>
-                <div className="flex items-start gap-3">
+                  </div>
+                  <div className="flex items-start gap-3">
                     {event.mode === 'online' ? <Video className="h-5 w-5 text-muted-foreground mt-0.5"/> : <Globe className="h-5 w-5 text-muted-foreground mt-0.5"/>}
                     <div>
-                        <p className="font-semibold">Mode & Venue</p>
-                        <p className="text-muted-foreground capitalize">
-                            {event.mode} {event.mode === 'online' ? `(${event.online?.provider})` : ''} - {event.mode === 'online' ? <a href={event.online?.url} className="text-primary underline">{event.online.url}</a> : event.offline?.venueName}
-                        </p>
+                      <p className="font-semibold">Mode & Venue</p>
+                      <p className="text-muted-foreground capitalize">
+                        {event.mode} {event.mode === 'online' ? `(${event.online?.provider})` : ''} - {event.mode === 'online' ? <a href={event.online?.url} className="text-primary underline">{event.online.url}</a> : event.offline?.venueName}
+                      </p>
                     </div>
-                </div>
-                <div className="flex items-start gap-3">
+                  </div>
+                  <div className="flex items-start gap-3">
                     <DollarSign className="h-5 w-5 text-muted-foreground mt-0.5" />
                     <div>
-                        <p className="font-semibold">Registration</p>
-                        <p className="text-muted-foreground">{event.payment.price === 0 ? 'Free' : `${event.payment.currency} ${event.payment.price}`} ({event.payment.method})</p>
+                      <p className="font-semibold">Registration</p>
+                      <p className="text-muted-foreground">{event.payment.price === 0 ? 'Free' : `${event.payment.currency} ${event.payment.price}`} ({event.payment.method})</p>
                     </div>
+                  </div>
                 </div>
-             </div>
-            <Separator />
-             <div className="space-y-2">
-                <h3 className="font-semibold">Contacts</h3>
-                {event.contacts?.map((contact, index) => (
+                <Separator />
+                <div className="space-y-2">
+                  <h3 className="font-semibold">Contacts</h3>
+                  {event.contacts?.map((contact, index) => (
                     <div key={index} className="text-sm flex items-center gap-4 text-muted-foreground">
-                       <span className="font-medium text-foreground">{contact.name}</span>
-                       {contact.email && <div className="flex items-center gap-1.5"><Mail className="h-4 w-4"/>{contact.email}</div>}
-                       {contact.phone && <div className="flex items-center gap-1.5"><Phone className="h-4 w-4"/>{contact.phone}</div>}
+                      <span className="font-medium text-foreground">{contact.name}</span>
+                      {contact.email && <div className="flex items-center gap-1.5"><Mail className="h-4 w-4"/>{contact.email}</div>}
+                      {contact.phone && <div className="flex items-center gap-1.5"><Phone className="h-4 w-4"/>{contact.phone}</div>}
                     </div>
-                ))}
+                  ))}
+                </div>
+                <Separator />
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium">Department:</p>
+                  <Badge variant="secondary">{getDepartmentName(event.department)}</Badge>
+                </div>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium">Status:</p>
+                  <Badge variant={event.status === 'published' ? 'default' : 'outline'}>{event.status}</Badge>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="participants">
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-headline">Registered Users</CardTitle>
+                <CardDescription>
+                  A list of all users registered for {event.name}.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm h-60">
+                  <div className="flex flex-col items-center gap-2 text-center">
+                    <Users className="h-10 w-10 text-muted-foreground" />
+                    <h3 className="text-xl font-bold tracking-tight">No Participants Yet</h3>
+                    <p className="text-sm text-muted-foreground">User registrations will appear here.</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="winners">
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-headline">Winner Details</CardTitle>
+                <CardDescription>
+                  Winners and prize money distribution for {event.name}.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm h-60">
+                  <div className="flex flex-col items-center gap-2 text-center">
+                    <Trophy className="h-10 w-10 text-muted-foreground" />
+                    <h3 className="text-xl font-bold tracking-tight">No Winners Recorded</h3>
+                    <p className="text-sm text-muted-foreground">Winner information will appear here once finalized.</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="finance">
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-headline">Financial Summary</CardTitle>
+                <CardDescription>
+                  Financial details for {event.name}.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-3">
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                      <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold font-headline">${totalRevenue.toLocaleString()}</div>
+                      <p className="text-xs text-muted-foreground">From 0 registrations</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Prizes Awarded</CardTitle>
+                      <Trophy className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold font-headline">${totalPrizes.toLocaleString()}</div>
+                      <p className="text-xs text-muted-foreground">To 0 winners</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Net Income</CardTitle>
+                      <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className={`text-2xl font-bold font-headline ${totalRevenue - totalPrizes >= 0 ? 'text-green-600' : 'text-red-600'}`}>${(totalRevenue - totalPrizes).toLocaleString()}</div>
+                      <p className="text-xs text-muted-foreground">Revenue minus prizes</p>
+                    </CardContent>
+                  </Card>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="font-headline">Edit Event</DialogTitle>
+          <DialogDescription>
+            Update the details for &quot;{event.name}&quot;.
+          </DialogDescription>
+        </DialogHeader>
+        <form ref={editFormRef} action={updateFormAction}>
+          <input type="hidden" name="eventId" value={event._id} />
+          <div className="grid gap-6 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-name" className="text-right">Name</Label>
+              <Input id="edit-name" name="name" defaultValue={event.name} className="col-span-3"/>
             </div>
-             <Separator />
-            <div className="flex items-center gap-2">
-                <p className="text-sm font-medium">Department:</p>
-                <Badge variant="secondary">{getDepartmentName(event.department)}</Badge>
+            <div className="grid grid-cols-4 items-start gap-4">
+              <Label htmlFor="edit-description" className="text-right pt-2">Description</Label>
+              <Textarea id="edit-description" name="description" defaultValue={event.description} className="col-span-3"/>
             </div>
-            <div className="flex items-center gap-2">
-                 <p className="text-sm font-medium">Status:</p>
-                 <Badge variant={event.status === 'published' ? 'default' : 'outline'}>{event.status}</Badge>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-thumbnailUrl" className="text-right">Thumbnail URL</Label>
+              <Input id="edit-thumbnailUrl" name="thumbnailUrl" defaultValue={event.thumbnailUrl} className="col-span-3"/>
             </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
-      <TabsContent value="participants">
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-headline">Registered Users</CardTitle>
-            <CardDescription>
-              A list of all users registered for {event.name}.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm h-60">
-              <div className="flex flex-col items-center gap-2 text-center">
-                <Users className="h-10 w-10 text-muted-foreground" />
-                <h3 className="text-xl font-bold tracking-tight">No Participants Yet</h3>
-                <p className="text-sm text-muted-foreground">User registrations will appear here.</p>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">Start Date/Time</Label>
+              <div className="col-span-3 grid grid-cols-2 gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant={"outline"} className={cn("justify-start text-left font-normal", !editStartDate && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {editStartDate ? format(editStartDate, "PPP") : <span>Pick a start date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0"><CalendarPicker mode="single" selected={editStartDate} onSelect={setEditStartDate} initialFocus /></PopoverContent>
+                </Popover>
+                <div className="relative">
+                  <Clock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input name="startTime" type="time" value={editStartTime} onChange={e => setEditStartTime(e.target.value)} className="pl-8" />
+                </div>
+              </div>
+              <input type="hidden" name="startAt" value={editStartDate ? new Date(editStartDate.setHours(Number(editStartTime.split(':')[0]), Number(editStartTime.split(':')[1]))).toISOString() : ''} />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">End Date/Time</Label>
+              <div className="col-span-3 grid grid-cols-2 gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant={"outline"} className={cn("justify-start text-left font-normal", !editEndDate && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {editEndDate ? format(editEndDate, "PPP") : <span>Pick an end date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0"><CalendarPicker mode="single" selected={editEndDate} onSelect={setEditEndDate} initialFocus /></PopoverContent>
+                </Popover>
+                <div className="relative">
+                  <Clock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input name="endTime" type="time" value={editEndTime} onChange={e => setEditEndTime(e.target.value)} className="pl-8" />
+                </div>
+              </div>
+              <input type="hidden" name="endAt" value={editEndDate ? new Date(editEndDate.setHours(Number(editEndTime.split(':')[0]), Number(editEndTime.split(':')[1]))).toISOString() : ''} />
+            </div>
+
+            <div className="grid grid-cols-4 items-start gap-4">
+              <Label className="text-right pt-2">Event Mode</Label>
+              <div className="col-span-3">
+                <RadioGroup name="mode" value={editEventMode} onValueChange={setEditEventMode} className="flex gap-4">
+                  <div className="flex items-center space-x-2"><RadioGroupItem value="offline" id="edit-offline" /><Label htmlFor="edit-offline">Offline</Label></div>
+                  <div className="flex items-center space-x-2"><RadioGroupItem value="online" id="edit-online" /><Label htmlFor="edit-online">Online</Label></div>
+                </RadioGroup>
+                {editEventMode === "offline" && (
+                  <div className="grid gap-2 mt-3">
+                    <Input name="offline.venueName" placeholder="Venue Name" defaultValue={event.offline?.venueName} />
+                    <Input name="offline.address" placeholder="Full Address" defaultValue={event.offline?.address} />
+                  </div>
+                )}
+                {editEventMode === "online" && (
+                  <div className="grid gap-2 mt-3">
+                    <Select name="online.provider" defaultValue={event.online?.provider}>
+                      <SelectTrigger><SelectValue placeholder="Select Online Provider" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="google_meet">Google Meet</SelectItem>
+                        <SelectItem value="zoom">Zoom</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Input name="online.url" placeholder="Meeting URL" defaultValue={event.online?.url} />
+                  </div>
+                )}
               </div>
             </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
-      <TabsContent value="winners">
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-headline">Winner Details</CardTitle>
-            <CardDescription>
-              Winners and prize money distribution for {event.name}.
-            </CardDescription>
-          </CardHeader>
-           <CardContent>
-            <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm h-60">
-              <div className="flex flex-col items-center gap-2 text-center">
-                <Trophy className="h-10 w-10 text-muted-foreground" />
-                <h3 className="text-xl font-bold tracking-tight">No Winners Recorded</h3>
-                <p className="text-sm text-muted-foreground">Winner information will appear here once finalized.</p>
-              </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-status" className="text-right">Status</Label>
+              <Select name="status" defaultValue={event.status}>
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select event status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="published">Published</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
-       <TabsContent value="finance">
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-headline">Financial Summary</CardTitle>
-            <CardDescription>
-              Financial details for {event.name}.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-3">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold font-headline">${totalRevenue.toLocaleString()}</div>
-                  <p className="text-xs text-muted-foreground">From 0 registrations</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Prizes Awarded</CardTitle>
-                  <Trophy className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold font-headline">${totalPrizes.toLocaleString()}</div>
-                   <p className="text-xs text-muted-foreground">To 0 winners</p>
-                </CardContent>
-              </Card>
-               <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Net Income</CardTitle>
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className={`text-2xl font-bold font-headline ${totalRevenue - totalPrizes >= 0 ? 'text-green-600' : 'text-red-600'}`}>${(totalRevenue - totalPrizes).toLocaleString()}</div>
-                  <p className="text-xs text-muted-foreground">Revenue minus prizes</p>
-                </CardContent>
-              </Card>
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
-    </Tabs>
-    </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline" type="button">Cancel</Button>
+            </DialogClose>
+            <Button type="submit">Save Changes</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
