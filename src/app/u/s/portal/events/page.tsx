@@ -58,7 +58,8 @@ import {
   Edit,
   Trash
 } from "lucide-react";
-import { useState, useEffect, useRef, useActionState, startTransition } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useActionState } from "react";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import { useRouter } from "next/navigation";
@@ -82,7 +83,6 @@ const updateInitialState = {
   message: '',
   success: false,
 };
-
 
 async function getAdminEvents(user: LoggedInUser): Promise<Event[]> {
   if (!user) throw new Error("User not authenticated");
@@ -459,7 +459,7 @@ export default function AdminEventsPage() {
                                 <span>View Details</span>
                              </Link>
                            </DropdownMenuItem>
-                           <DropdownMenuItem onSelect={() => setEditingEvent(event)}>
+                           <DropdownMenuItem onClick={() => setEditingEvent(event)} onSelect={(e) => e.preventDefault()}>
                             <Edit className="mr-2 h-4 w-4" />
                             <span>Edit</span>
                            </DropdownMenuItem>
