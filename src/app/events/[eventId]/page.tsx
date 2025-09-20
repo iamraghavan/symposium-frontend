@@ -29,7 +29,7 @@ import { Button } from "@/components/ui/button";
 import { winners as allWinners } from "@/lib/data";
 import { parseISO, format, differenceInDays } from 'date-fns';
 import { notFound, useParams } from "next/navigation";
-import { Calendar, Users, Trophy, Globe, Info, Clock, Ticket, ExternalLink, Phone, Mail, Link as LinkIcon, IndianRupee, Building } from "lucide-react";
+import { Calendar, Users, Trophy, Globe, Info, Clock, TicketCheck, ExternalLink, Phone, Mail, Link as LinkIcon, IndianRupee, Building } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import api from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -65,9 +65,9 @@ export default function EventDetailPage() {
       try {
         const response = await api<ApiSuccessResponse<{data: Event}>>(`/events/${eventId}`);
         if (response.success && response.data) {
-          setEvent(response.data.data);
+          setEvent(response.data as unknown as Event);
           // This should be replaced with an API call in the future
-          setWinners(allWinners.filter(w => w.eventId === response.data.data?._id));
+          setWinners(allWinners.filter(w => w.eventId === (response.data as Event)?._id));
         } else {
            throw new Error((response as any).message || "Event not found");
         }
@@ -234,7 +234,7 @@ export default function EventDetailPage() {
                       </div>
                       <div className="p-4">
                           <Button size="lg" className="w-full" onClick={handleRegister} disabled={isRegistering}>
-                              <Ticket className="mr-2 h-5 w-5"/>
+                              <TicketCheck className="mr-2 h-5 w-5"/>
                               {isRegistering ? 'Registering...' : 'Register Now'}
                           </Button>
                       </div>
