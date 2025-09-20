@@ -23,7 +23,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import React, { useEffect, useState, useCallback } from "react";
 import type { LoggedInUser } from "@/lib/types";
 import { useRouter } from "next/navigation";
-import { googleLogout, GoogleLogin, CredentialResponse } from '@react-oauth/google';
+import { googleLogout, CredentialResponse } from '@react-oauth/google';
 import api from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { isAdmin } from "@/lib/utils";
@@ -203,13 +203,12 @@ export function Header() {
                   </DropdownMenu>
                 ) : isClient && (
                   <div className="hidden md:flex items-center gap-2">
-                       <GoogleLogin
-                          onSuccess={handleGoogleAuth}
-                          onError={() => toast({ variant: "destructive", title: "Google login failed."})}
-                          theme="outline"
-                          text="continue_with"
-                          shape="rectangular"
-                       />
+                      <Button asChild>
+                        <Link href="/auth/login">Login</Link>
+                      </Button>
+                       <Button asChild variant="secondary">
+                        <Link href="/auth/signup">Sign Up</Link>
+                      </Button>
                   </div>
                 )}
                  <Sheet>
@@ -275,10 +274,18 @@ export function Header() {
                           {isClient && user ? (
                             <Button onClick={handleLogout} className="w-full">Log out</Button>
                           ) : isClient && (
-                             <GoogleLogin
-                                  onSuccess={handleGoogleAuth}
-                                  onError={() => toast({ variant: "destructive", title: "Google login failed."})}
-                               />
+                            <div className="grid gap-2">
+                               <SheetClose asChild>
+                                <Button asChild className="w-full">
+                                    <Link href="/auth/login">Login</Link>
+                                </Button>
+                               </SheetClose>
+                               <SheetClose asChild>
+                                <Button asChild variant="secondary" className="w-full">
+                                    <Link href="/auth/signup">Sign up</Link>
+                                </Button>
+                               </SheetClose>
+                            </div>
                           )}
                         </div>
                     </div>

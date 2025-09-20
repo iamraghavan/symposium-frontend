@@ -241,14 +241,12 @@ export default function SignupPage() {
                         </div>
                         <div className="relative flex justify-center text-xs uppercase">
                         <span className="bg-background px-2 text-muted-foreground">
-                            Or continue with
+                            Or sign up with Google
                         </span>
                         </div>
                     </div>
-                    <div className="w-full flex justify-center">
-                       <Link href="/" className='w-full'>
-                            <Button variant="outline" className='w-full'>Go to Homepage to use Google Login</Button>
-                       </Link>
+                    <div className="w-full flex justify-center text-sm text-muted-foreground">
+                       <p>Return to the <Link href="/" className="underline hover:text-primary">homepage</Link> to use Google One Tap sign-in.</p>
                     </div>
                  </>
             )}
