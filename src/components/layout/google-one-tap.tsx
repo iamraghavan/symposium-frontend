@@ -7,7 +7,17 @@ import { usePathname, useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 import type { LoggedInUser } from "@/lib/types";
+import { isAdmin } from "@/lib/utils";
 
+function setCookie(name: string, value: string, days: number) {
+    let expires = "";
+    if (days) {
+        const date = new Date();
+        date.setTime(date.getTime() + (days*24*60*60*1000));
+        expires = "; expires=" + date.toUTCString();
+    }
+    document.cookie = name + "=" + (value || "")  + expires + "; path=/";
+}
 
 export function GoogleOneTap() {
   const router = useRouter();
@@ -22,22 +32,22 @@ export function GoogleOneTap() {
     }
   }, [pathname]);
 
-  const completeLogin = useCallback((token: string, user: LoggedInUser) => {
-    localStorage.setItem('jwt', token);
+  const completeLogin = useCallback((apiKey: string, user: LoggedInUser) => {
+    localStorage.setItem('userApiKey', apiKey);
     localStorage.setItem('loggedInUser', JSON.stringify(user));
+    setCookie('apiKey', apiKey, 7); // Set cookie for server-side actions
     setUser(user);
     toast({
         title: "Login Successful",
         description: `Welcome back, ${user.name}!`,
     });
 
-    if (user.role === 'super_admin' || user.role === 'department_admin') {
-        router.push('/u/s/portal/dashboard');
+    if (isAdmin(user)) {
+        window.location.href = '/u/s/portal/dashboard';
     } else {
-        // Refresh page to update header state
-        router.refresh();
+        window.location.href = '/u/d/dashboard';
     }
-  }, [toast, router]);
+  }, [toast]);
 
   const handleGoogleAuth = useCallback(async (credentialResponse: CredentialResponse) => {
     if (!credentialResponse.credential) {
@@ -55,12 +65,10 @@ export function GoogleOneTap() {
             body: { idToken: credentialResponse.credential },
         });
 
-        if (response.success && response.token && response.user) {
-            completeLogin(response.token, response.user);
+        if (response.success && response.apiKey && response.user) {
+            completeLogin(response.apiKey, response.user);
         } else {
              if (response.isNewUser && response.profile) {
-                // One-tap should ideally not be for new users, but we handle it.
-                // We redirect them to signup to complete their profile.
                 sessionStorage.setItem('google_signup_profile', JSON.stringify(response.profile));
                 router.push('/auth/signup');
              } else {

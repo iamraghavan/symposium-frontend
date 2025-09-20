@@ -23,22 +23,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import React, { useEffect, useState, useCallback } from "react";
 import type { LoggedInUser } from "@/lib/types";
 import { useRouter } from "next/navigation";
-import { googleLogout, useGoogleLogin } from '@react-oauth/google';
-import api from "@/lib/api";
+import { googleLogout } from '@react-oauth/google';
 import { useToast } from "@/hooks/use-toast";
 import { isAdmin } from "@/lib/utils";
 import Image from "next/image";
 
-
-function setCookie(name: string, value: string, days: number) {
-    let expires = "";
-    if (days) {
-        const date = new Date();
-        date.setTime(date.getTime() + (days*24*60*60*1000));
-        expires = "; expires=" + date.toUTCString();
-    }
-    document.cookie = name + "=" + (value || "")  + expires + "; path=/";
-}
 
 function eraseCookie(name: string) {   
     document.cookie = name+'=; Max-Age=-99999999; path=/;';  
@@ -58,69 +47,12 @@ export function Header() {
     setIsClient(true);
   }, []);
 
-  const completeLogin = useCallback((apiKey: string, user: LoggedInUser) => {
-    localStorage.setItem('userApiKey', apiKey);
-    localStorage.setItem('loggedInUser', JSON.stringify(user));
-    setCookie('apiKey', apiKey, 7);
-    setUser(user);
-    toast({
-        title: "Login Successful",
-        description: `Welcome, ${user.name}!`,
-    });
-
-    if (isAdmin(user)) {
-        window.location.href = '/u/s/portal/dashboard';
-    } else {
-        window.location.href = '/u/d/dashboard';
-    }
-  }, [toast]);
-
- const handleGoogleAuthSuccess = useCallback(async (tokenResponse: any) => {
-    try {
-        const response: any = await api('/auth/google', {
-            method: 'POST',
-            body: { accessToken: tokenResponse.access_token },
-        });
-
-        if (response.success && response.apiKey && response.user) {
-            completeLogin(response.apiKey, response.user);
-        } else {
-            throw new Error(response.message || "Google login failed: Invalid response from server.");
-        }
-    } catch (error: any) {
-        try {
-            const parsedError = JSON.parse(error.message);
-            if (parsedError.isNewUser && parsedError.profile) {
-            sessionStorage.setItem('google_signup_profile', JSON.stringify(parsedError.profile));
-            router.push('/auth/signup');
-            return;
-            }
-            toast({
-            variant: "destructive",
-            title: "Login Failed",
-            description: parsedError.message || "An unknown error occurred.",
-            });
-        } catch (e) {
-            toast({
-            variant: "destructive",
-            title: "Login Failed",
-            description: error.message || "An unknown error occurred.",
-            });
-        }
-    }
-  }, [completeLogin, toast, router]);
-
-  const login = useGoogleLogin({
-    onSuccess: handleGoogleAuthSuccess,
-    onError: () => toast({ variant: 'destructive', title: 'Login Failed', description: 'Google authentication failed.' }),
-  });
-
-
   const handleLogout = () => {
     googleLogout();
     localStorage.removeItem("loggedInUser");
     localStorage.removeItem("userApiKey");
     eraseCookie('apiKey');
+    eraseCookie('loggedInUser');
     setUser(null);
     toast({ title: "Logged out successfully" });
     window.location.href = "/";
@@ -201,9 +133,8 @@ export function Header() {
                   </DropdownMenu>
                 ) : isClient && (
                   <div className="hidden md:flex items-center gap-2">
-                       <Button onClick={() => login()} variant="outline">
-                         <Image src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google logo" width={18} height={18} className="mr-2"/>
-                         Sign in with Google
+                      <Button asChild>
+                         <Link href="/auth/login">Login</Link>
                       </Button>
                   </div>
                 )}
@@ -272,10 +203,9 @@ export function Header() {
                           ) : isClient && (
                             <div className="grid gap-2">
                                <SheetClose asChild>
-                                <Button onClick={() => login()} variant="outline" className="w-full">
-                                    <Image src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google logo" width={18} height={18} className="mr-2"/>
-                                    Sign in with Google
-                                </Button>
+                                 <Button asChild className="w-full">
+                                    <Link href="/auth/login">Login</Link>
+                                 </Button>
                                </SheetClose>
                             </div>
                           )}
@@ -291,5 +221,3 @@ export function Header() {
     </>
   );
 }
-
-    

@@ -79,7 +79,7 @@ export default function SignupPage() {
     
     async function fetchDepartments() {
         try {
-            const response = await api<ApiSuccessResponse<{ departments: Department[] }>>('/departments');
+            const response = await api<ApiSuccessResponse<Department[]>>('/departments');
             if(response.success && response.data) {
                 const formattedDepartments = response.data.map(d => ({
                     value: d._id,

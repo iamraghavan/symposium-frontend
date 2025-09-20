@@ -23,7 +23,7 @@ export default function LoginPage() {
              <AppWindow className="mx-auto h-10 w-10 text-primary mb-2" />
             <CardTitle className="text-2xl font-headline">Welcome Back</CardTitle>
             <CardDescription>
-              To continue, please sign in using your Google account via the button in the header.
+              To continue, please sign in. If you have a Google account, the One-Tap sign-in will appear automatically.
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center">
