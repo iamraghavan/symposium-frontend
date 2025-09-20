@@ -18,12 +18,6 @@ import {
   CarouselContent,
   CarouselItem,
 } from "@/components/ui/carousel";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Badge } from '@/components/ui/badge';
 import { format, parseISO } from 'date-fns';
 import { useEffect, useState } from 'react';
@@ -45,14 +39,13 @@ export default function HomePage() {
   const { toast } = useToast();
   const [onlineEvents, setOnlineEvents] = useState<Event[]>([]);
   const [offlineEvents, setOfflineEvents] = useState<Event[]>([]);
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
   useEffect(() => {
     const fetchUpcomingEvents = async () => {
       try {
-        const response = await api<ApiSuccessResponse<Event[]>>('/events?limit=20&sort=-startAt&upcoming=true');
+        const response = await api<ApiSuccessResponse<{ data: Event[] }>>('/events?limit=20&sort=-startAt&upcoming=true');
         if (response.success && response.data) {
-          const allEvents = response.data;
+          const allEvents = response.data.data;
           setOnlineEvents(allEvents.filter(event => event.mode === 'online'));
           setOfflineEvents(allEvents.filter(event => event.mode === 'offline'));
         }
@@ -122,7 +115,6 @@ export default function HomePage() {
         <Card
           key={event._id}
           className="flex flex-col overflow-hidden h-full shadow-md transition-shadow duration-300 cursor-pointer"
-          onClick={() => setSelectedEvent(event)}
         >
           <div className="relative h-48 w-full">
             <Image
@@ -189,7 +181,6 @@ export default function HomePage() {
 
 
   return (
-    <Dialog onOpenChange={(open) => !open && setSelectedEvent(null)}>
       <motion.main 
          initial="hidden"
         animate="visible"
@@ -320,7 +311,9 @@ export default function HomePage() {
                   {onlineEvents.slice(0, 5).map((event) => (
                   <CarouselItem key={event._id} className="md:basis-1/2 lg:basis-1/3">
                       <div className="p-1 h-full">
-                      <EventCard event={event} />
+                        <Link href={`/events/${event._id}`}>
+                          <EventCard event={event} />
+                        </Link>
                       </div>
                   </CarouselItem>
                   ))}
@@ -355,7 +348,9 @@ export default function HomePage() {
                   {offlineEvents.slice(0,5).map((event) => (
                   <CarouselItem key={event._id} className="md:basis-1/2 lg:basis-1/3">
                       <div className="p-1 h-full">
-                      <EventCard event={event} />
+                        <Link href={`/events/${event._id}`}>
+                          <EventCard event={event} />
+                        </Link>
                       </div>
                   </CarouselItem>
                   ))}
@@ -434,37 +429,5 @@ export default function HomePage() {
           </div>
         </section>
       </motion.main>
-      
-      {selectedEvent && (
-        <DialogContent className="sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="font-headline text-2xl">{selectedEvent.name}</DialogTitle>
-          </DialogHeader>
-          <div className="py-4 space-y-4 text-sm">
-            <div className="flex items-center gap-2"><span className="font-semibold w-24">Date:</span> <span>{getFormattedDate(selectedEvent.startAt).date}</span></div>
-            <div className="flex items-center gap-2"><span className="font-semibold w-24">Time:</span> <span>{getFormattedDate(selectedEvent.startAt).time}</span></div>
-            <div className="flex items-center gap-2"><span className="font-semibold w-24">Venue:</span> <span>{selectedEvent.mode === 'online' ? 'Online' : 'EGS Pillay Engineering College'}</span></div>
-             <div className="flex items-start gap-2">
-                <span className="font-semibold w-24 shrink-0">Description:</span> 
-                <p className="text-muted-foreground">{selectedEvent.description}</p>
-            </div>
-            <div className="flex items-center gap-2"><span className="font-semibold w-24">Conducted By:</span> <span>{typeof selectedEvent.department === 'object' && selectedEvent.department.name}</span></div>
-            <div className="flex items-center gap-2"><span className="font-semibold w-24">Price:</span> <span>{selectedEvent.payment.price === 0 ? 'Free' : `$${selectedEvent.payment.price}`}</span></div>
-          </div>
-           <div className="flex justify-between items-center pt-4 border-t">
-              <p className="text-xs text-muted-foreground">For technical support, email us at web@egspec.org</p>
-              <div className="flex gap-2">
-                <Button>
-                  <Ticket className="mr-2 h-4 w-4" />
-                  Register
-                </Button>
-                <Button variant="outline" asChild>
-                  <Link href={`/events/${selectedEvent._id}`}>View Full Details</Link>
-                </Button>
-              </div>
-           </div>
-        </DialogContent>
-      )}
-    </Dialog>
   );
 }
