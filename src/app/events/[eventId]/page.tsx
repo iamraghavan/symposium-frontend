@@ -5,9 +5,6 @@ import Image from "next/image";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import {
   Table,
@@ -20,63 +17,92 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-
 import { events, winners as allWinners } from "@/lib/data";
-import { parseISO } from "date-fns";
-import { format } from 'date-fns-tz';
+import { parseISO, format, differenceInDays } from 'date-fns';
 import { notFound, useParams } from "next/navigation";
-import { Calendar, Users, Trophy, DollarSign, MapPin, Ticket } from "lucide-react";
+import { Calendar, Users, Trophy, DollarSign, MapPin, Ticket, Building, Globe, Info, Clock } from "lucide-react";
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 
 export default function EventDetailPage() {
   const params = useParams();
   const eventId = params.eventId as string;
-  const [formattedDate, setFormattedDate] = useState("");
-  const event = events.find((e) => e.id === eventId);
+  const [event, setEvent] = useState<(typeof events)[0] | null>(null);
+  const [winners, setWinners] = useState<(typeof allWinners)>([]);
+  const [daysLeft, setDaysLeft] = useState(0);
 
   useEffect(() => {
-    if (event) {
-      setFormattedDate(
-        format(parseISO(event.date), "EEEE, MMMM d, yyyy 'at' h:mm a", { timeZone: 'UTC' })
-      );
+    const foundEvent = events.find((e) => e.id === eventId);
+    if (foundEvent) {
+      setEvent(foundEvent);
+      const foundWinners = allWinners.filter((w) => w.eventId === eventId);
+      setWinners(foundWinners);
+      const endDate = parseISO(foundEvent.date);
+      const now = new Date();
+      setDaysLeft(differenceInDays(endDate, now));
+    } else {
+      notFound();
     }
-  }, [event]);
+  }, [eventId]);
 
   if (!event) {
-    notFound();
+    return null;
   }
 
-  const winners = allWinners.filter((w) => w.eventId === event.id);
+  const totalPrizeMoney = winners.reduce((acc, winner) => acc + winner.prizeAmount, 0);
 
   return (
-    <div className="container mx-auto px-4 py-8 md:py-12">
-      <div className="grid md:grid-cols-3 gap-8 lg:gap-12">
-        <div className="md:col-span-2 space-y-8">
-          <div className="relative w-full h-96 rounded-lg overflow-hidden">
-            <Image
-              src={event.imageUrl}
-              alt={event.name}
-              fill
-              className="object-cover"
-              data-ai-hint={event.imageHint}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-            <div className="absolute bottom-0 left-0 p-6">
-              <h1 className="text-4xl font-bold font-headline text-white">
-                {event.name}
-              </h1>
-              <Badge variant="secondary" className="mt-2">{event.department.name}</Badge>
+    <div className="bg-background">
+      {/* Hero Section */}
+      <section className="relative h-64 md:h-80 w-full text-white">
+        <Image
+          src={event.imageUrl}
+          alt={`${event.name} banner`}
+          fill
+          className="object-cover"
+          data-ai-hint={event.imageHint}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent" />
+        <div className="relative h-full flex flex-col justify-end container mx-auto px-4 md:px-6 pb-8">
+          <h1 className="text-3xl md:text-5xl font-bold font-headline">{event.name}</h1>
+          <p className="text-lg md:text-xl font-medium text-gray-200 mt-2">
+            Submit by {format(parseISO(event.date), "MMMM d, yyyy")}
+          </p>
+        </div>
+      </section>
+
+      {/* Sub-navigation */}
+      <section className="sticky top-[64px] z-30 bg-background shadow-md">
+        <div className="container mx-auto px-4 md:px-6">
+          <nav className="flex items-center space-x-4 md:space-x-8 -mb-px">
+            <Link href="#" className="py-4 px-1 inline-flex items-center gap-2 text-sm font-medium border-b-2 border-primary text-primary">
+              Overview
+            </Link>
+             <Link href="#" className="py-4 px-1 inline-flex items-center gap-2 text-sm font-medium border-b-2 border-transparent text-muted-foreground hover:text-foreground">
+              Participants <Badge variant="secondary">{event.participants.length}</Badge>
+            </Link>
+            <Link href="#" className="py-4 px-1 inline-flex items-center gap-2 text-sm font-medium border-b-2 border-transparent text-muted-foreground hover:text-foreground">
+              Rules
+            </Link>
+          </nav>
+        </div>
+      </section>
+
+      {/* Main Content */}
+      <main className="container mx-auto px-4 md:px-6 py-8 md:py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
+          {/* Left Column */}
+          <div className="lg:col-span-2 space-y-8">
+            <div>
+                <h2 className="text-3xl font-bold font-headline mb-2">{event.name}</h2>
+                <p className="text-lg text-muted-foreground">{event.description}</p>
+                 <Button className="mt-6">
+                    <Ticket className="mr-2 h-4 w-4"/>
+                    Join Hackathon
+                </Button>
             </div>
-          </div>
-
-          <div>
-             <h2 className="text-2xl font-bold font-headline mb-4">About this Event</h2>
-            <p className="text-muted-foreground leading-relaxed">{event.description}</p>
-          </div>
-
-           <div>
-             <h2 className="text-2xl font-bold font-headline mb-4">Winners</h2>
+             <div>
+             <h3 className="text-2xl font-bold font-headline mb-4">Winners</h3>
              {winners.length > 0 ? (
                 <Card>
                     <Table>
@@ -118,53 +144,66 @@ export default function EventDetailPage() {
                 <p className="text-muted-foreground">Winners have not been announced yet. Stay tuned!</p>
              )}
           </div>
-        </div>
 
-        <div className="md:col-span-1 space-y-6">
-           <Card className="overflow-hidden">
-             <CardHeader className="p-0">
-                <div className="bg-muted p-4">
-                    <CardTitle className="font-headline text-xl">Event Details</CardTitle>
+          </div>
+          {/* Right Sidebar */}
+          <div className="lg:col-span-1 space-y-6">
+            <Card>
+              <CardContent className="p-6 space-y-4">
+                 <Badge variant="secondary" className="bg-teal-100 text-teal-800 hover:bg-teal-200">
+                    <Clock className="mr-1.5 h-4 w-4"/>
+                    {daysLeft > 0 ? `${daysLeft} more days to deadline` : 'Deadline has passed'}
+                </Badge>
+                <div>
+                  <h3 className="font-semibold text-sm mb-1">Deadline</h3>
+                  <p className="text-sm text-muted-foreground flex items-center">
+                    {format(parseISO(event.date), "MMM d, yyyy @ h:mm a zzz")}
+                    <Calendar className="ml-auto h-4 w-4 text-muted-foreground cursor-pointer"/>
+                  </p>
                 </div>
-             </CardHeader>
-             <CardContent className="p-4 space-y-4">
-                 <div className="flex items-start gap-4">
-                    <Calendar className="h-5 w-5 text-muted-foreground mt-1" />
-                    <div>
-                        <p className="font-semibold">{formattedDate}</p>
-                        <p className="text-sm text-muted-foreground">Date and Time</p>
-                    </div>
+                <hr />
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                   <div className="flex items-center gap-2">
+                     <Globe className="h-4 w-4 text-muted-foreground" />
+                     <span>{event.mode}</span>
+                   </div>
+                   <div className="flex items-center gap-2">
+                     <Building className="h-4 w-4 text-muted-foreground" />
+                     <span>Public</span>
+                   </div>
+                    <div className="flex items-center gap-2">
+                     <Trophy className="h-4 w-4 text-muted-foreground" />
+                     <span className="font-bold text-primary">${totalPrizeMoney.toLocaleString()} in cash</span>
+                   </div>
+                   <div className="flex items-center gap-2">
+                     <Users className="h-4 w-4 text-muted-foreground" />
+                     <span>{event.participants.length} participants</span>
+                   </div>
+                    <div className="flex items-center gap-2">
+                     <DollarSign className="h-4 w-4 text-muted-foreground" />
+                     <span>{event.registrationFee > 0 ? `$${event.registrationFee}` : 'Free'}</span>
+                   </div>
                 </div>
-                 <div className="flex items-start gap-4">
-                    <MapPin className="h-5 w-5 text-muted-foreground mt-1" />
-                    <div>
-                        <p className="font-semibold">ECE Block, Room 303</p>
-                        <p className="text-sm text-muted-foreground">Venue</p>
-                    </div>
-                </div>
-                <div className="flex items-start gap-4">
-                    <Users className="h-5 w-5 text-muted-foreground mt-1" />
-                    <div>
-                        <p className="font-semibold">{event.participants.length} already registered</p>
-                        <p className="text-sm text-muted-foreground">Participants</p>
-                    </div>
-                </div>
-             </CardContent>
-           </Card>
-            <Card className="text-center">
-                <CardHeader>
-                    <CardTitle className="font-headline text-2xl">${event.registrationFee}</CardTitle>
-                    <CardDescription>Registration Fee</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Button size="lg" className="w-full">
-                        <Ticket className="mr-2 h-5 w-5" />
-                        Register Now
-                    </Button>
-                </CardContent>
+                 <hr />
+                 <div>
+                    <h3 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                        <Info className="h-4 w-4"/>
+                        Managed By
+                    </h3>
+                    <Badge variant="outline">{event.department.name}</Badge>
+                 </div>
+              </CardContent>
             </Card>
+             <Card className="bg-muted/50">
+                <CardContent className="p-4">
+                    <p className="text-sm text-center text-muted-foreground">
+                        Questions? <a href={`mailto:${event.department.head.email}`} className="text-primary underline">Email the hackathon manager</a>
+                    </p>
+                </CardContent>
+             </Card>
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
