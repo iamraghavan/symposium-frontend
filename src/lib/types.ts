@@ -16,9 +16,9 @@ export type User = {
   id: string;
   name: string;
   email: string;
-  college: string;
-  registeredAt: string;
-  avatarUrl: string;
+  college?: string;
+  registeredAt?: string;
+  avatarUrl?: string;
   picture?: string;
   departmentId?: string;
 };
@@ -65,8 +65,6 @@ export type Event = {
   createdAt: string;
   updatedAt: string;
   imageHint?: string; 
-  participants: User[]; 
-  registrationFee: number;
 };
 
 
@@ -98,6 +96,7 @@ export type ApiSuccessResponse<T> = {
   success: true;
   token?: string;
   user?: LoggedInUser;
+  apiKey?: string;
   data?: T;
   meta?: {
     total: number;
@@ -112,5 +111,3 @@ export type ApiErrorResponse = {
   message: string;
   details?: { field: string; msg: string }[];
 };
-
-    

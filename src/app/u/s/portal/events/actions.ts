@@ -6,25 +6,20 @@ import { cookies } from 'next/headers';
 import type { Event, ApiSuccessResponse } from '@/lib/types';
 import { formDataToObject } from '@/lib/utils';
 
-const API_BASE_URL = 'https://symposium-backend.onrender.com';
+const API_BASE_URL = process.env.API_BASE_URL;
+const API_KEY = process.env.API_KEY;
 
 async function makeApiRequest(endpoint: string, options: RequestInit = {}) {
-    const API_KEY = process.env.API_KEY;
-    const token = cookies().get('jwt')?.value;
+    const userApiKey = cookies().get('apiKey')?.value;
+    const key = userApiKey || API_KEY;
 
     const defaultHeaders: Record<string, string> = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
     };
     
-    if (API_KEY) {
-        defaultHeaders['x-api-key'] = API_KEY;
-    }
-    
-    if (token) {
-        defaultHeaders['Authorization'] = `Bearer ${token}`;
-    } else if (options.method !== 'GET') {
-         throw new Error("Authentication required for this action.");
+    if (key) {
+        defaultHeaders['x-api-key'] = key;
     }
     
     const config: RequestInit = {
@@ -58,7 +53,7 @@ async function makeApiRequest(endpoint: string, options: RequestInit = {}) {
 export async function getEvents(): Promise<Event[]> {
   try {
     const response: ApiSuccessResponse<{ events: Event[]}> = await makeApiRequest('/events/admin');
-    return response.data?.events || [];
+    return response.data || [];
   } catch (error) {
     console.error("Failed to fetch events in getEvents():", error);
     throw new Error("Could not fetch events.");
@@ -69,20 +64,44 @@ export async function getEvents(): Promise<Event[]> {
 export async function createEvent(prevState: any, formData: FormData) {
     const eventData = formDataToObject(formData);
     
-    try {
-        // Convert price to number if it exists
-        if (eventData.payment && eventData.payment.price) {
-            eventData.payment.price = Number(eventData.payment.price);
-        }
-    
-        // Department ID might be nested if coming from a super_admin form
-        if (eventData.departmentId) {
-            eventData.department = eventData.departmentId;
-        }
+    // Manual reconstruction for complex nested objects from flat form data
+    const payload: Record<string, any> = {
+      name: eventData.name,
+      description: eventData.description,
+      thumbnailUrl: eventData.thumbnailUrl,
+      mode: eventData.mode,
+      startAt: eventData.startAt,
+      endAt: eventData.endAt,
+      departmentId: eventData.departmentId,
+      status: eventData.status,
+      payment: {
+        method: eventData['payment.method'],
+        price: Number(eventData['payment.price'] || 0),
+        currency: eventData['payment.currency']
+      },
+      contacts: [{
+        name: eventData['contacts[0].name'],
+        email: eventData['contacts[0].email'],
+        phone: eventData['contacts[0].phone'],
+      }]
+    };
 
+    if (payload.mode === 'online') {
+        payload.online = {
+            provider: eventData['online.provider'],
+            url: eventData['online.url']
+        };
+    } else if (payload.mode === 'offline') {
+        payload.offline = {
+            venueName: eventData['offline.venueName'],
+            address: eventData['offline.address']
+        };
+    }
+    
+    try {
         await makeApiRequest('/events', {
             method: 'POST',
-            body: JSON.stringify(eventData),
+            body: JSON.stringify(payload),
         });
 
         revalidatePath('/u/s/portal/events');

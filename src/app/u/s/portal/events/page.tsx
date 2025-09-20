@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/select";
 import type { LoggedInUser, Event, Department } from "@/lib/types";
 import { getEvents, createEvent } from "./actions";
+import { getDepartments } from "../departments/actions";
 import { format, parseISO } from "date-fns";
 import {
   Calendar as CalendarIcon,
@@ -104,7 +105,7 @@ export default function AdminEventsPage() {
       setUser(parsedUser);
       fetchEvents();
       if (parsedUser.role === 'super_admin') {
-        // fetchDepartments();
+        fetchDepartments();
       }
     } else {
       router.push("/c/auth/login?login=s_admin");
@@ -134,6 +135,15 @@ export default function AdminEventsPage() {
       } finally {
           setIsLoading(false);
       }
+  }
+
+  const fetchDepartments = async () => {
+    try {
+      const deptData = await getDepartments();
+      setDepartments(deptData || []);
+    } catch (error) {
+       toast({ variant: 'destructive', title: 'Error', description: "Could not fetch departments for form." });
+    }
   }
 
   const formatTableDate = (dateString?: string) => {

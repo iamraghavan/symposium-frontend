@@ -3,27 +3,23 @@
 
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
-import type { Department, ApiErrorResponse } from '@/lib/types';
+import type { Department, ApiSuccessResponse, ApiErrorResponse } from '@/lib/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = process.env.API_BASE_URL;
 const API_KEY = process.env.API_KEY;
 
-async function makeApiRequest(endpoint: string, options: RequestInit = {}, authenticated: boolean = false) {
+async function makeApiRequest(endpoint: string, options: RequestInit = {}) {
+    const userApiKey = cookies().get('apiKey')?.value;
+    const key = userApiKey || API_KEY;
+    
     const defaultHeaders: Record<string, string> = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
     };
-    if (API_KEY) {
-        defaultHeaders['x-api-key'] = API_KEY;
-    }
-    
-    if (authenticated) {
-        const token = cookies().get('jwt')?.value;
-        if (token) {
-            defaultHeaders['Authorization'] = `Bearer ${token}`;
-        } else {
-            throw new Error("Authentication required.");
-        }
+     if (key) {
+        defaultHeaders['x-api-key'] = key;
+    } else {
+        throw new Error("API key is missing.");
     }
     
     const config: RequestInit = {
@@ -54,8 +50,8 @@ async function makeApiRequest(endpoint: string, options: RequestInit = {}, authe
 
 
 export async function getDepartments(): Promise<Department[]> {
-  const response = await makeApiRequest('/departments', {}, true);
-  return response.data;
+  const response: ApiSuccessResponse<{departments: Department[]}> = await makeApiRequest('/departments?limit=100');
+  return response.data?.departments || [];
 }
 
 export async function createDepartment(formData: FormData) {
@@ -72,7 +68,7 @@ export async function createDepartment(formData: FormData) {
   await makeApiRequest('/departments', {
     method: 'POST',
     body: JSON.stringify(departmentData),
-  }, true);
+  });
 
   revalidatePath('/u/s/portal/departments');
 }
@@ -85,12 +81,12 @@ export async function updateDepartment(departmentId: string, formData: FormData)
   await makeApiRequest(`/departments/${departmentId}`, {
       method: 'PATCH',
       body: JSON.stringify(updatedData)
-  }, true);
+  });
   
   revalidatePath('/u/s/portal/departments');
 }
 
 export async function deleteDepartment(departmentId: string) {
-    await makeApiRequest(`/departments/${departmentId}`, { method: 'DELETE' }, true);
+    await makeApiRequest(`/departments/${departmentId}`, { method: 'DELETE' });
     revalidatePath('/u/s/portal/departments');
 }
