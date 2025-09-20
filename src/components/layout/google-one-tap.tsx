@@ -33,11 +33,9 @@ export function useGoogleAuth() {
         description: `Welcome back, ${user.name}!`,
     });
 
-    if (isAdmin(user)) {
-        window.location.href = '/u/s/portal/dashboard';
-    } else {
-        window.location.href = '/u/d/dashboard';
-    }
+    // Instead of redirecting, reload the page to update the auth state
+    window.location.reload();
+    
   }, [toast]);
 
   const handleGoogleAuth = useCallback(async (credentialResponse: CredentialResponse) => {
