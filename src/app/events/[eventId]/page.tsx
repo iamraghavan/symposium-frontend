@@ -53,8 +53,6 @@ export default function EventDetailPage() {
         const response = await api<ApiSuccessResponse<Event>>(`/events/${eventId}`);
         if (response.success && response.data) {
           setEvent(response.data);
-          // Assuming winners are fetched from another endpoint or are part of the event object in the future.
-          // For now, we use the mock data filtered by the fetched event's ID.
           setWinners(allWinners.filter(w => w.eventId === response.data?._id));
         } else {
            throw new Error((response as any).message || "Event not found");
