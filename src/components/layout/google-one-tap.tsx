@@ -19,24 +19,15 @@ function setCookie(name: string, value: string, days: number) {
     document.cookie = name + "=" + (value || "")  + expires + "; path=/";
 }
 
-export function GoogleOneTap() {
+export function useGoogleAuth() {
   const router = useRouter();
-  const pathname = usePathname();
   const { toast } = useToast();
-  const [user, setUser] = useState<LoggedInUser | null>(null);
-
-  useEffect(() => {
-    const userData = localStorage.getItem("loggedInUser");
-    if (userData) {
-      setUser(JSON.parse(userData));
-    }
-  }, [pathname]);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const completeLogin = useCallback((apiKey: string, user: LoggedInUser) => {
     localStorage.setItem('userApiKey', apiKey);
     localStorage.setItem('loggedInUser', JSON.stringify(user));
     setCookie('apiKey', apiKey, 7); // Set cookie for server-side actions
-    setUser(user);
     toast({
         title: "Login Successful",
         description: `Welcome back, ${user.name}!`,
@@ -58,6 +49,7 @@ export function GoogleOneTap() {
         });
         return;
     }
+    setIsGoogleLoading(true);
 
     try {
         const response: any = await api('/auth/google', {
@@ -95,8 +87,27 @@ export function GoogleOneTap() {
                 description: error.message || "An unknown error occurred.",
             });
         }
+    } finally {
+      setIsGoogleLoading(false);
     }
   }, [completeLogin, toast, router]);
+
+  return { handleGoogleAuth, isGoogleLoading };
+}
+
+
+export function GoogleOneTap() {
+  const pathname = usePathname();
+  const [user, setUser] = useState<LoggedInUser | null>(null);
+  const { handleGoogleAuth } = useGoogleAuth();
+
+  useEffect(() => {
+    const userData = localStorage.getItem("loggedInUser");
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+  }, [pathname]);
+
 
   useGoogleOneTapLogin({
     onSuccess: handleGoogleAuth,

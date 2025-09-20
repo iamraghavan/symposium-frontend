@@ -12,9 +12,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { AppWindow } from "lucide-react";
+import { GoogleLogin } from '@react-oauth/google';
+import { useGoogleAuth } from "@/components/layout/google-one-tap";
+
 
 export default function LoginPage() {
-  const router = useRouter();
+  const { handleGoogleAuth, isGoogleLoading } = useGoogleAuth();
 
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-14rem)]">
@@ -23,19 +26,28 @@ export default function LoginPage() {
              <AppWindow className="mx-auto h-10 w-10 text-primary mb-2" />
             <CardTitle className="text-2xl font-headline">Welcome Back</CardTitle>
             <CardDescription>
-              To continue, please sign in. If you have a Google account, the One-Tap sign-in will appear automatically.
+              Sign in with Google to continue. The One-Tap prompt may appear for instant access.
             </CardDescription>
           </CardHeader>
-          <CardContent className="text-center">
-            <p className="text-sm text-muted-foreground">
-              If you don&apos;t have an account, signing in with Google for the first time will guide you through the registration process.
+          <CardContent className="grid gap-4">
+             <div className="flex justify-center">
+                 <GoogleLogin
+                    onSuccess={handleGoogleAuth}
+                    onError={() => {
+                        console.error('Login Failed');
+                    }}
+                    useOneTap
+                />
+             </div>
+            <p className="text-sm text-center text-muted-foreground px-4">
+              If you don&apos;t have an account, signing in will guide you through registration.
             </p>
-             <div className="mt-6 text-center text-sm">
-                <Link href="/" className="underline">
-                Return to Homepage
-                </Link>
-            </div>
           </CardContent>
+          <div className="p-6 pt-0 text-center text-sm">
+              <Link href="/" className="underline">
+              Return to Homepage
+              </Link>
+          </div>
       </Card>
     </div>
   );
