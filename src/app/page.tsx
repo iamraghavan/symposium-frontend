@@ -51,7 +51,7 @@ export default function HomePage() {
       try {
         const response = await api<ApiSuccessResponse<{ data: Event[] }>>('/events?limit=20&sort=-startAt&upcoming=true');
         if (response.success && response.data) {
-          const allEvents = response.data.data;
+          const allEvents = response.data;
           setOnlineEvents(allEvents.filter(event => event.mode === 'online'));
           setOfflineEvents(allEvents.filter(event => event.mode === 'offline'));
         }
