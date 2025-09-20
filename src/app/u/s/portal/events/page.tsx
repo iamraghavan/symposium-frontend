@@ -45,7 +45,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { LoggedInUser, Event, Department, ApiSuccessResponse } from "@/lib/types";
+import type { LoggedInUser, Event, Department } from "@/lib/types";
 import { createEvent, updateEvent, deleteEvent, getAdminEvents, getDepartments } from "./actions";
 
 import { format, parseISO } from "date-fns";
@@ -114,7 +114,8 @@ export default function AdminEventsPage() {
   const [editStartTime, setEditStartTime] = useState("09:00");
   const [editEndTime, setEditEndTime] = useState("17:00");
 
-  const [createFormState, createFormAction] = useActionState(createEvent.bind(null, userApiKey || ''), createInitialState);
+  const boundCreateEvent = createEvent.bind(null, userApiKey || '');
+  const [createFormState, createFormAction] = useActionState(boundCreateEvent, createInitialState);
   const [updateFormState, updateFormAction] = useActionState(updateEvent, updateInitialState);
 
   
@@ -178,7 +179,7 @@ export default function AdminEventsPage() {
         toast({ variant: 'destructive', title: 'Error', description: createFormState.message });
       }
     }
-  }, [createFormState]);
+  }, [createFormState, toast]);
   
    useEffect(() => {
     if (updateFormState.message) {
@@ -191,7 +192,7 @@ export default function AdminEventsPage() {
         toast({ variant: 'destructive', title: 'Error', description: updateFormState.message });
       }
     }
-  }, [updateFormState]);
+  }, [updateFormState, toast]);
 
   useEffect(() => {
     if (editingEvent) {
@@ -264,169 +265,172 @@ export default function AdminEventsPage() {
             </DialogHeader>
             <form ref={createFormRef} action={createFormAction}>
               <input type="hidden" name="createdBy" value={user?._id || ''} />
-               {user?.role === 'department_admin' && (
-                <input type="hidden" name="department" value={user?.department || ''} />
-              )}
-              <div className="grid gap-6 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="name" className="text-right">Name</Label>
-                <Input id="name" name="name" placeholder="e.g. Hackathon 2024" className="col-span-3"/>
-              </div>
-              <div className="grid grid-cols-4 items-start gap-4">
-                <Label htmlFor="description" className="text-right pt-2">Description</Label>
-                <Textarea id="description" name="description" placeholder="A brief description of the event." className="col-span-3"/>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                 <Label htmlFor="thumbnailUrl" className="text-right">Thumbnail URL</Label>
-                <Input id="thumbnailUrl" name="thumbnailUrl" placeholder="https://example.com/image.jpg" className="col-span-3"/>
-              </div>
-
-              {user?.role === 'super_admin' && (
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="department" className="text-right">Department</Label>
-                    <Select name="department">
-                        <SelectTrigger className="col-span-3">
-                            <SelectValue placeholder="Select a department" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {departments.map(dept => (
-                                <SelectItem key={dept._id} value={dept._id}>{dept.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-              )}
               
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">Start Date/Time</Label>
-                <div className="col-span-3 grid grid-cols-2 gap-2">
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button variant={"outline"} className={cn("justify-start text-left font-normal", !createStartDate && "text-muted-foreground")}>
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {createStartDate ? format(createStartDate, "PPP") : <span>Pick a start date</span>}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={createStartDate} onSelect={setCreateStartDate} initialFocus /></PopoverContent>
-                    </Popover>
-                    <div className="relative">
-                       <Clock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                       <Input name="startTime" type="time" value={createStartTime} onChange={e => setCreateStartTime(e.target.value)} className="pl-8" />
-                    </div>
+              <div className="grid gap-6 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="name" className="text-right">Name</Label>
+                  <Input id="name" name="name" placeholder="e.g. Hackathon 2024" className="col-span-3"/>
                 </div>
-                <input type="hidden" name="startAt" value={createStartDate ? new Date(createStartDate.setHours(Number(createStartTime.split(':')[0]), Number(createStartTime.split(':')[1]))).toISOString() : ''} />
-              </div>
-               <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">End Date/Time</Label>
-                 <div className="col-span-3 grid grid-cols-2 gap-2">
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button variant={"outline"} className={cn("justify-start text-left font-normal", !createEndDate && "text-muted-foreground")}>
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {createEndDate ? format(createEndDate, "PPP") : <span>Pick an end date</span>}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={createEndDate} onSelect={setCreateEndDate} initialFocus /></PopoverContent>
-                    </Popover>
-                     <div className="relative">
-                       <Clock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                       <Input name="endTime" type="time" value={createEndTime} onChange={e => setCreateEndTime(e.target.value)} className="pl-8" />
-                    </div>
+                <div className="grid grid-cols-4 items-start gap-4">
+                  <Label htmlFor="description" className="text-right pt-2">Description</Label>
+                  <Textarea id="description" name="description" placeholder="A brief description of the event." className="col-span-3"/>
                 </div>
-                 <input type="hidden" name="endAt" value={createEndDate ? new Date(createEndDate.setHours(Number(createEndTime.split(':')[0]), Number(createEndTime.split(':')[1]))).toISOString() : ''} />
-              </div>
-              <div className="grid grid-cols-4 items-start gap-4">
-                <Label className="text-right pt-2">Event Mode</Label>
-                <div className="col-span-3">
-                  <RadioGroup name="mode" defaultValue="offline" onValueChange={setCreateEventMode} className="flex gap-4">
-                    <div className="flex items-center space-x-2"><RadioGroupItem value="offline" id="offline" /><Label htmlFor="offline">Offline</Label></div>
-                    <div className="flex items-center space-x-2"><RadioGroupItem value="online" id="online" /><Label htmlFor="online">Online</Label></div>
-                  </RadioGroup>
-                  {createEventMode === "offline" && (
-                    <div className="grid gap-2 mt-3">
-                      <Input name="offline.venueName" placeholder="Venue Name" />
-                      <Input name="offline.address" placeholder="Full Address" />
-                      <Input name="offline.mapLink" placeholder="Google Maps Link" />
-                    </div>
-                  )}
-                  {createEventMode === "online" && (
-                    <div className="grid gap-2 mt-3">
-                        <Select name="online.provider">
-                             <SelectTrigger><SelectValue placeholder="Select Online Provider" /></SelectTrigger>
-                             <SelectContent>
-                                <SelectItem value="google_meet">Google Meet</SelectItem>
-                                <SelectItem value="zoom">Zoom</SelectItem>
-                                <SelectItem value="other">Other</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <Input name="online.url" placeholder="Meeting URL" />
-                    </div>
-                  )}
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="thumbnailUrl" className="text-right">Thumbnail URL</Label>
+                  <Input id="thumbnailUrl" name="thumbnailUrl" placeholder="https://example.com/image.jpg" className="col-span-3"/>
                 </div>
-              </div>
-              <div className="grid grid-cols-4 items-start gap-4">
-                  <Label className="text-right pt-2">Payment</Label>
-                  <div className="col-span-3 grid gap-3">
-                      <RadioGroup name="payment.method" defaultValue="none" onValueChange={setCreatePaymentMethod} className="flex gap-4">
-                          <div className="flex items-center space-x-2"><RadioGroupItem value="none" id="pay-none" /><Label htmlFor="pay-none">Free</Label></div>
-                          <div className="flex items-center space-x-2"><RadioGroupItem value="gateway" id="pay-gateway" /><Label htmlFor="pay-gateway">Gateway</Label></div>
-                          <div className="flex items-center space-x-2"><RadioGroupItem value="qr" id="pay-qr" /><Label htmlFor="pay-qr">QR Code</Label></div>
-                      </RadioGroup>
 
-                      {(createPaymentMethod === 'gateway' || createPaymentMethod === 'qr') && (
-                         <div className="grid grid-cols-2 gap-2">
-                           <Input name="payment.price" type="number" placeholder="Price (e.g., 100)" />
-                           <Input name="payment.currency" placeholder="Currency (e.g., INR)" defaultValue="INR" />
-                        </div>
-                      )}
-                      {createPaymentMethod === 'gateway' && (
-                        <Select name="payment.gatewayProvider">
-                            <SelectTrigger><SelectValue placeholder="Select Gateway Provider" /></SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="razorpay">Razorpay</SelectItem>
-                                <SelectItem value="stripe">Stripe</SelectItem>
-                            </SelectContent>
-                        </Select>
-                      )}
+                {user?.role === 'super_admin' ? (
+                  <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="departmentId" className="text-right">Department</Label>
+                      <Select name="departmentId">
+                          <SelectTrigger className="col-span-3">
+                              <SelectValue placeholder="Select a department" />
+                          </SelectTrigger>
+                          <SelectContent>
+                              {departments.map(dept => (
+                                  <SelectItem key={dept._id} value={dept._id}>{dept.name}</SelectItem>
+                              ))}
+                          </SelectContent>
+                      </Select>
                   </div>
-              </div>
-              <div className="grid grid-cols-4 items-start gap-4">
-                 <Label className="text-right pt-2">Contact</Label>
-                 <div className="col-span-3 grid gap-2">
-                    <Input name="contacts[0].name" placeholder="Contact Person Name" />
-                    <Input name="contacts[0].email" type="email" placeholder="Contact Email" />
-                    <Input name="contacts[0].phone" placeholder="Contact Phone" />
-                 </div>
-              </div>
-               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="departmentSite" className="text-right">Department Site</Label>
-                <Input id="departmentSite" name="departmentSite" placeholder="https://dept.example.com" className="col-span-3"/>
-              </div>
-               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="contactEmail" className="text-right">Contact Email</Label>
-                <Input id="contactEmail" name="contactEmail" type="email" placeholder="contact@example.com" className="col-span-3"/>
-              </div>
+                ) : (
+                  <input type="hidden" name="departmentId" value={user?.department || ''} />
+                )}
+              
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-right">Start Date/Time</Label>
+                  <div className="col-span-3 grid grid-cols-2 gap-2">
+                      <Popover>
+                          <PopoverTrigger asChild>
+                              <Button variant={"outline"} className={cn("justify-start text-left font-normal", !createStartDate && "text-muted-foreground")}>
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {createStartDate ? format(createStartDate, "PPP") : <span>Pick a start date</span>}
+                              </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={createStartDate} onSelect={setCreateStartDate} initialFocus /></PopoverContent>
+                      </Popover>
+                      <div className="relative">
+                        <Clock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input name="startTime" type="time" value={createStartTime} onChange={e => setCreateStartTime(e.target.value)} className="pl-8" />
+                      </div>
+                  </div>
+                  <input type="hidden" name="startAt" value={createStartDate ? new Date(createStartDate.setHours(Number(createStartTime.split(':')[0]), Number(createStartTime.split(':')[1]))).toISOString() : ''} />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-right">End Date/Time</Label>
+                  <div className="col-span-3 grid grid-cols-2 gap-2">
+                      <Popover>
+                          <PopoverTrigger asChild>
+                              <Button variant={"outline"} className={cn("justify-start text-left font-normal", !createEndDate && "text-muted-foreground")}>
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {createEndDate ? format(createEndDate, "PPP") : <span>Pick an end date</span>}
+                              </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={createEndDate} onSelect={setCreateEndDate} initialFocus /></PopoverContent>
+                      </Popover>
+                      <div className="relative">
+                        <Clock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input name="endTime" type="time" value={createEndTime} onChange={e => setCreateEndTime(e.target.value)} className="pl-8" />
+                      </div>
+                  </div>
+                  <input type="hidden" name="endAt" value={createEndDate ? new Date(createEndDate.setHours(Number(createEndTime.split(':')[0]), Number(createEndTime.split(':')[1]))).toISOString() : ''} />
+                </div>
+                <div className="grid grid-cols-4 items-start gap-4">
+                  <Label className="text-right pt-2">Event Mode</Label>
+                  <div className="col-span-3">
+                    <RadioGroup name="mode" defaultValue="offline" onValueChange={setCreateEventMode} className="flex gap-4">
+                      <div className="flex items-center space-x-2"><RadioGroupItem value="offline" id="offline" /><Label htmlFor="offline">Offline</Label></div>
+                      <div className="flex items-center space-x-2"><RadioGroupItem value="online" id="online" /><Label htmlFor="online">Online</Label></div>
+                    </RadioGroup>
+                    {createEventMode === "offline" && (
+                      <div className="grid gap-2 mt-3">
+                        <Input name="offline.venueName" placeholder="Venue Name" />
+                        <Input name="offline.address" placeholder="Full Address" />
+                        <Input name="offline.mapLink" placeholder="Google Maps Link" />
+                      </div>
+                    )}
+                    {createEventMode === "online" && (
+                      <div className="grid gap-2 mt-3">
+                          <Select name="online.provider">
+                              <SelectTrigger><SelectValue placeholder="Select Online Provider" /></SelectTrigger>
+                              <SelectContent>
+                                  <SelectItem value="google_meet">Google Meet</SelectItem>
+                                  <SelectItem value="zoom">Zoom</SelectItem>
+                                  <SelectItem value="other">Other</SelectItem>
+                              </SelectContent>
+                          </Select>
+                          <Input name="online.url" placeholder="Meeting URL" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 items-start gap-4">
+                    <Label className="text-right pt-2">Payment</Label>
+                    <div className="col-span-3 grid gap-3">
+                        <RadioGroup name="payment.method" defaultValue="none" onValueChange={setCreatePaymentMethod} className="flex gap-4">
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="none" id="pay-none" /><Label htmlFor="pay-none">Free</Label></div>
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="gateway" id="pay-gateway" /><Label htmlFor="pay-gateway">Gateway</Label></div>
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="qr" id="pay-qr" /><Label htmlFor="pay-qr">QR Code</Label></div>
+                        </RadioGroup>
 
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="status" className="text-right">Status</Label>
-                <Select name="status" defaultValue="draft">
-                    <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Select event status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="draft">Draft</SelectItem>
-                        <SelectItem value="published">Published</SelectItem>
-                        <SelectItem value="cancelled">Cancelled</SelectItem>
-                    </SelectContent>
-                </Select>
+                        {(createPaymentMethod === 'gateway' || createPaymentMethod === 'qr') && (
+                          <div className="grid grid-cols-2 gap-2">
+                            <Input name="payment.price" type="number" placeholder="Price (e.g., 100)" />
+                            <Input name="payment.currency" placeholder="Currency (e.g., INR)" defaultValue="INR" />
+                          </div>
+                        )}
+                        {createPaymentMethod === 'gateway' && (
+                          <Select name="payment.gatewayProvider">
+                              <SelectTrigger><SelectValue placeholder="Select Gateway Provider" /></SelectTrigger>
+                              <SelectContent>
+                                  <SelectItem value="razorpay">Razorpay</SelectItem>
+                                  <SelectItem value="stripe">Stripe</SelectItem>
+                              </SelectContent>
+                          </Select>
+                        )}
+                    </div>
+                </div>
+                <div className="grid grid-cols-4 items-start gap-4">
+                  <Label className="text-right pt-2">Contact</Label>
+                  <div className="col-span-3 grid gap-2">
+                      <Input name="contacts[0].name" placeholder="Contact Person Name" />
+                      <Input name="contacts[0].email" type="email" placeholder="Contact Email" />
+                      <Input name="contacts[0].phone" placeholder="Contact Phone" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="departmentSite" className="text-right">Department Site</Label>
+                  <Input id="departmentSite" name="departmentSite" placeholder="https://dept.example.com" className="col-span-3"/>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="contactEmail" className="text-right">Contact Email</Label>
+                  <Input id="contactEmail" name="contactEmail" type="email" placeholder="contact@example.com" className="col-span-3"/>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-right">Extra (JSON)</Label>
+                  <Textarea name="extra" placeholder='{ "tags": ["symposium", "eee"] }' className="col-span-3 font-mono" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="status" className="text-right">Status</Label>
+                  <Select name="status" defaultValue="draft">
+                      <SelectTrigger className="col-span-3">
+                          <SelectValue placeholder="Select event status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                          <SelectItem value="draft">Draft</SelectItem>
+                          <SelectItem value="published">Published</SelectItem>
+                          <SelectItem value="cancelled">Cancelled</SelectItem>
+                      </SelectContent>
+                  </Select>
+                </div>
               </div>
-            </div>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button variant="outline" type="button">Cancel</Button>
-              </DialogClose>
-              <Button type="submit">Create Event</Button>
-            </DialogFooter>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline" type="button">Cancel</Button>
+                </DialogClose>
+                <Button type="submit">Create Event</Button>
+              </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>

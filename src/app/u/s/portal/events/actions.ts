@@ -88,25 +88,33 @@ export async function createEvent(apiKey: string, prevState: any, formData: Form
   }
   
   try {
-    const startAt = formData.get('startAt') as string;
-    const endAt = formData.get('endAt') as string;
     const mode = formData.get('mode') as string;
+    const paymentMethod = formData.get('payment.method') as string;
+    
+    const extraString = formData.get('extra') as string;
+    let extraObject = {};
+    if (extraString) {
+      try {
+        extraObject = JSON.parse(extraString);
+      } catch (e) {
+        // ignore if json is invalid
+      }
+    }
 
     const payload: Record<string, any> = {
       name: formData.get('name'),
       description: formData.get('description'),
       thumbnailUrl: formData.get('thumbnailUrl'),
       mode: mode,
-      startAt: startAt,
-      endAt: endAt,
-      department: formData.get('department'),
-      createdBy: createdBy,
-      status: formData.get('status'),
+      startAt: formData.get('startAt'),
+      endAt: formData.get('endAt'),
+      departmentId: formData.get('departmentId'),
       departmentSite: formData.get('departmentSite'),
       contactEmail: formData.get('contactEmail'),
-      extra: {},
+      extra: extraObject,
+      status: formData.get('status'),
     };
-
+    
     // Contacts
     const contactName = formData.get('contacts[0].name');
     const contactEmail = formData.get('contacts[0].email');
@@ -120,9 +128,7 @@ export async function createEvent(apiKey: string, prevState: any, formData: Form
     }
 
     // Payment
-    const paymentMethod = formData.get('payment.method') as string;
     const paymentPayload: Record<string, any> = { method: paymentMethod };
-
     if (paymentMethod === 'gateway') {
         paymentPayload.price = Number(formData.get('payment.price') || 0);
         paymentPayload.currency = formData.get('payment.currency') || 'INR';
@@ -133,7 +139,7 @@ export async function createEvent(apiKey: string, prevState: any, formData: Form
     }
     payload.payment = paymentPayload;
 
-
+    // Mode specific fields
     if (mode === 'online') {
         payload.online = {
             provider: formData.get('online.provider'),
@@ -147,7 +153,7 @@ export async function createEvent(apiKey: string, prevState: any, formData: Form
         };
     }
       
-      console.log('Payload being sent to API:', JSON.stringify(payload, null, 2)); // LOG THE PAYLOAD
+      console.log('Payload being sent to API:', JSON.stringify(payload, null, 2));
       
       await makeApiRequest('/events', apiKey, {
           method: 'POST',
@@ -157,8 +163,8 @@ export async function createEvent(apiKey: string, prevState: any, formData: Form
       revalidatePath('/u/s/portal/events');
       return { message: 'Event created successfully.', success: true };
   } catch (error) {
-      console.error('Error in createEvent action:', error); // LOG THE ERROR
-      return { message: (error as Error).message, success: false };
+      console.error('Error in createEvent action:', error);
+      return { message: (error as Error).message || 'An unknown error occurred.', success: false };
   }
 }
 
