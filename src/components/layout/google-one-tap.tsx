@@ -7,36 +7,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 import type { LoggedInUser } from "@/lib/types";
-import { isAdmin } from "@/lib/utils";
-
-function setCookie(name: string, value: string, days: number) {
-    let expires = "";
-    if (days) {
-        const date = new Date();
-        date.setTime(date.getTime() + (days*24*60*60*1000));
-        expires = "; expires=" + date.toUTCString();
-    }
-    document.cookie = name + "=" + (value || "")  + expires + "; path=/";
-}
 
 export function useGoogleAuth() {
   const router = useRouter();
   const { toast } = useToast();
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-
-  const completeLogin = useCallback((apiKey: string, user: LoggedInUser) => {
-    localStorage.setItem('userApiKey', apiKey);
-    localStorage.setItem('loggedInUser', JSON.stringify(user));
-    setCookie('apiKey', apiKey, 7); // Set cookie for server-side actions
-    toast({
-        title: "Login Successful",
-        description: `Welcome back, ${user.name}!`,
-    });
-
-    // Instead of redirecting, reload the page to update the auth state
-    window.location.reload();
-    
-  }, [toast]);
 
   const handleGoogleAuth = useCallback(async (credentialResponse: CredentialResponse) => {
     if (!credentialResponse.credential) {
@@ -56,7 +31,13 @@ export function useGoogleAuth() {
         });
 
         if (response.success && response.apiKey && response.user) {
-            completeLogin(response.apiKey, response.user);
+            localStorage.setItem('userApiKey', response.apiKey);
+            localStorage.setItem('loggedInUser', JSON.stringify(response.user));
+            toast({
+                title: "Login Successful",
+                description: `Welcome back, ${response.user.name}!`,
+            });
+            window.location.reload();
         } else {
              if (response.isNewUser && response.profile) {
                 sessionStorage.setItem('google_signup_profile', JSON.stringify(response.profile));
@@ -88,7 +69,7 @@ export function useGoogleAuth() {
     } finally {
       setIsGoogleLoading(false);
     }
-  }, [completeLogin, toast, router]);
+  }, [toast, router]);
 
   return { handleGoogleAuth, isGoogleLoading };
 }
@@ -104,15 +85,16 @@ export function GoogleOneTap() {
     if (userData) {
       setUser(JSON.parse(userData));
     }
-  }, [pathname]);
+  }, []);
 
+  const isAuthPage = pathname.startsWith('/auth/login') || pathname.startsWith('/auth/signup');
 
   useGoogleOneTapLogin({
     onSuccess: handleGoogleAuth,
     onError: () => {
       console.error('One Tap login failed');
     },
-    disabled: !!user, // Disable if user is already logged in
+    disabled: !!user || isAuthPage, // Disable if user is already logged in or on an auth page
   });
 
   return null;
