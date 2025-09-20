@@ -45,12 +45,10 @@ export type Event = {
   payment: {
     method: 'none' | 'gateway' | 'qr';
     gatewayProvider?: 'razorpay' | 'stripe';
-    gatewayLink?: string;
     price: number;
     currency: string;
     qrImageUrl?: string;
     qrInstructions?: string;
-    allowScreenshot?: boolean;
   };
   contacts: {
     name: string;
@@ -88,6 +86,7 @@ export type LoggedInUser = {
   role: 'super_admin' | 'department_admin' | 'user';
   department?: Department | string; 
   picture?: string;
+  provider?: string;
   [key: string]: any; 
 };
 
@@ -129,7 +128,7 @@ export type ApiSuccessResponse<T> = {
   token?: string;
   user?: LoggedInUser;
   apiKey?: string;
-  data: T;
+  data?: T;
   meta?: {
     total: number;
     page: number;

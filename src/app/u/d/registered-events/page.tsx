@@ -20,6 +20,7 @@ import { Calendar, Users, Info } from "lucide-react";
 import { format, parseISO } from 'date-fns';
 import api from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function RegisteredEventsPage() {
   const router = useRouter();
@@ -43,8 +44,7 @@ export default function RegisteredEventsPage() {
     setIsLoading(true);
     try {
         const response = await api<ApiSuccessResponse<Registration[]>>('/registrations/my', { authenticated: true });
-        if (response.success) {
-            // The actual event data is nested, let's process it.
+        if (response.success && Array.isArray(response.data)) {
             const processedRegistrations = response.data.map(reg => ({
               ...reg,
               event: reg.event as Event // Assume it's populated from backend
@@ -69,7 +69,7 @@ export default function RegisteredEventsPage() {
     return 'N/A';
   }
 
-  const getStatusVariant = (status: string) => {
+  const getStatusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
     switch (status) {
       case 'confirmed': return 'default';
       case 'pending': return 'secondary';
@@ -91,10 +91,27 @@ export default function RegisteredEventsPage() {
         </div>
       </div>
       {isLoading ? (
-         <p>Loading your registrations...</p>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {[...Array(3)].map((_, i) => (
+             <Card key={i} className="flex flex-col overflow-hidden">
+                <Skeleton className="h-48 w-full" />
+                <CardHeader>
+                    <Skeleton className="h-6 w-3/4 mb-2"/>
+                    <Skeleton className="h-4 w-1/2"/>
+                </CardHeader>
+                <CardContent>
+                    <Skeleton className="h-6 w-1/4"/>
+                </CardContent>
+                <CardFooter className="bg-muted/50 p-4">
+                    <Skeleton className="h-8 w-full"/>
+                </CardFooter>
+             </Card>
+          ))}
+        </div>
       ) : registrations.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {registrations.map((reg) => (
+            reg.event && typeof reg.event === 'object' &&
             <Card key={reg._id} className="flex flex-col overflow-hidden">
               <div className="relative h-48 w-full">
                 <Image

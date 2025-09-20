@@ -51,6 +51,7 @@ export function QrDialog({ open, onOpenChange, registration, event }: QrDialogPr
             description: "Your payment proof has been submitted and is awaiting verification.",
         });
         onOpenChange(false);
+        // Optionally, you can trigger a refresh of the user's registrations here.
     } catch(error) {
         toast({
             variant: 'destructive',
