@@ -43,7 +43,7 @@ export type Event = {
   department: Department | string;
   createdBy: User | string;
   payment: {
-    method: 'none' | 'gateway' | 'qr_code';
+    method: 'none' | 'gateway' | 'qr';
     gatewayProvider?: 'razorpay' | 'stripe';
     gatewayLink?: string;
     price: number;
@@ -91,6 +91,39 @@ export type LoggedInUser = {
   [key: string]: any; 
 };
 
+export type Registration = {
+  _id: string;
+  event: Event | string;
+  user: User | string;
+  type: 'individual' | 'team';
+  team?: {
+    name: string;
+    size: number;
+    members: { name: string; email: string; }[];
+  };
+  status: 'pending' | 'confirmed' | 'cancelled';
+  payment: {
+    method: 'none' | 'gateway' | 'qr';
+    currency: string;
+    amount: number;
+    status: 'pending' | 'paid' | 'failed' | 'refunded';
+    gatewayProvider?: string;
+    gatewayLink?: string;
+    gatewayOrderId?: string;
+    gatewayPaymentId?: string;
+    gatewaySignature?: string;
+    qrReference?: string;
+    qrScreenshotUrl?: string;
+    verifiedAt?: string;
+    verifiedBy?: string;
+  };
+  notes?: string;
+  eventName: string;
+  userEmail: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type ApiSuccessResponse<T> = {
   success: true;
   token?: string;
@@ -102,7 +135,11 @@ export type ApiSuccessResponse<T> = {
     page: number;
     limit: number;
     hasMore: boolean;
-  }
+  };
+  hints?: {
+    next?: string;
+    gatewayLink?: string;
+  };
 };
 
 export type ApiErrorResponse = {

@@ -15,75 +15,118 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { events } from "@/lib/data";
-import type { LoggedInUser, Event } from "@/lib/types";
-import { Calendar, Users } from "lucide-react";
+import type { LoggedInUser, Registration, ApiSuccessResponse, Event } from "@/lib/types";
+import { Calendar, Users, Info } from "lucide-react";
 import { format, parseISO } from 'date-fns';
+import api from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 export default function RegisteredEventsPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [user, setUser] = useState<LoggedInUser | null>(null);
-  const [userRegisteredEvents, setUserRegisteredEvents] = useState<Event[]>([]);
+  const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const userData = localStorage.getItem("loggedInUser");
     if (userData) {
         const currentUser = JSON.parse(userData);
         setUser(currentUser);
-        // Filter events where the current user is a participant
-        const registered = events.filter(event => 
-            event.participants.some(participant => participant.email === currentUser.email)
-        );
-        setUserRegisteredEvents(registered);
+        fetchRegistrations();
     } else {
         router.push('/auth/login');
     }
   }, [router]);
+
+  const fetchRegistrations = async () => {
+    setIsLoading(true);
+    try {
+        const response = await api<ApiSuccessResponse<Registration[]>>('/registrations/my', { authenticated: true });
+        if (response.success) {
+            // The actual event data is nested, let's process it.
+            const processedRegistrations = response.data.map(reg => ({
+              ...reg,
+              event: reg.event as Event // Assume it's populated from backend
+            }));
+            setRegistrations(processedRegistrations);
+        }
+    } catch(e) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not fetch your registered events.",
+      });
+    } finally {
+        setIsLoading(false);
+    }
+  }
+  
+  const getDepartmentName = (event: Event) => {
+    if (typeof event.department === 'object' && event.department !== null) {
+      return event.department.name;
+    }
+    return 'N/A';
+  }
+
+  const getStatusVariant = (status: string) => {
+    switch (status) {
+      case 'confirmed': return 'default';
+      case 'pending': return 'secondary';
+      case 'cancelled': return 'destructive';
+      default: return 'outline';
+    }
+  }
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight font-headline">
-            Registered Events
+            My Registrations
           </h2>
           <p className="text-muted-foreground">
             Here are all the events you've registered for.
           </p>
         </div>
       </div>
-      {userRegisteredEvents.length > 0 ? (
+      {isLoading ? (
+         <p>Loading your registrations...</p>
+      ) : registrations.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {userRegisteredEvents.map((event) => (
-            <Card key={event.id} className="flex flex-col overflow-hidden">
-               <div className="relative h-48 w-full">
+          {registrations.map((reg) => (
+            <Card key={reg._id} className="flex flex-col overflow-hidden">
+              <div className="relative h-48 w-full">
                 <Image
-                    src={event.imageUrl}
-                    alt={event.name}
+                    src={reg.event.thumbnailUrl || 'https://picsum.photos/seed/event/400/250'}
+                    alt={reg.event.name}
                     fill
                     className="object-cover"
-                    data-ai-hint={event.imageHint}
+                    data-ai-hint={reg.event.imageHint || "event placeholder"}
                 />
               </div>
               <CardHeader>
-                <CardTitle className="font-headline">{event.name}</CardTitle>
-                <CardDescription className="flex items-center gap-2 text-sm">
+                <div className="flex justify-between items-start">
+                    <CardTitle className="font-headline">{reg.event.name}</CardTitle>
+                    <Badge variant={getStatusVariant(reg.status)} className="capitalize">{reg.status}</Badge>
+                </div>
+                <CardDescription className="flex items-center gap-2 text-sm pt-1">
                     <Calendar className="h-4 w-4" />
-                    {format(parseISO(event.date), "MMMM d, yyyy")}
+                    {format(parseISO(reg.event.startAt), "MMMM d, yyyy")}
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex-grow">
-                 <Badge variant="secondary">{event.department.name}</Badge>
+                 <Badge variant="outline">{getDepartmentName(reg.event)}</Badge>
               </CardContent>
-              <CardFooter className="flex justify-between items-center">
+              <CardFooter className="flex justify-between items-center bg-muted/50 p-4">
                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">
-                    {event.participants.length} Participants
+                    <Info className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Payment: <span className="font-semibold capitalize text-foreground">{reg.payment.status}</span>
                     </span>
                 </div>
                 <Button asChild variant="default" size="sm">
-                  <Link href={`/events/${event.id}`}>View Details</Link>
+                  <Link href={`/events/${reg.event._id}`}>View Details</Link>
                 </Button>
               </CardFooter>
             </Card>
