@@ -6,22 +6,20 @@ import { cookies } from 'next/headers';
 import type { Event, ApiSuccessResponse, LoggedInUser, Department } from '@/lib/types';
 import { formDataToObject } from '@/lib/utils';
 
-const API_BASE_URL = process.env.API_BASE_URL || 'https://symposium-backend.onrender.com';
+// Hardcode the API_BASE_URL to ensure it's available in the server action.
+const API_BASE_URL = 'https://symposium-backend.onrender.com';
 
 async function makeApiRequest(endpoint: string, options: RequestInit = {}) {
     const userApiKey = cookies().get('apiKey')?.value;
-    const globalApiKey = process.env.API_KEY;
-    const key = userApiKey || globalApiKey;
-
-    if (!key) {
-        console.error("[makeApiRequest] CRITICAL: API key is missing. No userApiKey cookie and no fallback env key.");
-        throw new Error("API key is missing.");
+    
+    if (!userApiKey) {
+        throw new Error("API key cookie not found.");
     }
 
     const defaultHeaders: Record<string, string> = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'x-api-key': key,
+        'x-api-key': userApiKey,
     };
 
     const config: RequestInit = {
@@ -38,13 +36,11 @@ async function makeApiRequest(endpoint: string, options: RequestInit = {}) {
 
         if (!response.ok || responseData.success === false) {
              const errorMessage = responseData.message || `API request failed with status: ${response.status}`;
-             console.error("[makeApiRequest] API Error Response:", JSON.stringify(responseData, null, 2));
              throw new Error(errorMessage);
         }
         
         return responseData;
     } catch (error) {
-        console.error('[makeApiRequest] Fetch operation failed:', error);
         if (error instanceof Error) {
             throw error;
         }
@@ -70,16 +66,21 @@ export async function getEvents(): Promise<Event[]> {
     }
 
     const response: ApiSuccessResponse<{ events?: Event[], data?: Event[] }> = await makeApiRequest(endpoint);
+    // The API response nests the events array in a 'data' property.
     return response.data || [];
   } catch (error) {
-    console.error("[getEvents] Failed to fetch events:", error);
+    // Re-throw the error to be caught by the page component.
+    if (error instanceof Error) {
+        throw new Error(error.message);
+    }
     throw new Error("Could not fetch events.");
   }
 }
 
+
 export async function getDepartments(): Promise<Department[]> {
   try {
-    const response: ApiSuccessResponse<{ departments: Department[] }> = await makeApiRequest('/departments?limit=100');
+    const response: ApiSuccessResponse<{ data: Department[] }> = await makeApiRequest('/departments?limit=100');
     return response.data || [];
   } catch (error) {
     console.error("[getDepartments] Failed to fetch departments:", error);
@@ -136,7 +137,6 @@ export async function createEvent(prevState: any, formData: FormData) {
         revalidatePath('/u/s/portal/events');
         return { message: 'Event created successfully.', success: true };
     } catch (error) {
-        console.error("[createEvent] Failed to create event:", error);
         return { message: (error as Error).message, success: false };
     }
 }
