@@ -45,8 +45,8 @@ export default function EventsPage() {
         setIsLoading(true);
         try {
             const [deptResponse, eventResponse] = await Promise.all([
-                api<ApiSuccessResponse<{ departments: Department[] }>>('/departments?limit=100'),
-                api<ApiSuccessResponse<Event[]>>('/events?status=published&limit=100')
+                api<ApiSuccessResponse<{ departments: Department[] }>>('/api/v1/departments?limit=100'),
+                api<ApiSuccessResponse<Event[]>>('/api/v1/events?status=published&limit=100')
             ]);
             
             const fetchedDepts = deptResponse.data?.departments || [];
