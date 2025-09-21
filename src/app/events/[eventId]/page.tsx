@@ -88,6 +88,10 @@ export default function EventDetailPage() {
 
   const handleRazorpayPayment = async (registration: Registration, razorpayOrderId: string) => {
      if (!user) return;
+     if (!process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID) {
+        toast({ variant: 'destructive', title: 'Configuration Error', description: 'Razorpay Key ID is not configured.'});
+        return;
+     }
 
     const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
