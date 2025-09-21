@@ -112,7 +112,7 @@ export default function EventDetailPage() {
 
     const fetchWinners = async () => {
         try {
-            const response = await api<ApiSuccessResponse<{data: Winner[]}>>(`/events/${eventId}/winners`);
+            const response = await api<ApiSuccessResponse<{data: Winner[]}>>(`/events/${eventId}/winners`, { authenticated: true });
             if (response.success && response.data) {
                 setWinners(response.data);
             }
