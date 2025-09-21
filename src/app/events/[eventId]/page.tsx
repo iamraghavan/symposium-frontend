@@ -170,7 +170,12 @@ export default function EventDetailPage() {
         throw new Error((response as any).message || "Registration failed");
       }
     } catch (error) {
-       toast({ variant: 'destructive', title: 'Registration Failed', description: (error as Error).message });
+       const errorMessage = (error as Error).message;
+       if (errorMessage === 'You already have a registration for this event.') {
+         toast({ title: 'Already Registered', description: "You have already registered for this event. You can see it in your dashboard." });
+       } else {
+         toast({ variant: 'destructive', title: 'Registration Failed', description: errorMessage });
+       }
     } finally {
         setIsRegistering(false);
     }
@@ -461,5 +466,7 @@ export default function EventDetailPage() {
 
     
 
+
+    
 
     
