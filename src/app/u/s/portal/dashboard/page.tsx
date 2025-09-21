@@ -173,13 +173,15 @@ export default function AdminDashboardPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[50px]">S.No</TableHead>
                   <TableHead>User</TableHead>
-                  <TableHead>College</TableHead>
+                  <TableHead>Email</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.slice(0, 5).map((user) => (
+                {users.slice(0, 5).map((user, index) => (
                   <TableRow key={user.id}>
+                    <TableCell className="font-medium">{index + 1}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8">
@@ -188,16 +190,11 @@ export default function AdminDashboardPage() {
                             {user.name.charAt(0)}
                           </AvatarFallback>
                         </Avatar>
-                        <div>
-                          <p className="font-medium">{user.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {user.email}
-                          </p>
-                        </div>
+                        <p className="font-medium">{user.name}</p>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{user.college}</Badge>
+                        <p className="text-sm text-muted-foreground">{user.email}</p>
                     </TableCell>
                   </TableRow>
                 ))}
