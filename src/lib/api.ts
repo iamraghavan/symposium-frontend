@@ -3,7 +3,7 @@
 
 import type { ApiErrorResponse, ApiSuccessResponse } from './types';
 
-const API_BASE_URL = 'https://symposium-backend.onrender.com';
+const API_BASE_URL = 'https://symposium-backend.onrender.com/api/v1';
 const GLOBAL_API_KEY = 'rjfqrur9L0v2XNzx574DI1Djejii70JP5S';
 
 type ApiOptions = {

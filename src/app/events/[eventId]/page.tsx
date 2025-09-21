@@ -69,6 +69,7 @@ export default function EventDetailPage() {
   
   const [event, setEvent] = useState<Event | null>(null);
   const [user, setUser] = useState<LoggedInUser | null>(null);
+  const [userApiKey, setUserApiKey] = useState<string|null>(null);
   const [winners, setWinners] = useState<Winner[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -83,7 +84,7 @@ export default function EventDetailPage() {
   const fetchEventData = useCallback(async () => {
       setIsLoading(true);
       try {
-        const response = await api<ApiSuccessResponse<{ event: Event }>>(`/api/v1/events/${eventId}`);
+        const response = await api<ApiSuccessResponse<{ event: Event }>>(`/events/${eventId}`);
         if (response.success && response.data) {
           setEvent(response.data as unknown as Event);
         } else {
@@ -99,20 +100,24 @@ export default function EventDetailPage() {
     
   useEffect(() => {
     const userData = localStorage.getItem("loggedInUser");
+    const apiKey = localStorage.getItem("userApiKey");
     if (userData) {
       setUser(JSON.parse(userData));
+    }
+    if (apiKey) {
+      setUserApiKey(apiKey);
     }
 
     if (!eventId) return;
 
     const fetchWinners = async () => {
         try {
-            const response = await api<ApiSuccessResponse<{data: Winner[]}>>(`/api/v1/events/${eventId}/winners`);
+            const response = await api<ApiSuccessResponse<{data: Winner[]}>>(`/events/${eventId}/winners`);
             if (response.success && response.data) {
                 setWinners(response.data);
             }
         } catch (error) {
-            if (error instanceof Error && (error.message.includes("Not Found") || error.message.includes("no winners"))) {
+            if (error instanceof Error && (JSON.parse(error.message).message?.includes("Not Found") || JSON.parse(error.message).message?.includes("no winners"))) {
               return;
             }
             console.error("Could not fetch winners:", error);
@@ -141,6 +146,7 @@ export default function EventDetailPage() {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
+                        userApiKey: userApiKey,
                         razorpay_order_id: response.razorpay_order_id,
                         razorpay_payment_id: response.razorpay_payment_id,
                         razorpay_signature: response.razorpay_signature,
@@ -177,7 +183,7 @@ export default function EventDetailPage() {
         toast({ variant: 'destructive', title: 'Payment Failed', description: response.error.description || 'An unknown error occurred.'});
     });
     rzp.open();
-  }, [user, event, toast, unpaidEmails]);
+  }, [user, event, toast, unpaidEmails, userApiKey]);
 
   const handleCreateOrder = useCallback(async () => {
       try {
@@ -577,5 +583,3 @@ export default function EventDetailPage() {
     </>
   );
 }
-
-    

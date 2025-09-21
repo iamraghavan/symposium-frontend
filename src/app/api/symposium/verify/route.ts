@@ -1,12 +1,12 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 
 const API_BASE_URL = 'https://symposium-backend.onrender.com';
-const INTERNAL_API_KEY = process.env.API_KEY;
 
 // This function communicates with your main backend to mark users as paid
-async function flagUsersAsPaid(razorpay_order_id: string, razorpay_payment_id: string, razorpay_signature: string) {
-    if (!INTERNAL_API_KEY) {
+async function flagUsersAsPaid(apiKey: string, razorpay_order_id: string, razorpay_payment_id: string, razorpay_signature: string) {
+    if (!apiKey) {
         throw new Error("Internal API key is not configured.");
     }
     
@@ -14,7 +14,7 @@ async function flagUsersAsPaid(razorpay_order_id: string, razorpay_payment_id: s
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'x-api-key': INTERNAL_API_KEY,
+            'x-api-key': apiKey,
         },
         body: JSON.stringify({
             razorpay_order_id,
@@ -35,7 +35,11 @@ async function flagUsersAsPaid(razorpay_order_id: string, razorpay_payment_id: s
 
 export async function POST(request: NextRequest) {
  try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = await request.json();
+    const { userApiKey, razorpay_order_id, razorpay_payment_id, razorpay_signature } = await request.json();
+
+    if (!userApiKey) {
+        return NextResponse.json({ success: false, message: 'Authentication failed: API Key is missing.' }, { status: 401 });
+    }
 
     // First, verify the signature locally to ensure the request is from Razorpay
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
@@ -51,7 +55,7 @@ export async function POST(request: NextRequest) {
     }
     
     // If signature is valid, now tell our main backend to update the user statuses
-    const backendResponse = await flagUsersAsPaid(razorpay_order_id, razorpay_payment_id, razorpay_signature);
+    const backendResponse = await flagUsersAsPaid(userApiKey, razorpay_order_id, razorpay_payment_id, razorpay_signature);
     
     return NextResponse.json({ success: true, message: 'Payment verified successfully.', data: backendResponse }, { status: 200 });
 
