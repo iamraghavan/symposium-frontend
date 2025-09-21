@@ -23,52 +23,61 @@ async function api<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
       userApiKey = localStorage.getItem('userApiKey');
     }
     if (!userApiKey) {
-        // Fallback to global key is probably not what we want for authenticated routes.
-        // It's better to fail fast.
         const errorMsg = 'API key is missing for an authenticated request.';
         console.error(errorMsg);
-        throw new Error(JSON.stringify({ message: errorMsg }));
+        throw new Error(errorMsg);
     }
     apiKey = userApiKey;
   }
 
-  const defaultHeaders: Record<string, string> = {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    'x-api-key': apiKey,
-  };
-
   const config: RequestInit = {
     method,
-    headers: { ...defaultHeaders, ...headers },
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'x-api-key': apiKey,
+      ...headers,
+    },
   };
 
   if (body) {
     config.body = JSON.stringify(body);
   }
 
-  const response = await fetch(`${API_BASE_URL}/api/v1${endpoint}`, config);
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1${endpoint}`, config);
 
-  const responseData = await response.json();
+    // Check if the response is JSON, otherwise throw a network error.
+    const contentType = response.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+        throw new TypeError(`Server returned non-JSON response: ${response.statusText}`);
+    }
 
-  if (!response.ok) {
-     const errorMsg = responseData.message || `API request failed with status: ${response.status}`;
-     const error = new Error(JSON.stringify(responseData));
-     (error as any).details = responseData.details;
-     throw error;
+    const responseData = await response.json();
+
+    if (!response.ok) {
+      // The API returned an error status code (4xx or 5xx).
+      // The responseData should be an ApiErrorResponse.
+      const errorMessage = responseData.message || 'An unknown API error occurred.';
+      throw new Error(errorMessage);
+    }
+    
+    if (responseData.success === false) {
+       // The API returned a 200 OK status, but indicated failure in the body.
+       const errorMessage = (responseData as ApiErrorResponse).message || 'The API indicated a failure.';
+       throw new Error(errorMessage);
+    }
+
+    return responseData as T;
+
+  } catch (error) {
+    // This will catch network errors (e.g., failed to fetch) and errors thrown above.
+    console.error(`API call to '${endpoint}' failed:`, error);
+    if (error instanceof Error) {
+        throw error; // Re-throw the error with a clean message.
+    }
+    throw new Error('An unknown network error occurred.');
   }
-  
-  if (responseData.success === false) {
-      if (responseData.isNewUser) {
-        const error = new Error(JSON.stringify(responseData));
-        throw error;
-      }
-      const error = new Error(JSON.stringify(responseData));
-      (error as any).details = responseData.details;
-      throw error;
-  }
-
-  return responseData as T;
 }
 
 export default api;

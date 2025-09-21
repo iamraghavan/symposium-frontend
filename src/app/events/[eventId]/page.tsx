@@ -73,10 +73,10 @@ export default function EventDetailPage() {
           // This should be replaced with an API call in the future
           setWinners(allWinners.filter(w => w.eventId === (response.data?.event as Event)?._id));
         } else {
-           throw new Error((response as any).message || "Event not found");
+           throw new Error("Event not found in API response.");
         }
       } catch (error) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch event details.'});
+        toast({ variant: 'destructive', title: 'Error', description: (error as Error).message || 'Could not fetch event details.'});
         notFound();
       } finally {
         setIsLoading(false);
@@ -88,13 +88,14 @@ export default function EventDetailPage() {
 
   const handleRazorpayPayment = async (registration: Registration, razorpayOrderId: string) => {
      if (!user) return;
-     if (!process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID) {
+     const razorpayKeyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+     if (!razorpayKeyId) {
         toast({ variant: 'destructive', title: 'Configuration Error', description: 'Razorpay Key ID is not configured.'});
         return;
      }
 
     const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        key: razorpayKeyId,
         amount: registration.payment.amount * 100, // amount in the smallest currency unit
         currency: registration.payment.currency,
         name: event?.name,
