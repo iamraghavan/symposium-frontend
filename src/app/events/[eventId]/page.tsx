@@ -97,7 +97,7 @@ export default function EventDetailPage() {
     fetchEventData();
   }, [eventId, toast]);
 
-  const handleRazorpayPayment = async (registration: Registration, orderId: string, amount: number) => {
+ const handleRazorpayPayment = async (registration: Registration, orderId: string, amount: number) => {
      if (!user || !event) return;
      const razorpayKeyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
 
@@ -109,14 +109,14 @@ export default function EventDetailPage() {
     const options = {
         key: razorpayKeyId,
         amount: amount,
-        currency: registration.payment.currency,
+        currency: registration.payment.currency || 'INR',
         name: "Symposium Central",
         description: `One-time Symposium Pass Fee`,
         image: 'https://cdn.egspec.org/assets/img/logo-sm.png',
         order_id: orderId,
         handler: async function (response: any) {
             // Optional: Acknowledge checkout on your backend for analytics
-            await api(`/registrations/${registration._id}/checkout-ack`, {
+            api(`/registrations/${registration._id}/checkout-ack`, {
                 method: 'POST',
                 authenticated: true,
                 body: {
@@ -170,7 +170,7 @@ export default function EventDetailPage() {
     setIsRegistrationDialogOpen(true);
   }
   
-  const onRegistrationSuccess = (response: ApiSuccessResponse<{ registration: Registration }>) => {
+  const onRegistrationSuccess = (response: ApiSuccessResponse) => {
     setIsRegistrationDialogOpen(false);
     const { registration, hints } = response;
     
@@ -186,10 +186,29 @@ export default function EventDetailPage() {
   
    const onRegistrationError = (error: Error) => {
     setIsRegistrationDialogOpen(false);
-    if (error.message.includes('You already have a registration for this event')) {
-        setIsAlreadyRegisteredDialogOpen(true);
-    } else {
-        toast({ variant: 'destructive', title: 'Registration Failed', description: error.message });
+    try {
+        const parsedError = JSON.parse(error.message);
+        if (parsedError.message && parsedError.message.includes('You already have a registration for this event')) {
+            setIsAlreadyRegisteredDialogOpen(true);
+        } else {
+            toast({ variant: 'destructive', title: 'Registration Failed', description: parsedError.message || 'An unknown error occurred.' });
+        }
+    } catch(e) {
+        if (error.message.includes('You already have a registration for this event')) {
+             setIsAlreadyRegisteredDialogOpen(true);
+        } else {
+            toast({ variant: 'destructive', title: 'Registration Failed', description: error.message || 'An unknown error occurred.' });
+        }
+    }
+  }
+
+  const getHostname = (url: string | undefined) => {
+    if (!url) return null;
+    try {
+      return new URL(url).hostname;
+    } catch (error) {
+      console.error("Invalid URL for hostname:", url);
+      return null;
     }
   }
 
@@ -363,7 +382,7 @@ export default function EventDetailPage() {
                             <LinkIcon className="mr-3 h-4 w-4 text-muted-foreground mt-0.5 shrink-0"/>
                             <div>
                                 <h3 className="font-semibold">Event Website</h3>
-                                <a href={event.departmentSite} target="_blank" rel="noopener noreferrer" className="text-primary underline flex items-center gap-1 text-xs">{new URL(event.departmentSite).hostname} <ExternalLink className="h-3 w-3"/></a>
+                                <a href={event.departmentSite} target="_blank" rel="noopener noreferrer" className="text-primary underline flex items-center gap-1 text-xs">{getHostname(event.departmentSite)} <ExternalLink className="h-3 w-3"/></a>
                             </div>
                         </div>
                       )}
@@ -503,3 +522,5 @@ export default function EventDetailPage() {
     </>
   );
 }
+
+    
