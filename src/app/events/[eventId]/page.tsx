@@ -110,16 +110,9 @@ export default function EventDetailPage() {
             }
         } catch (error) {
             // Non-critical, so we check if the error is a "Not Found" error and ignore it.
-            if (error instanceof Error) {
-                try {
-                    const parsedError = JSON.parse(error.message);
-                    if (parsedError.message === "Not Found") {
-                        // This is expected if there are no winners, so we don't log it.
-                        return;
-                    }
-                } catch (e) {
-                    // The error was not a JSON string, so we log the original error.
-                }
+            if (error instanceof Error && error.message.includes("Not Found")) {
+              // This is expected if there are no winners, so we don't log it.
+              return;
             }
             console.error("Could not fetch winners:", error);
         }
@@ -196,7 +189,7 @@ export default function EventDetailPage() {
       setIsRegistrationDialogOpen(false);
       try {
         toast({ title: 'Payment Required', description: 'Creating payment order, please wait...' });
-        const orderResponse = await api<ApiSuccessResponse<ApiOrderResponse>>('/order', {
+        const orderResponse = await api<ApiSuccessResponse<ApiOrderResponse>>('/api/v1/order', {
             method: 'POST',
             authenticated: true,
             body: { registrationId: registration._id }
