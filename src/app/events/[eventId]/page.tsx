@@ -70,8 +70,6 @@ export default function EventDetailPage() {
   const [isAlreadyRegisteredDialogOpen, setIsAlreadyRegisteredDialogOpen] = useState(false);
   const [currentRegistration, setCurrentRegistration] = useState<Registration | null>(null);
   
-  const razorpayKeyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
-
   useEffect(() => {
     const userData = localStorage.getItem("loggedInUser");
     if (userData) {
@@ -162,6 +160,7 @@ export default function EventDetailPage() {
   }
   
   const onRegistrationSuccess = (registration: Registration, hints: any) => {
+    const razorpayKeyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
     setIsRegistrationDialogOpen(false);
     setCurrentRegistration(registration);
     if (hints?.next === 'confirmed') {
