@@ -13,7 +13,7 @@ type ApiOptions = {
   headers?: Record<string, string>;
 };
 
-async function api<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
+async function api<T extends ApiSuccessResponse<any> | ApiErrorResponse>(endpoint: string, options: ApiOptions = {}): Promise<T> {
   const { method = 'GET', body, authenticated = false, headers = {} } = options;
 
   let apiKey = GLOBAL_API_KEY;
@@ -47,7 +47,6 @@ async function api<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
   try {
     const response = await fetch(`${API_BASE_URL}/api/v1${endpoint}`, config);
 
-    // Check if the response is JSON, otherwise throw a network error.
     const contentType = response.headers.get("content-type");
     if (!contentType || !contentType.includes("application/json")) {
         const responseText = await response.text();
@@ -57,32 +56,25 @@ async function api<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
     const responseData = await response.json();
 
     if (!response.ok) {
-      // The API returned an error status code (4xx or 5xx).
-      // The responseData should be an ApiErrorResponse.
-      const errorMessage = responseData.message || 'An unknown API error occurred.';
-       // Special handling for new google user trying to register
-      if (responseData.isNewUser && responseData.profile) {
-          throw new Error(JSON.stringify(responseData));
-      }
-       if (errorMessage.includes('You already have a registration for this event')) {
-          throw new Error('You already have a registration for this event');
+      const apiErrorResponse = responseData as ApiErrorResponse;
+      const errorMessage = apiErrorResponse.message || 'An unknown API error occurred.';
+      if (apiErrorResponse.isNewUser && apiErrorResponse.profile) {
+          throw new Error(JSON.stringify(apiErrorResponse));
       }
       throw new Error(errorMessage);
     }
     
-    // The response is ok (2xx status code). It should be a success.
-    // The backend might not always include success:true, but if the status is ok, we treat it as success.
-    // We will ensure our own success property.
-    if(responseData.success === undefined) {
+    // For successful responses (200, 201, etc.), we ensure a 'success' flag is present.
+    // This makes frontend handling consistent.
+    if (responseData.success === undefined) {
       responseData.success = true;
     }
     return responseData as T;
 
   } catch (error) {
-    // This will catch network errors (e.g., failed to fetch) and errors thrown above.
     console.error(`API call to '${endpoint}' failed:`, error);
     if (error instanceof Error) {
-        throw error; // Re-throw the error with its original message.
+        throw error;
     }
     throw new Error('An unknown network error occurred.');
   }

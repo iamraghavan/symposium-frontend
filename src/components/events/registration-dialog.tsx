@@ -41,7 +41,7 @@ type RegistrationDialogProps = {
   onOpenChange: (open: boolean) => void;
   event: Event;
   user: LoggedInUser;
-  onSuccess: (registration: Registration, hints: any) => void;
+  onSuccess: (response: ApiSuccessResponse<{ registration: Registration }>) => void;
   onError: (error: Error) => void;
 };
 
@@ -82,7 +82,7 @@ export function RegistrationDialog({
     try {
       const payload: any = {
         eventId: event._id,
-        eventName: event.name, // Denormalized field
+        eventName: event.name,
         type: data.type,
       };
 
@@ -95,18 +95,18 @@ export function RegistrationDialog({
         payload.team = {
           name: data.teamName,
           members: data.members,
-          size: data.members?.length || 0, // Correctly calculate size
+          size: data.members?.length || 0,
         };
       }
 
-      const response = await api<ApiSuccessResponse<Registration>>('/registrations', {
+      const response = await api<ApiSuccessResponse<{ registration: Registration }>>('/registrations', {
         method: 'POST',
         body: payload,
         authenticated: true,
       });
       
       if (response.success && response.registration) {
-        onSuccess(response.registration, response.hints);
+        onSuccess(response);
       } else {
         throw new Error((response as any).message || "Registration submission failed");
       }
@@ -118,9 +118,6 @@ export function RegistrationDialog({
   };
   
   const isPaidEvent = event.payment.price > 0 && !user.hasPaidForEvent;
-  
-  const numberOfParticipants = registrationType === 'team' ? (fields.length || 0) + 1 : 1;
-  const totalAmount = event.payment.price;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -217,16 +214,10 @@ export function RegistrationDialog({
            {isPaidEvent && (
             <div className="space-y-2 mt-4 pt-4 border-t">
                 <h4 className="font-semibold text-lg">Payment Details</h4>
-                <div className="flex justify-between items-center text-muted-foreground">
-                    <span>One-time Symposium Pass Fee</span>
-                    <span>{event.payment.currency} {totalAmount.toFixed(2)}</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between items-center font-bold text-xl">
-                    <span>Amount Payable</span>
-                    <span>{event.payment.currency} {totalAmount.toFixed(2)}</span>
-                </div>
-                 <p className="text-xs text-muted-foreground text-center pt-2">Your backend will determine the final amount based on which team members have already paid.</p>
+                 <p className="text-sm text-muted-foreground text-center pt-2">
+                    A one-time symposium pass fee of <strong>{event.payment.currency} {event.payment.price}</strong> is required. 
+                    This pass gives you free access to all other events. Your backend will calculate the final amount based on which team members have already paid.
+                 </p>
             </div>
            )}
 

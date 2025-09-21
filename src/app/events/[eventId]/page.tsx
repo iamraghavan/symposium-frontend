@@ -97,7 +97,7 @@ export default function EventDetailPage() {
     fetchEventData();
   }, [eventId, toast]);
 
-  const handleRazorpayPayment = async (registration: Registration, razorpayOrderId: string) => {
+  const handleRazorpayPayment = async (registration: Registration, orderId: string, amount: number) => {
      if (!user || !event) return;
      const razorpayKeyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
 
@@ -108,14 +108,24 @@ export default function EventDetailPage() {
 
     const options = {
         key: razorpayKeyId,
-        amount: registration.payment.amount * 100, // amount in the smallest currency unit
+        amount: amount,
         currency: registration.payment.currency,
         name: "Symposium Central",
         description: `One-time Symposium Pass Fee`,
         image: 'https://cdn.egspec.org/assets/img/logo-sm.png',
-        order_id: razorpayOrderId,
+        order_id: orderId,
         handler: async function (response: any) {
-            // Webhook will handle verification. Just give user feedback.
+            // Optional: Acknowledge checkout on your backend for analytics
+            await api(`/registrations/${registration._id}/checkout-ack`, {
+                method: 'POST',
+                authenticated: true,
+                body: {
+                    orderId: response.razorpay_order_id,
+                    paymentId: response.razorpay_payment_id,
+                    signature: response.razorpay_signature,
+                }
+            }).catch(err => console.error("Checkout-ack failed:", err));
+
             toast({ title: 'Payment Submitted', description: 'Your registration is being confirmed. Please wait a moment.' });
             
             // Optimistically update user's payment status in localStorage
@@ -160,17 +170,16 @@ export default function EventDetailPage() {
     setIsRegistrationDialogOpen(true);
   }
   
-  const onRegistrationSuccess = (registration: Registration, hints: any) => {
+  const onRegistrationSuccess = (response: ApiSuccessResponse<{ registration: Registration }>) => {
     setIsRegistrationDialogOpen(false);
+    const { registration, hints } = response;
     
-    // Check if the backend sent a Razorpay Order ID
-    if (hints?.razorpayOrderId) {
-        // If yes, trigger the payment flow
-        handleRazorpayPayment(registration, hints.razorpayOrderId);
+    if (registration && hints?.razorpayOrderId) {
+        // Payment is required, trigger Razorpay
+        handleRazorpayPayment(registration, hints.razorpayOrderId, registration.payment.amount);
     } else {
-      // If no order ID, payment is not required (already paid or free event)
+      // No payment needed (already paid or free event)
       toast({ title: 'Registration Confirmed!', description: 'You have been successfully registered for the event.' });
-      // Reload to reflect the new registration status
       setTimeout(() => window.location.reload(), 1500);
     }
   }
@@ -494,4 +503,3 @@ export default function EventDetailPage() {
     </>
   );
 }
-
