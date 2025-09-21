@@ -64,28 +64,24 @@ async function api<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
       if (responseData.isNewUser && responseData.profile) {
           throw new Error(JSON.stringify(responseData));
       }
+       if (errorMessage.includes('You already have a registration for this event')) {
+          throw new Error('You already have a registration for this event');
+      }
       throw new Error(errorMessage);
     }
     
-    // Some successful responses might not have a `success` field but are still valid (e.g. from create registration)
-    // The presence of a `registration` object is a good sign of success.
-    // The logic is, if success is explicitly false, it's an error. Otherwise, we treat it as success.
-    if (responseData.success === false) {
-       const errorMessage = (responseData as ApiErrorResponse).message || 'The API indicated a failure.';
-       throw new Error(errorMessage);
-    }
-
+    // The response is ok (2xx status code). It should be a success.
+    // The backend might not always include success:true, but if the status is ok, we treat it as success.
     return responseData as T;
 
   } catch (error) {
     // This will catch network errors (e.g., failed to fetch) and errors thrown above.
     console.error(`API call to '${endpoint}' failed:`, error);
     if (error instanceof Error) {
-        throw error; // Re-throw the error with a clean message.
+        throw error; // Re-throw the error with its original message.
     }
     throw new Error('An unknown network error occurred.');
   }
 }
 
 export default api;
-

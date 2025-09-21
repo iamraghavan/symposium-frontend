@@ -95,7 +95,7 @@ export function RegistrationDialog({
         payload.team = {
           name: data.teamName,
           members: data.members,
-          size: data.members?.length || 0,
+          size: data.members?.length || 0, // Correctly calculate size
         };
       }
 
@@ -105,7 +105,7 @@ export function RegistrationDialog({
         authenticated: true,
       });
       
-      if (response.success && response.registration) {
+      if (response.registration) {
         onSuccess(response.registration, response.hints);
       } else {
         throw new Error((response as any).message || "Registration submission failed");
@@ -120,9 +120,8 @@ export function RegistrationDialog({
   const isPaidEvent = event.payment.price > 0 && !user.hasPaidForEvent;
   
   // For team registrations, the backend calculates the actual amount based on which members haven't paid.
-  // Here, we show a potential maximum for UI purposes.
+  // The user pays a single symposium pass fee.
   const numberOfParticipants = registrationType === 'team' ? (fields.length || 0) + 1 : 1;
-  const maxPotentialPrice = numberOfParticipants * event.payment.price;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -219,20 +218,16 @@ export function RegistrationDialog({
            {isPaidEvent && (
             <div className="space-y-2 mt-4 pt-4 border-t">
                 <h4 className="font-semibold text-lg">Payment Details</h4>
-                 <div className="flex justify-between items-center text-muted-foreground">
-                    <span>One-time Symposium Pass Fee</span>
-                    <span>{event.payment.currency} {event.payment.price.toFixed(2)} / person</span>
-                </div>
                 <div className="flex justify-between items-center text-muted-foreground">
-                    <span>Team Members to Pay</span>
-                    <span>{numberOfParticipants}</span>
+                    <span>One-time Symposium Pass Fee</span>
+                    <span>{event.payment.currency} {event.payment.price.toFixed(2)}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between items-center font-bold text-xl">
-                    <span>Max. Amount Payable</span>
-                    <span>{event.payment.currency} {maxPotentialPrice.toFixed(2)}</span>
+                    <span>Amount Payable</span>
+                    <span>{event.payment.currency} {event.payment.price.toFixed(2)}</span>
                 </div>
-                 <p className="text-xs text-muted-foreground text-center pt-2">Your final payment amount will be calculated by the server based on how many team members have already paid.</p>
+                 <p className="text-xs text-muted-foreground text-center pt-2">Your backend will determine the final amount based on which team members have already paid.</p>
             </div>
            )}
 
@@ -256,4 +251,3 @@ export function RegistrationDialog({
     </Dialog>
   );
 }
-
