@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import Image from "next/image";
@@ -149,10 +150,12 @@ export default function EventDetailPage() {
                 toast({ title: 'Payment Successful!', description: 'Your Symposium Pass is now active. Please complete your registration.' });
                 setIsPaymentDialogOpen(false);
                 
+                // IMPORTANT: Update user state to reflect payment
                 const updatedUser = { ...user, hasPaidSymposium: true };
                 localStorage.setItem('loggedInUser', JSON.stringify(updatedUser));
                 setUser(updatedUser);
 
+                // Automatically re-open the registration dialog
                 setIsRegistrationDialogOpen(true);
 
             } catch (error) {
@@ -164,7 +167,7 @@ export default function EventDetailPage() {
             email: user.email,
         },
         theme: {
-            color: '#9D4EDD',
+            color: '#181844', // Theme color
         },
     };
 
@@ -574,3 +577,5 @@ export default function EventDetailPage() {
     </>
   );
 }
+
+    
