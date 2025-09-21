@@ -6,6 +6,18 @@ import type { Payment, ApiSuccessResponse } from '@/lib/types';
 
 const API_BASE_URL = 'https://symposium-backend.onrender.com';
 
+function getApiKey(): string {
+    const userApiKey = cookies().get('apiKey')?.value;
+    const globalApiKey = process.env.API_KEY;
+
+    const key = userApiKey || globalApiKey;
+
+    if (!key) {
+        throw new Error("Authentication details not found. No user or global API key is available.");
+    }
+    return key;
+}
+
 async function makeApiRequest(endpoint: string, apiKey: string, options: RequestInit = {}) {
     if (!apiKey) {
         throw new Error("API key is missing.");
@@ -45,7 +57,7 @@ async function makeApiRequest(endpoint: string, apiKey: string, options: Request
 }
 
 export async function getPayments(): Promise<Payment[]> {
-    const apiKey = cookies().get('apiKey')?.value;
+    const apiKey = getApiKey();
     if (!apiKey) {
         throw new Error("API Key is missing for authentication.");
     }
@@ -55,3 +67,4 @@ export async function getPayments(): Promise<Payment[]> {
     });
     return (response as ApiSuccessResponse<{ data: Payment[] }>).data || [];
 }
+
