@@ -186,7 +186,7 @@ export default function HomePage() {
         className="flex-1">
         <section className="relative h-[80vh] flex items-center justify-center text-center text-white">
           <Image
-            src="https://images.unsplash.com/photo-1523580494863-6f3031224c94?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+            src="https://egspec.blob.core.windows.net/egspec-assets/cat_img.webp"
             alt="Audience at a symposium"
             fill
             className="object-cover -z-10"
