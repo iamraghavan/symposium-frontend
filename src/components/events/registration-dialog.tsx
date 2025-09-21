@@ -120,21 +120,21 @@ export function RegistrationDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit(handleRegistrationSubmit)}>
           <div className="grid gap-6 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
+            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-4">
+              <Label htmlFor="name" className="text-left sm:text-right">
                 Your Name
               </Label>
-              <Input id="name" value={user.name} className="col-span-3" disabled />
+              <Input id="name" value={user.name} className="sm:col-span-3" disabled />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="email" className="text-right">
+            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-4">
+              <Label htmlFor="email" className="text-left sm:text-right">
                 Your Email
               </Label>
-              <Input id="email" value={user.email} className="col-span-3" disabled />
+              <Input id="email" value={user.email} className="sm:col-span-3" disabled />
             </div>
 
-            <div className="grid grid-cols-4 items-start gap-4">
-              <Label className="text-right pt-2">Type</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-4 items-start gap-4">
+              <Label className="text-left sm:text-right pt-2">Type</Label>
               <Controller
                 control={control}
                 name="type"
@@ -142,7 +142,7 @@ export function RegistrationDialog({
                   <RadioGroup
                     onValueChange={field.onChange}
                     defaultValue={field.value}
-                    className="col-span-3 flex gap-4"
+                    className="sm:col-span-3 flex gap-4"
                   >
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="individual" id="individual" />
@@ -158,17 +158,17 @@ export function RegistrationDialog({
             </div>
             
             {registrationType === "team" && (
-              <div className="grid grid-cols-1 gap-4 col-span-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                   <Label htmlFor="teamName" className="text-right">Team Name</Label>
-                   <Input id="teamName" {...register("teamName")} className="col-span-3" placeholder="e.g., The Code Crusaders" />
+              <div className="grid grid-cols-1 gap-4 col-span-1 sm:col-span-4">
+                <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-4">
+                   <Label htmlFor="teamName" className="text-left sm:text-right">Team Name</Label>
+                   <Input id="teamName" {...register("teamName")} className="sm:col-span-3" placeholder="e.g., The Code Crusaders" />
                 </div>
                 
-                <h4 className="font-semibold col-span-4 text-center mt-2">Team Members</h4>
+                <h4 className="font-semibold col-span-1 sm:col-span-4 text-center mt-2">Team Members</h4>
                 
                 {fields.map((item, index) => (
-                  <div key={item.id} className="grid grid-cols-10 gap-2 items-start col-span-4">
-                     <div className="col-span-4">
+                  <div key={item.id} className="grid grid-cols-1 sm:grid-cols-10 gap-2 items-start col-span-1 sm:col-span-4">
+                     <div className="col-span-full sm:col-span-4">
                         <Label htmlFor={`members.${index}.name`} className="sr-only">Name</Label>
                         <Input
                             placeholder="Member Name"
@@ -176,7 +176,7 @@ export function RegistrationDialog({
                         />
                          {errors.members?.[index]?.name && <p className="text-xs text-destructive mt-1">{errors.members[index]?.name?.message}</p>}
                     </div>
-                    <div className="col-span-5">
+                    <div className="col-span-full sm:col-span-5">
                         <Label htmlFor={`members.${index}.email`} className="sr-only">Email</Label>
                         <Input
                             placeholder="Member Email"
@@ -184,13 +184,13 @@ export function RegistrationDialog({
                         />
                         {errors.members?.[index]?.email && <p className="text-xs text-destructive mt-1">{errors.members[index]?.email?.message}</p>}
                     </div>
-                    <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)} className="col-span-1">
+                    <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)} className="col-span-full sm:col-span-1">
                         <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 ))}
                  {fields.length < 3 && (
-                  <div className="col-span-4 text-center">
+                  <div className="col-span-1 sm:col-span-4 text-center">
                     <Button type="button" variant="outline" onClick={() => append({ name: "", email: "" })}>
                         Add Team Member ({3 - fields.length} remaining)
                     </Button>
@@ -200,11 +200,11 @@ export function RegistrationDialog({
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+            <Button variant="outline" type="button" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Submitting...' : 'Proceed to Payment'}
+              {isSubmitting ? 'Submitting...' : 'Register'}
             </Button>
           </DialogFooter>
         </form>
@@ -212,5 +212,3 @@ export function RegistrationDialog({
     </Dialog>
   );
 }
-
-    

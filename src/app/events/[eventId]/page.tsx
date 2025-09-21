@@ -177,10 +177,10 @@ export default function EventDetailPage() {
   
    const onRegistrationError = (error: Error) => {
     setIsRegistrationDialogOpen(false);
-    if (error.message === 'You already have a registration for this event.') {
+    if ((error as Error).message === 'You already have a registration for this event.') {
         setIsAlreadyRegisteredDialogOpen(true);
     } else {
-        toast({ variant: 'destructive', title: 'Registration Failed', description: error.message });
+        toast({ variant: 'destructive', title: 'Registration Failed', description: (error as Error).message });
     }
   }
 
@@ -496,5 +496,3 @@ export default function EventDetailPage() {
     </>
   );
 }
-
-    
