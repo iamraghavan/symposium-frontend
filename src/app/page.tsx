@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import Image from 'next/image';
@@ -186,11 +185,12 @@ export default function HomePage() {
         className="flex-1">
         <section className="relative h-[80vh] flex items-center justify-center text-center text-white">
           <Image
-            src="https://egspec.blob.core.windows.net/egspec-assets/cat_img.webp"
-            alt="Audience at a symposium"
+            src="https://picsum.photos/seed/symposium/1920/1080"
+            alt="A vibrant symposium with a diverse audience"
             fill
             className="object-cover -z-10"
-            data-ai-hint="conference audience"
+            data-ai-hint="symposium audience"
+            priority
           />
           <div className="absolute inset-0 bg-black/60 -z-10" />
 
@@ -404,7 +404,7 @@ export default function HomePage() {
 
          <section className="relative py-16 md:py-24 bg-primary text-primary-foreground">
           <Image
-            src="https://images.unsplash.com/photo-1511632765486-a01980e01a18?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+            src="https://picsum.photos/seed/crowd/1920/1080"
             alt="Crowd at a conference"
             fill
             className="object-cover -z-10"
@@ -429,3 +429,5 @@ export default function HomePage() {
       </motion.main>
   );
 }
+
+    
