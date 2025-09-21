@@ -6,24 +6,23 @@ import type { Payment, ApiSuccessResponse } from '@/lib/types';
 
 const API_BASE_URL = 'https://symposium-backend.onrender.com';
 
-function getApiKey(): string {
-    const userApiKey = cookies().get('apiKey')?.value;
-    if (!userApiKey) {
-        throw new Error("Authentication details not found. User API key is missing from cookies.");
-    }
-    return userApiKey;
+function getApiKey(): string | undefined {
+    return cookies().get('apiKey')?.value;
 }
 
-async function makeApiRequest(endpoint: string, apiKey: string, options: RequestInit = {}) {
-    if (!apiKey) {
-        throw new Error("API key is missing.");
-    }
+async function makeApiRequest(endpoint: string, options: RequestInit = {}) {
+    const apiKey = getApiKey();
 
     const defaultHeaders: Record<string, string> = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'x-api-key': apiKey,
     };
+
+    // Only add API key if it exists. Let the main `api` utility handle public/private logic.
+    if (apiKey) {
+        defaultHeaders['x-api-key'] = apiKey;
+    }
+
 
     const config: RequestInit = {
         ...options,
@@ -53,12 +52,9 @@ async function makeApiRequest(endpoint: string, apiKey: string, options: Request
 }
 
 export async function getPayments(): Promise<Payment[]> {
-    const apiKey = getApiKey();
-    if (!apiKey) {
-        throw new Error("API Key is missing for authentication.");
-    }
-
-    const response = await makeApiRequest('/symposium-payments?populate=user', apiKey, {
+    // The endpoint /symposium-payments might not be public, but /finance/transactions is.
+    // Let's assume you want to hit the public finance endpoint.
+    const response = await makeApiRequest('/finance/transactions?populate=user&limit=100', {
         next: { revalidate: 0 } // No caching
     });
     return (response as ApiSuccessResponse<{ data: Payment[] }>).data || [];

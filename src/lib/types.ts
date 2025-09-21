@@ -9,6 +9,10 @@ export type Department = {
   isActive: boolean;
   createdAt?: string;
   updatedAt?: string;
+  head?: {
+    name: string;
+    email: string;
+  }
 };
 
 export type User = {

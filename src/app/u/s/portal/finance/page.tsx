@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Banknote, IndianRupee, Users } from "lucide-react";
-import type { LoggedInUser, Payment } from "@/lib/types";
+import type { LoggedInUser, Payment, User } from "@/lib/types";
 import { isAdmin } from "@/lib/utils";
 import { getPayments } from "./actions";
 import { useToast } from "@/hooks/use-toast";
@@ -56,7 +56,7 @@ export default function AdminFinancePage() {
     return null; // or a loading spinner while redirecting
   }
 
-  const totalRevenue = payments.reduce((acc, p) => p.status === 'paid' ? acc + p.amount : acc, 0) / 100;
+  const totalRevenue = payments.reduce((acc, p) => p.status === 'paid' ? acc + p.amount : acc, 0);
   const totalTransactions = payments.length;
 
   const getStatusVariant = (status: string) => {
@@ -68,9 +68,9 @@ export default function AdminFinancePage() {
     }
   };
   
-  const getUser = (payment: Payment) => {
-      if (typeof payment.user === 'object' && payment.user !== null) {
-          return payment.user;
+  const getUser = (payment: Payment): User | null => {
+      if (typeof payment.user === 'object' && payment.user !== null && '_id' in payment.user) {
+          return payment.user as User;
       }
       return null;
   }
@@ -153,7 +153,7 @@ export default function AdminFinancePage() {
                                         <p className="text-muted-foreground">N/A</p>
                                     )}
                                 </TableCell>
-                                <TableCell>₹{(p.amount / 100).toFixed(2)}</TableCell>
+                                <TableCell>₹{p.amount.toFixed(2)}</TableCell>
                                 <TableCell className="font-mono text-xs">{p.orderId}</TableCell>
                                 <TableCell>
                                     <Badge variant={getStatusVariant(p.status)} className="capitalize">{p.status}</Badge>

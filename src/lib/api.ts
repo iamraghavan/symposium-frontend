@@ -5,6 +5,19 @@ import type { ApiErrorResponse, ApiSuccessResponse } from './types';
 
 const API_BASE_URL = 'https://symposium-backend.onrender.com';
 
+const publicRoutes = [
+    '/analytics/statistics/overview',
+    '/analytics/statistics/participants',
+    '/analytics/statistics/events/registration-summary',
+    '/analytics/statistics/departments/', // Using startsWith for dynamic IDs
+    '/analytics/users/analytics/first-week',
+    '/finance/overview',
+    '/finance/transactions',
+    '/finance/revenue-by-department',
+    '/departments', // Also public for fetching list
+    '/events' // Public for listing, details, etc.
+];
+
 type ApiOptions = {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: Record<string, any>;
@@ -12,42 +25,45 @@ type ApiOptions = {
   headers?: Record<string, string>;
 };
 
+function isPublicRoute(endpoint: string): boolean {
+    return publicRoutes.some(route => endpoint.startsWith(route));
+}
+
 async function api<T extends ApiSuccessResponse<any> | ApiErrorResponse>(endpoint: string, options: ApiOptions = {}): Promise<T> {
   const { method = 'GET', body, authenticated = false, headers = {} } = options;
-
-  let apiKey: string | null = null;
-  if (typeof window !== 'undefined') {
-    // Prefer user-specific key if available and authenticated request is intended
-    apiKey = localStorage.getItem('userApiKey');
-  }
-
-  // If no user-specific key, use the global public key for any request that needs it
-  if (!apiKey) {
-      apiKey = process.env.NEXT_PUBLIC_API_KEY || null;
-  }
+  const finalEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   
-  if (!apiKey) {
-      const errorMsg = "API key is missing. No user-specific or global key found.";
-      console.error(errorMsg);
-      throw new Error(JSON.stringify({ message: errorMsg, success: false, code: "API_KEY_MISSING" }));
-  }
-
-
-  const config: RequestInit = {
-    method,
-    headers: {
+  const finalHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'x-api-key': apiKey,
       ...headers,
-    },
+  };
+
+  const isPublic = isPublicRoute(finalEndpoint);
+
+  // Only add API key if the route is NOT public
+  if (!isPublic) {
+    let apiKey: string | null = null;
+    if (typeof window !== 'undefined') {
+      apiKey = localStorage.getItem('userApiKey');
+    }
+    
+    if (!apiKey) {
+      const errorMsg = "API key is missing for a private route.";
+      console.error(errorMsg, `Endpoint: ${finalEndpoint}`);
+      throw new Error(JSON.stringify({ message: errorMsg, success: false, code: "API_KEY_MISSING" }));
+    }
+    finalHeaders['x-api-key'] = apiKey;
+  }
+  
+  const config: RequestInit = {
+    method,
+    headers: finalHeaders,
   };
 
   if (body) {
     config.body = JSON.stringify(body);
   }
-  
-  const finalEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
 
   try {
     const response = await fetch(`${API_BASE_URL}/api/v1${finalEndpoint}`, config);

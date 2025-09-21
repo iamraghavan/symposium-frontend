@@ -39,13 +39,8 @@ export type Participant = {
     createdAt: string;
 }
 
-function getApiKey(): string {
-    const userApiKey = cookies().get('apiKey')?.value;
-
-    if (!userApiKey) {
-        throw new Error("Authentication details not found. User API key is missing from cookies.");
-    }
-    return userApiKey;
+function getApiKey(): string | undefined {
+    return cookies().get('apiKey')?.value;
 }
 
 async function makeApiRequest(endpoint: string, options: RequestInit = {}) {
@@ -54,8 +49,11 @@ async function makeApiRequest(endpoint: string, options: RequestInit = {}) {
     const defaultHeaders: Record<string, string> = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'x-api-key': apiKey,
     };
+    // Only add API key if it exists. Let the main `api` utility handle public/private logic.
+    if (apiKey) {
+        defaultHeaders['x-api-key'] = apiKey;
+    }
 
     const config: RequestInit = {
         ...options,
