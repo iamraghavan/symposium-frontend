@@ -48,6 +48,17 @@ import { useGoogleAuth } from "@/components/layout/google-one-tap";
 import { GoogleLogin } from "@react-oauth/google";
 import { RegistrationDialog } from "@/components/events/registration-dialog";
 
+type ApiOrderResponse = {
+    keyId: string;
+    payment: {
+      order: {
+        id: string;
+        amount: number;
+        currency: string;
+      }
+    }
+};
+
 export default function EventDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -107,45 +118,46 @@ export default function EventDetailPage() {
     fetchWinners();
   }, [eventId, toast]);
 
- const handleRazorpayPayment = async (registration: Registration, orderId: string, amount: number) => {
+ const processRazorpayPayment = (orderResponse: ApiOrderResponse, registration: Registration) => {
      if (!user || !event) return;
-     const razorpayKeyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
-
-     if (!razorpayKeyId) {
-        toast({ variant: 'destructive', title: 'Configuration Error', description: 'Razorpay Key ID is not configured.'});
-        return;
-     }
 
     const options = {
-        key: razorpayKeyId,
-        amount: amount,
-        currency: registration.payment.currency || 'INR',
+        key: orderResponse.keyId,
+        amount: orderResponse.payment.order.amount,
+        currency: orderResponse.payment.order.currency,
         name: "Symposium Central",
         description: `One-time Symposium Pass Fee for ${event.name}`,
         image: 'https://cdn.egspec.org/assets/img/logo-sm.png',
-        order_id: orderId,
+        order_id: orderResponse.payment.order.id,
         handler: async function (response: any) {
-            // Optional: Acknowledge checkout on your backend for analytics
+            // 1. Acknowledge checkout for analytics (optional)
             api(`/registrations/${registration._id}/checkout-ack`, {
-                method: 'POST',
-                authenticated: true,
-                body: {
-                    orderId: response.razorpay_order_id,
-                    paymentId: response.razorpay_payment_id,
-                    signature: response.razorpay_signature,
-                }
+                method: 'POST', authenticated: true, body: { orderId: response.razorpay_order_id, paymentId: response.razorpay_payment_id, signature: response.razorpay_signature }
             }).catch(err => console.error("Checkout-ack failed:", err));
 
-            toast({ title: 'Payment Submitted', description: 'Your registration is being confirmed. Please wait a moment.' });
-            
-            // Optimistically update user's payment status in localStorage for this session
-            const updatedUser = { ...user, hasPaidForEvent: true };
-            localStorage.setItem('loggedInUser', JSON.stringify(updatedUser));
-            setUser(updatedUser);
-            
-            setTimeout(() => {
-                window.location.reload();
-            }, 2000);
+            // 2. Verify payment on backend
+            try {
+                await api('/verify', {
+                    method: 'POST', authenticated: true, body: {
+                        registrationId: registration._id,
+                        razorpay_order_id: response.razorpay_order_id,
+                        razorpay_payment_id: response.razorpay_payment_id,
+                        razorpay_signature: response.razorpay_signature,
+                    }
+                });
+                
+                toast({ title: 'Payment Successful!', description: 'Your registration has been confirmed. Reloading...' });
+                
+                // Optimistically update user's payment status in localStorage
+                const updatedUser = { ...user, hasPaidForEvent: true };
+                localStorage.setItem('loggedInUser', JSON.stringify(updatedUser));
+                setUser(updatedUser);
+                
+                setTimeout(() => { window.location.reload(); }, 2000);
+
+            } catch (error) {
+                toast({ variant: 'destructive', title: 'Payment Verification Failed', description: (error as Error).message || 'Please contact support.'});
+            }
         },
         prefill: {
             name: user.name,
@@ -154,6 +166,7 @@ export default function EventDetailPage() {
         notes: {
             registration_id: registration._id,
             user_id: user._id,
+            event_id: event._id,
         },
         theme: {
             color: '#9D4EDD',
@@ -168,6 +181,28 @@ export default function EventDetailPage() {
     rzp.open();
   }
 
+  const handlePaymentRequired = async (registration: Registration) => {
+      setIsRegistrationDialogOpen(false);
+      try {
+        toast({ title: 'Payment Required', description: 'Creating payment order, please wait...' });
+        const orderResponse = await api<ApiSuccessResponse<ApiOrderResponse>>('/order', {
+            method: 'POST',
+            authenticated: true,
+            body: { registrationId: registration._id }
+        });
+
+        if (orderResponse.success && orderResponse.data?.payment.order) {
+            processRazorpayPayment(orderResponse.data as any, registration);
+        } else {
+            throw new Error('Could not create payment order.');
+        }
+
+      } catch (error) {
+        toast({ variant: 'destructive', title: 'Order Creation Failed', description: (error as Error).message || 'Please try registering again.' });
+      }
+  }
+
+
   const handleOpenRegistration = () => {
     if (!user) {
       setIsLoginModalOpen(true);
@@ -180,21 +215,10 @@ export default function EventDetailPage() {
     setIsRegistrationDialogOpen(true);
   }
   
-  const onRegistrationSuccess = (response: ApiSuccessResponse<{ registration: Registration }>) => {
+  const onRegistrationSuccess = () => {
     setIsRegistrationDialogOpen(false);
-    
-    // The backend's response structure after merging your change
-    const registrationData = response.registration as Registration;
-    const hints = response.hints;
-
-    if (registrationData && hints?.razorpayOrderId) {
-        // Payment is required, trigger Razorpay
-        handleRazorpayPayment(registrationData, hints.razorpayOrderId, registrationData.payment.amount);
-    } else {
-      // No payment needed (already paid or free event)
-      toast({ title: 'Registration Confirmed!', description: 'You have been successfully registered for the event.' });
-      setTimeout(() => window.location.reload(), 1500);
-    }
+    toast({ title: 'Registration Confirmed!', description: 'You have been successfully registered for the event.' });
+    setTimeout(() => window.location.reload(), 1500);
   }
   
    const onRegistrationError = (error: Error) => {
@@ -487,6 +511,7 @@ export default function EventDetailPage() {
           user={user}
           onSuccess={onRegistrationSuccess}
           onError={onRegistrationError}
+          onPaymentRequired={handlePaymentRequired}
         />
       )}
 
@@ -534,3 +559,4 @@ export default function EventDetailPage() {
   );
 }
 
+    

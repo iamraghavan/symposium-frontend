@@ -40,8 +40,9 @@ type RegistrationDialogProps = {
   onOpenChange: (open: boolean) => void;
   event: Event;
   user: LoggedInUser;
-  onSuccess: (response: ApiSuccessResponse<{ registration: Registration }>) => void;
+  onSuccess: () => void;
   onError: (error: Error) => void;
+  onPaymentRequired: (registration: Registration) => void;
 };
 
 export function RegistrationDialog({
@@ -50,7 +51,8 @@ export function RegistrationDialog({
   event,
   user,
   onSuccess,
-  onError
+  onError,
+  onPaymentRequired,
 }: RegistrationDialogProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -98,13 +100,18 @@ export function RegistrationDialog({
         };
       }
 
-      const response = await api<ApiSuccessResponse<{ registration: Registration }>>('/registrations', {
+      const response = await api<any>('/registrations', {
         method: 'POST',
         body: payload,
         authenticated: true,
       });
       
-      onSuccess(response);
+      // Check backend response to see if payment is needed
+      if (response.payment?.needsPayment === true && response.registration) {
+          onPaymentRequired(response.registration);
+      } else {
+          onSuccess();
+      }
 
     } catch (error) {
       onError(error as Error);
@@ -238,3 +245,4 @@ export function RegistrationDialog({
   );
 }
 
+    
