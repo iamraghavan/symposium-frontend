@@ -207,7 +207,6 @@ export default function EventDetailPage() {
     try {
       return new URL(url).hostname;
     } catch (error) {
-      console.error("Invalid URL for hostname:", url);
       return null;
     }
   }
@@ -522,5 +521,3 @@ export default function EventDetailPage() {
     </>
   );
 }
-
-    
