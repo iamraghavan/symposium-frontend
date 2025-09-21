@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import Image from "next/image";
@@ -84,7 +83,7 @@ export default function EventDetailPage() {
   const fetchEventData = useCallback(async () => {
       setIsLoading(true);
       try {
-        const response = await api<ApiSuccessResponse<{ event: Event }>>(`/events/${eventId}`);
+        const response = await api<ApiSuccessResponse<{ event: Event }>>(`/events/${eventId}`, { authenticated: true });
         if (response.success && response.data) {
           setEvent(response.data as unknown as Event);
         } else {
