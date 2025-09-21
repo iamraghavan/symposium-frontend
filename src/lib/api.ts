@@ -25,7 +25,8 @@ async function api<T extends ApiSuccessResponse<any> | ApiErrorResponse>(endpoin
     if (!userApiKey) {
         const errorMsg = 'API key is missing for an authenticated request.';
         console.error(errorMsg);
-        throw new Error(errorMsg);
+        // This makes sure the error is a JSON string so it can be parsed by the caller
+        throw new Error(JSON.stringify({ message: errorMsg }));
     }
     apiKey = userApiKey;
   }
@@ -57,27 +58,23 @@ async function api<T extends ApiSuccessResponse<any> | ApiErrorResponse>(endpoin
 
     if (!response.ok) {
       const apiErrorResponse = responseData as ApiErrorResponse;
-      const errorMessage = apiErrorResponse.message || 'An unknown API error occurred.';
-      if (apiErrorResponse.isNewUser && apiErrorResponse.profile) {
-          throw new Error(JSON.stringify(apiErrorResponse));
-      }
-      throw new Error(errorMessage);
+      // We stringify the error to ensure the caller can parse it, especially for special cases like `isNewUser`.
+      throw new Error(JSON.stringify(apiErrorResponse));
     }
     
-    // For successful responses (200, 201, etc.), we ensure a 'success' flag is present.
-    // This makes frontend handling consistent.
-    if (responseData.success === undefined) {
-      responseData.success = true;
-    }
     return responseData as T;
 
   } catch (error) {
     console.error(`API call to '${endpoint}' failed:`, error);
     if (error instanceof Error) {
+        // Re-throw the original error which might be our stringified JSON
         throw error;
     }
-    throw new Error('An unknown network error occurred.');
+    // Fallback for unknown network errors
+    throw new Error(JSON.stringify({ message: 'An unknown network error occurred.' }));
   }
 }
 
 export default api;
+
+    

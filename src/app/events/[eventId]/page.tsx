@@ -35,7 +35,6 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { winners as allWinners } from "@/lib/data";
 import { parseISO, format } from 'date-fns';
 import { notFound, useParams, useRouter } from "next/navigation";
 import { Calendar, Users, Trophy, Globe, Info, Clock, TicketCheck, ExternalLink, Phone, Mail, Link as LinkIcon, IndianRupee, Building } from "lucide-react";
@@ -81,8 +80,6 @@ export default function EventDetailPage() {
         const response = await api<ApiSuccessResponse<{ event: Event }>>(`/events/${eventId}`);
         if (response.success && response.data) {
           setEvent(response.data as unknown as Event);
-          // This should be replaced with an API call in the future
-          setWinners(allWinners.filter(w => w.eventId === (response.data as Event)?._id));
         } else {
            throw new Error("Event not found in API response.");
         }
@@ -94,7 +91,20 @@ export default function EventDetailPage() {
       }
     };
     
+    const fetchWinners = async () => {
+        try {
+            const response = await api<ApiSuccessResponse<Winner[]>>(`/events/${eventId}/winners`);
+            if (response.success && response.data) {
+                setWinners(response.data);
+            }
+        } catch (error) {
+            // Non-critical, so we just log it
+            console.error("Could not fetch winners:", error);
+        }
+    }
+    
     fetchEventData();
+    fetchWinners();
   }, [eventId, toast]);
 
  const handleRazorpayPayment = async (registration: Registration, orderId: string, amount: number) => {
@@ -111,7 +121,7 @@ export default function EventDetailPage() {
         amount: amount,
         currency: registration.payment.currency || 'INR',
         name: "Symposium Central",
-        description: `One-time Symposium Pass Fee`,
+        description: `One-time Symposium Pass Fee for ${event.name}`,
         image: 'https://cdn.egspec.org/assets/img/logo-sm.png',
         order_id: orderId,
         handler: async function (response: any) {
@@ -128,7 +138,7 @@ export default function EventDetailPage() {
 
             toast({ title: 'Payment Submitted', description: 'Your registration is being confirmed. Please wait a moment.' });
             
-            // Optimistically update user's payment status in localStorage
+            // Optimistically update user's payment status in localStorage for this session
             const updatedUser = { ...user, hasPaidForEvent: true };
             localStorage.setItem('loggedInUser', JSON.stringify(updatedUser));
             setUser(updatedUser);
@@ -170,7 +180,7 @@ export default function EventDetailPage() {
     setIsRegistrationDialogOpen(true);
   }
   
-  const onRegistrationSuccess = (response: ApiSuccessResponse) => {
+  const onRegistrationSuccess = (response: ApiSuccessResponse<{ registration: Registration }>) => {
     setIsRegistrationDialogOpen(false);
     const { registration, hints } = response;
     
@@ -237,7 +247,6 @@ export default function EventDetailPage() {
   }
 
   const departmentName = typeof event.department === 'object' ? event.department.name : 'Unknown Department';
-  const paymentMethodText = event.payment.method === 'none' ? 'Free' : event.payment.method === 'gateway' ? 'Online Gateway' : 'QR Code';
   const isFreeEvent = event.payment.price === 0;
 
   return (
@@ -521,3 +530,5 @@ export default function EventDetailPage() {
     </>
   );
 }
+
+    

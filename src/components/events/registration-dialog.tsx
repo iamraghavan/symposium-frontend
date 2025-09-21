@@ -94,7 +94,7 @@ export function RegistrationDialog({
         }
         payload.team = {
           name: data.teamName,
-          members: data.members,
+          members: data.members || [],
           size: data.members?.length || 0,
         };
       }
@@ -105,11 +105,8 @@ export function RegistrationDialog({
         authenticated: true,
       });
       
-      if (response.success && response.registration) {
-        onSuccess(response);
-      } else {
-        throw new Error((response as any).message || "Registration submission failed");
-      }
+      onSuccess(response);
+
     } catch (error) {
       onError(error as Error);
     } finally {
@@ -233,7 +230,7 @@ export function RegistrationDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Submitting...' : (isPaidEvent ? 'Proceed to Payment' : 'Register')}
+              {isSubmitting ? 'Submitting...' : (isPaidEvent ? 'Proceed to Payment' : 'Confirm Registration')}
             </Button>
           </DialogFooter>
         </form>
@@ -241,3 +238,5 @@ export function RegistrationDialog({
     </Dialog>
   );
 }
+
+    
