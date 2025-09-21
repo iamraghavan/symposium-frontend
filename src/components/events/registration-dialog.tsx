@@ -21,6 +21,7 @@ import { useState } from "react";
 import api from "@/lib/api";
 import { Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Separator } from "../ui/separator";
 
 const memberSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -108,6 +109,10 @@ export function RegistrationDialog({
       setIsSubmitting(false);
     }
   };
+  
+  const isPaidEvent = event.payment.price > 0;
+  const numberOfParticipants = registrationType === 'team' ? fields.length + 1 : 1;
+  const totalPrice = numberOfParticipants * event.payment.price;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -199,12 +204,28 @@ export function RegistrationDialog({
               </div>
             )}
           </div>
-          <DialogFooter>
+          
+           {isPaidEvent && (
+            <div className="space-y-2 mt-4 pt-4 border-t">
+                <h4 className="font-semibold text-lg">Payment Details</h4>
+                 <div className="flex justify-between items-center text-muted-foreground">
+                    <span>{numberOfParticipants} Participant(s) &times; {event.payment.currency} {event.payment.price.toFixed(2)}</span>
+                    <span>{event.payment.currency} {(numberOfParticipants * event.payment.price).toFixed(2)}</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between items-center font-bold text-xl">
+                    <span>Total</span>
+                    <span>{event.payment.currency} {totalPrice.toFixed(2)}</span>
+                </div>
+            </div>
+           )}
+
+          <DialogFooter className="mt-6">
             <Button variant="outline" type="button" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Submitting...' : 'Register'}
+              {isSubmitting ? 'Submitting...' : (isPaidEvent ? 'Proceed to Payment' : 'Register')}
             </Button>
           </DialogFooter>
         </form>
