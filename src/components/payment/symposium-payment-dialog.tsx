@@ -27,6 +27,10 @@ export function SymposiumPaymentDialog({
 }: SymposiumPaymentDialogProps) {
   const feePerPerson = 250;
   const totalAmount = feePerPerson * unpaidEmails.length;
+  const razorpayFee = totalAmount * 0.02;
+  const gst = razorpayFee * 0.18;
+  const totalConvenienceFee = razorpayFee + gst;
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -44,6 +48,11 @@ export function SymposiumPaymentDialog({
                     <IndianRupee className="h-8 w-8" />{totalAmount.toLocaleString()}
                 </p>
                 <p className="text-xs text-muted-foreground">({unpaidEmails.length} person &times; ₹{feePerPerson})</p>
+            </div>
+            
+            <div className="text-xs text-muted-foreground text-center my-4 border-t border-b py-2">
+                Includes Razorpay Fee: <span className="font-semibold">₹{razorpayFee.toFixed(2)}</span> + GST: <span className="font-semibold">₹{gst.toFixed(2)}</span>. 
+                Total Convenience Fee: <span className="font-semibold">₹{totalConvenienceFee.toFixed(2)}</span>
             </div>
 
             <div className="space-y-2">
