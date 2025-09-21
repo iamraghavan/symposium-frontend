@@ -13,10 +13,6 @@ const GST_PERCENTAGE = 0.18; // 18%
 
 // This function calculates the total amount the customer should be charged
 // so that the merchant receives the intended base amount after fees.
-// Formula from Razorpay docs: Amount to charge = (Base Amount + 0.3) / (1 - (Fee % + (Fee % * GST %)))
-// Simplified for 2% fee and 18% GST: (Base Amount) / (1 - 0.0236)
-// Note: Razorpay has a minimum fee, but for simplicity we'll use the percentage.
-// Let's pass the fees to the user instead.
 function calculateTotalWithFees(baseAmount: number): number {
     const razorpayFee = baseAmount * RAZORPAY_FEE_PERCENTAGE;
     const gstOnFee = razorpayFee * GST_PERCENTAGE;
@@ -44,7 +40,8 @@ export async function POST(request: NextRequest) {
         notes: {
             emails: emails.join(','),
             baseAmount: baseAmount,
-            fees: totalAmountInRupees - baseAmount
+            fees: totalAmountInRupees - baseAmount,
+            international: 1, // Flag for international payment
         }
     };
 
