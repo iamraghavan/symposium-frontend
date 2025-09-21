@@ -95,7 +95,7 @@ export function RegistrationDialog({
         payload.team = {
           name: data.teamName,
           members: data.members,
-          size: (data.members?.length || 0) + 1, // +1 for the leader
+          size: data.members?.length || 0,
         };
       }
 
