@@ -78,7 +78,7 @@ export default function EventDetailPage() {
     const fetchEventData = async () => {
       setIsLoading(true);
       try {
-        const response = await api<ApiSuccessResponse<Event>>(`/events/${eventId}`);
+        const response = await api<ApiSuccessResponse<{ event: Event }>>(`/events/${eventId}`);
         if (response.success && response.data) {
           setEvent(response.data as unknown as Event);
           // This should be replaced with an API call in the future
@@ -97,19 +97,21 @@ export default function EventDetailPage() {
     fetchEventData();
   }, [eventId, toast]);
 
-  const handleRazorpayPayment = async (registration: Registration, razorpayOrderId: string, keyId: string) => {
+  const handleRazorpayPayment = async (registration: Registration, razorpayOrderId: string) => {
      if (!user || !event) return;
-     if (!keyId) {
+     const razorpayKeyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+
+     if (!razorpayKeyId) {
         toast({ variant: 'destructive', title: 'Configuration Error', description: 'Razorpay Key ID is not configured.'});
         return;
      }
 
     const options = {
-        key: keyId,
+        key: razorpayKeyId,
         amount: registration.payment.amount * 100, // amount in the smallest currency unit
         currency: registration.payment.currency,
         name: "Symposium Central",
-        description: `Registration for ${event.name}`,
+        description: `One-time Symposium Pass Fee`,
         image: 'https://cdn.egspec.org/assets/img/logo-sm.png',
         order_id: razorpayOrderId,
         handler: async function (response: any) {
@@ -131,6 +133,7 @@ export default function EventDetailPage() {
         },
         notes: {
             registration_id: registration._id,
+            user_id: user._id,
         },
         theme: {
             color: '#9D4EDD',
@@ -160,25 +163,21 @@ export default function EventDetailPage() {
   const onRegistrationSuccess = (registration: Registration, hints: any) => {
     setIsRegistrationDialogOpen(false);
     
-    if (hints?.next === 'confirmed') {
-      toast({ title: 'Success', description: 'You have been registered for the event!' });
-      window.location.reload();
-    } else if (hints?.next === 'pay_gateway' && hints?.razorpayOrderId) {
-        const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
-        if(keyId){
-             handleRazorpayPayment(registration, hints.razorpayOrderId, keyId);
-        } else {
-             toast({ variant: 'destructive', title: 'Configuration Error', description: 'Razorpay Key ID is not configured.'});
-        }
+    // Check if the backend sent a Razorpay Order ID
+    if (hints?.razorpayOrderId) {
+        // If yes, trigger the payment flow
+        handleRazorpayPayment(registration, hints.razorpayOrderId);
     } else {
-        toast({ title: 'Registration Pending', description: 'Your registration is pending further action.' });
-        window.location.reload();
+      // If no order ID, payment is not required (already paid or free event)
+      toast({ title: 'Registration Confirmed!', description: 'You have been successfully registered for the event.' });
+      // Reload to reflect the new registration status
+      setTimeout(() => window.location.reload(), 1500);
     }
   }
   
    const onRegistrationError = (error: Error) => {
     setIsRegistrationDialogOpen(false);
-    if (error.message === 'You already have a registration for this event.') {
+    if (error.message.includes('You already have a registration for this event')) {
         setIsAlreadyRegisteredDialogOpen(true);
     } else {
         toast({ variant: 'destructive', title: 'Registration Failed', description: error.message });
@@ -295,10 +294,10 @@ export default function EventDetailPage() {
                     <CardContent className="p-0">
                        <div className="bg-primary/10 p-4 text-center">
                         <h3 className="font-bold text-lg text-primary">
-                          {isFreeEvent || user?.hasPaidForEvent ? 'Registration is Free!' : 'Registration is Open!'}
+                          {isFreeEvent ? 'Registration is Free!' : user?.hasPaidForEvent ? 'Your Symposium Pass is Active!' : 'Registration is Open!'}
                         </h3>
                          {user?.hasPaidForEvent && !isFreeEvent && (
-                            <p className="text-sm text-green-600 font-semibold mt-1">Your Symposium Pass is active!</p>
+                            <p className="text-sm text-green-600 font-semibold mt-1">Your next event registrations are free.</p>
                          )}
                       </div>
                       <div className="p-4">
@@ -339,8 +338,8 @@ export default function EventDetailPage() {
                         <IndianRupee className="mr-3 h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                         <div>
                           <h3 className="font-semibold">Registration Fee</h3>
-                          <p className="text-muted-foreground">{event.payment.price > 0 ? `${event.payment.currency} ${event.payment.price}` : 'Free'} <span className="text-xs">({paymentMethodText})</span></p>
-                           {user?.hasPaidForEvent && !isFreeEvent && <p className="text-xs text-green-600 font-medium">(Free for you)</p>}
+                          <p className="text-muted-foreground">{event.payment.price > 0 ? `One-time fee of ${event.payment.currency} ${event.payment.price}` : 'Free'}</p>
+                           {user?.hasPaidForEvent && !isFreeEvent && <p className="text-xs text-green-600 font-medium">(Free for you with Symposium Pass)</p>}
                         </div>
                       </div>
                       <div className="flex items-start">
@@ -495,3 +494,4 @@ export default function EventDetailPage() {
     </>
   );
 }
+

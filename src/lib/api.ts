@@ -1,7 +1,7 @@
 
 'use client';
 
-import type { ApiErrorResponse } from './types';
+import type { ApiErrorResponse, ApiSuccessResponse } from './types';
 
 const API_BASE_URL = 'https://symposium-backend.onrender.com';
 const GLOBAL_API_KEY = 'rjfqrur9L0v2XNzx574DI1Djejii70JP5S';
@@ -50,7 +50,8 @@ async function api<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
     // Check if the response is JSON, otherwise throw a network error.
     const contentType = response.headers.get("content-type");
     if (!contentType || !contentType.includes("application/json")) {
-        throw new TypeError(`Server returned non-JSON response: ${response.statusText}`);
+        const responseText = await response.text();
+        throw new TypeError(`Server returned non-JSON response: ${response.status} ${response.statusText} \nResponse: ${responseText}`);
     }
 
     const responseData = await response.json();
@@ -59,11 +60,17 @@ async function api<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
       // The API returned an error status code (4xx or 5xx).
       // The responseData should be an ApiErrorResponse.
       const errorMessage = responseData.message || 'An unknown API error occurred.';
+       // Special handling for new google user trying to register
+      if (responseData.isNewUser && responseData.profile) {
+          throw new Error(JSON.stringify(responseData));
+      }
       throw new Error(errorMessage);
     }
     
+    // Some successful responses might not have a `success` field but are still valid (e.g. from create registration)
+    // The presence of a `registration` object is a good sign of success.
+    // The logic is, if success is explicitly false, it's an error. Otherwise, we treat it as success.
     if (responseData.success === false) {
-       // The API returned a 200 OK status, but indicated failure in the body.
        const errorMessage = (responseData as ApiErrorResponse).message || 'The API indicated a failure.';
        throw new Error(errorMessage);
     }
@@ -81,3 +88,4 @@ async function api<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
 }
 
 export default api;
+

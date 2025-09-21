@@ -1,4 +1,5 @@
 
+
 export type Department = {
   _id: string;
   id: string; // short id or uuid
@@ -157,3 +158,4 @@ export type ApiErrorResponse = {
     picture?: string;
   }
 };
+
