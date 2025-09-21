@@ -69,6 +69,8 @@ export default function EventDetailPage() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isAlreadyRegisteredDialogOpen, setIsAlreadyRegisteredDialogOpen] = useState(false);
   const [currentRegistration, setCurrentRegistration] = useState<Registration | null>(null);
+  
+  const razorpayKeyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
 
   useEffect(() => {
     const userData = localStorage.getItem("loggedInUser");
@@ -81,7 +83,7 @@ export default function EventDetailPage() {
     const fetchEventData = async () => {
       setIsLoading(true);
       try {
-        const response = await api<ApiSuccessResponse<{ event: Event }>>(`/events/${eventId}`);
+        const response = await api<ApiSuccessResponse<Event>>(`/events/${eventId}`);
         if (response.success && response.data) {
           setEvent(response.data as unknown as Event);
           // This should be replaced with an API call in the future
@@ -100,16 +102,15 @@ export default function EventDetailPage() {
     fetchEventData();
   }, [eventId, toast]);
 
-  const handleRazorpayPayment = async (registration: Registration, razorpayOrderId: string) => {
+  const handleRazorpayPayment = async (registration: Registration, razorpayOrderId: string, keyId: string) => {
      if (!user) return;
-     const razorpayKeyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
-     if (!razorpayKeyId) {
+     if (!keyId) {
         toast({ variant: 'destructive', title: 'Configuration Error', description: 'Razorpay Key ID is not configured.'});
         return;
      }
 
     const options = {
-        key: razorpayKeyId,
+        key: keyId,
         amount: registration.payment.amount * 100, // amount in the smallest currency unit
         currency: registration.payment.currency,
         name: event?.name,
@@ -166,8 +167,8 @@ export default function EventDetailPage() {
     if (hints?.next === 'confirmed') {
       toast({ title: 'Success', description: 'You have been registered for the event!' });
       window.location.reload();
-    } else if (hints?.next === 'pay_gateway' && hints?.razorpayOrderId) {
-        handleRazorpayPayment(registration, hints.razorpayOrderId);
+    } else if (hints?.next === 'pay_gateway' && hints?.razorpayOrderId && razorpayKeyId) {
+        handleRazorpayPayment(registration, hints.razorpayOrderId, razorpayKeyId);
     } else if (hints?.next === 'submit_qr_proof') {
       setQrDialogOpen(true);
     } else {
@@ -496,3 +497,5 @@ export default function EventDetailPage() {
     </>
   );
 }
+
+    
