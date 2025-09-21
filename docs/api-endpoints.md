@@ -97,6 +97,39 @@ This document outlines the backend API endpoints required to support the Symposi
 
 - **`GET /api/finance/events/{eventId}`**: Retrieves a financial summary for a specific event.
   - **Response**: `{ "revenue": ..., "prizes": ..., "netIncome": ... }`
+  
+- **`GET /api/v1/finance/overview`**: Retrieves a financial overview with filters.
+  - **Query Parameters**: `?from=<date>`, `?to=<date>`, `?kind=symposium`
+  - **Response**: `{ "success": true, "grossInr": 255900, "paidCount": 1000, ... }`
+  
+- **`GET /api/v1/finance/transactions`**: Retrieves a list of financial transactions.
+  - **Query Parameters**: `?status=paid`, `?q=order_`
+  - **Response**: `[ { "orderId": "...", "amount": ..., "status": "paid", ... } ]`
+  
+- **`GET /api/v1/finance/revenue-by-department`**: Retrieves a breakdown of revenue by department.
+  - **Response**: `[ { "departmentId": "...", "name": "...", "revenue": ... } ]`
+
+---
+
+## Analytics Endpoints (Admin)
+
+- **`GET /api/v1/analytics/statistics/overview`**: Retrieves key performance indicators (KPIs).
+  - **Query Parameters**: `?departmentId=<id>`, `?from=<date>`, `?to=<date>`
+  - **Response**: `{ "success": true, "kpis": { "users": ..., "events": ... }, ... }`
+  
+- **`GET /api/v1/analytics/statistics/participants`**: Retrieves a list of all participants.
+  - **Query Parameters**: `?from=<date>`, `?to=<date>`
+  - **Response**: `[ { "id": "...", "name": "...", ... } ]`
+  
+- **`GET /api/v1/analytics/statistics/events/registration-summary`**: Retrieves a summary of registrations for events.
+  - **Query Parameters**: `?departmentId=<id>`, `?page=1`, `?limit=20`, `?sort=-participants`
+  - **Response**: `[ { "eventId": "...", "participants": ..., ... } ]`
+  
+- **`GET /api/v1/analytics/statistics/departments/:departmentId/totals`**: Retrieves total statistics for a single department.
+  - **Response**: `{ "success": true, "totals": { ... } }`
+  
+- **`GET /api/v1/analytics/users/analytics/first-week`**: Retrieves user analytics for the first week.
+  - **Response**: `[ { "date": "...", "users": ... } ]`
 
 ---
 
