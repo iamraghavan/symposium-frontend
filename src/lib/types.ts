@@ -1,4 +1,5 @@
 
+
 export type Department = {
   _id: string;
   id: string; // short id or uuid
@@ -20,6 +21,7 @@ export type User = {
   avatarUrl?: string;
   picture?: string;
   departmentId?: string;
+  role?: 'super_admin' | 'department_admin' | 'user';
 };
 
 export type Event = {
@@ -115,6 +117,22 @@ export type Registration = {
   updatedAt: string;
 };
 
+export type Payment = {
+    _id: string;
+    user: User | string;
+    registration: string | null;
+    kind: 'symposium' | 'event';
+    memberEmails: string[];
+    amount: number;
+    currency: string;
+    orderId: string;
+    paymentId: string;
+    status: 'paid' | 'pending' | 'failed';
+    createdAt: string;
+    updatedAt: string;
+    raw?: object;
+};
+
 export type ApiSuccessResponse<T> = {
   success: true;
   token?: string;
@@ -149,5 +167,4 @@ export type ApiErrorResponse = {
       feeInInr: number;
   }
 };
-
     
