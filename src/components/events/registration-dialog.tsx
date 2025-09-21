@@ -53,7 +53,7 @@ export function RegistrationDialog({
   onSuccess,
   onError
 }: RegistrationDialogProps) {
-    const { toast } = useToast();
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {

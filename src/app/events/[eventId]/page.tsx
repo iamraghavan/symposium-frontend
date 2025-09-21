@@ -44,7 +44,6 @@ import api from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import type { Event, ApiSuccessResponse, Winner, Department, LoggedInUser, Registration } from '@/lib/types';
 import { Skeleton } from "@/components/ui/skeleton";
-import { QrDialog } from "@/components/payment/qr-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useGoogleAuth } from "@/components/layout/google-one-tap";
 import { GoogleLogin } from "@react-oauth/google";
@@ -65,10 +64,8 @@ export default function EventDetailPage() {
   const [isRegistering, setIsRegistering] = useState(false);
   const [isRegistrationDialogOpen, setIsRegistrationDialogOpen] = useState(false);
 
-  const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isAlreadyRegisteredDialogOpen, setIsAlreadyRegisteredDialogOpen] = useState(false);
-  const [currentRegistration, setCurrentRegistration] = useState<Registration | null>(null);
   
   useEffect(() => {
     const userData = localStorage.getItem("loggedInUser");
@@ -100,44 +97,33 @@ export default function EventDetailPage() {
     fetchEventData();
   }, [eventId, toast]);
 
-  const handleRazorpayPayment = async (registration: Registration, razorpayOrderId: string) => {
-     const razorpayKeyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
-     if (!user) return;
+  const handleRazorpayPayment = async (registration: Registration, razorpayOrderId: string, keyId: string) => {
+     if (!user || !event) return;
      if (!keyId) {
         toast({ variant: 'destructive', title: 'Configuration Error', description: 'Razorpay Key ID is not configured.'});
         return;
      }
 
     const options = {
-        key: razorpayKeyId,
+        key: keyId,
         amount: registration.payment.amount * 100, // amount in the smallest currency unit
         currency: registration.payment.currency,
-        name: event?.name,
-        description: `Registration for ${event?.name}`,
+        name: "Symposium Central",
+        description: `Registration for ${event.name}`,
         image: 'https://cdn.egspec.org/assets/img/logo-sm.png',
         order_id: razorpayOrderId,
         handler: async function (response: any) {
-            try {
-                await api(`/registrations/${registration._id}/payment/verify`, {
-                    method: 'POST',
-                    body: {
-                        razorpay_order_id: response.razorpay_order_id,
-                        razorpay_payment_id: response.razorpay_payment_id,
-                        razorpay_signature: response.razorpay_signature,
-                    },
-                    authenticated: true,
-                });
-
-                // Update user in local storage
-                const updatedUser = { ...user, hasPaidForEvent: true };
-                localStorage.setItem('loggedInUser', JSON.stringify(updatedUser));
-                setUser(updatedUser);
-                
-                toast({ title: 'Payment Successful', description: 'Your registration is confirmed!' });
-                 window.location.reload();
-            } catch (error) {
-                toast({ variant: 'destructive', title: 'Payment Verification Failed', description: (error as Error).message });
-            }
+            // Webhook will handle verification. Just give user feedback.
+            toast({ title: 'Payment Submitted', description: 'Your registration is being confirmed. Please wait a moment.' });
+            
+            // Optimistically update user's payment status in localStorage
+            const updatedUser = { ...user, hasPaidForEvent: true };
+            localStorage.setItem('loggedInUser', JSON.stringify(updatedUser));
+            setUser(updatedUser);
+            
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
         },
         prefill: {
             name: user.name,
@@ -150,7 +136,12 @@ export default function EventDetailPage() {
             color: '#9D4EDD',
         },
     };
+
     const rzp = new (window as any).Razorpay(options);
+    rzp.on('payment.failed', function (response: any) {
+        console.error(response);
+        toast({ variant: 'destructive', title: 'Payment Failed', description: response.error.description || 'An unknown error occurred.'});
+    });
     rzp.open();
   }
 
@@ -168,16 +159,20 @@ export default function EventDetailPage() {
   
   const onRegistrationSuccess = (registration: Registration, hints: any) => {
     setIsRegistrationDialogOpen(false);
-    setCurrentRegistration(registration);
+    
     if (hints?.next === 'confirmed') {
       toast({ title: 'Success', description: 'You have been registered for the event!' });
       window.location.reload();
     } else if (hints?.next === 'pay_gateway' && hints?.razorpayOrderId) {
-        handleRazorpayPayment(registration, hints.razorpayOrderId);
-    } else if (hints?.next === 'submit_qr_proof') {
-      setQrDialogOpen(true);
+        const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+        if(keyId){
+             handleRazorpayPayment(registration, hints.razorpayOrderId, keyId);
+        } else {
+             toast({ variant: 'destructive', title: 'Configuration Error', description: 'Razorpay Key ID is not configured.'});
+        }
     } else {
         toast({ title: 'Registration Pending', description: 'Your registration is pending further action.' });
+        window.location.reload();
     }
   }
   
@@ -300,7 +295,7 @@ export default function EventDetailPage() {
                     <CardContent className="p-0">
                        <div className="bg-primary/10 p-4 text-center">
                         <h3 className="font-bold text-lg text-primary">
-                          {isFreeEvent ? 'Registration is Free!' : 'Registration is Open!'}
+                          {isFreeEvent || user?.hasPaidForEvent ? 'Registration is Free!' : 'Registration is Open!'}
                         </h3>
                          {user?.hasPaidForEvent && !isFreeEvent && (
                             <p className="text-sm text-green-600 font-semibold mt-1">Your Symposium Pass is active!</p>
@@ -480,15 +475,6 @@ export default function EventDetailPage() {
             </div>
         </DialogContent>
       </Dialog>
-      
-      {event?.payment.method === 'qr' && currentRegistration && (
-          <QrDialog
-            open={qrDialogOpen}
-            onOpenChange={setQrDialogOpen}
-            registration={currentRegistration}
-            event={event}
-          />
-      )}
 
       <AlertDialog open={isAlreadyRegisteredDialogOpen} onOpenChange={setIsAlreadyRegisteredDialogOpen}>
         <AlertDialogContent>

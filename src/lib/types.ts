@@ -137,11 +137,13 @@ export type ApiSuccessResponse<T> = {
     hasMore: boolean;
   };
   hints?: {
-    next?: string;
+    next?: 'confirmed' | 'pay_gateway';
     gatewayLink?: string;
     razorpayOrderId?: string;
   };
+  registration?: T; // For create registration response
 };
+
 
 export type ApiErrorResponse = {
   success: false;
