@@ -83,9 +83,9 @@ export default function AdminDepartmentsPage() {
   const fetchDepartments = async () => {
     setIsLoading(true);
     try {
-        const response = await api<ApiSuccessResponse<{ departments: Department[] }>>('/departments', { authenticated: true });
+        const response = await api<ApiSuccessResponse<Department[]>>('/departments', { authenticated: true });
         if (response.success && response.data) {
-            setDepartments(response.data.departments);
+            setDepartments(response.data);
         }
     } catch(error) {
         toast({
@@ -239,7 +239,7 @@ export default function AdminDepartmentsPage() {
                         Loading...
                     </TableCell>
                 </TableRow>
-              ) : departments.map((dept) => (
+              ) : departments?.map((dept) => (
                 <TableRow key={dept._id}>
                   <TableCell className="font-medium">
                      <Badge variant="outline">{dept.id}</Badge>
@@ -323,4 +323,3 @@ export default function AdminDepartmentsPage() {
   );
 }
 
-    
