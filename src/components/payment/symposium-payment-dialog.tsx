@@ -26,10 +26,10 @@ export function SymposiumPaymentDialog({
   onConfirmPayment,
 }: SymposiumPaymentDialogProps) {
   const feePerPerson = 250;
-  const totalAmount = feePerPerson * unpaidEmails.length;
-  const razorpayFee = totalAmount * 0.02;
+  const baseAmount = feePerPerson * unpaidEmails.length;
+  const razorpayFee = baseAmount * 0.02;
   const gst = razorpayFee * 0.18;
-  const totalConvenienceFee = razorpayFee + gst;
+  const totalAmount = baseAmount + razorpayFee + gst;
 
 
   return (
@@ -45,14 +45,13 @@ export function SymposiumPaymentDialog({
             <div className="text-center mb-4">
                 <p className="text-sm text-muted-foreground">Total amount to be paid:</p>
                 <p className="text-4xl font-bold font-headline flex items-center justify-center">
-                    <IndianRupee className="h-8 w-8" />{totalAmount.toLocaleString()}
+                    <IndianRupee className="h-8 w-8" />{totalAmount.toFixed(2)}
                 </p>
-                <p className="text-xs text-muted-foreground">({unpaidEmails.length} person &times; ₹{feePerPerson})</p>
+                <p className="text-xs text-muted-foreground">({unpaidEmails.length} person &times; ₹{feePerPerson}) + fees</p>
             </div>
             
             <div className="text-xs text-muted-foreground text-center my-4 border-t border-b py-2">
-                Includes Razorpay Fee: <span className="font-semibold">₹{razorpayFee.toFixed(2)}</span> + GST: <span className="font-semibold">₹{gst.toFixed(2)}</span>. 
-                Total Convenience Fee: <span className="font-semibold">₹{totalConvenienceFee.toFixed(2)}</span>
+                Base Amount: <span className="font-semibold">₹{baseAmount.toFixed(2)}</span> + Razorpay Fee: <span className="font-semibold">₹{razorpayFee.toFixed(2)}</span> + GST: <span className="font-semibold">₹{gst.toFixed(2)}</span>
             </div>
 
             <div className="space-y-2">
@@ -71,7 +70,7 @@ export function SymposiumPaymentDialog({
             Cancel
           </Button>
           <Button onClick={onConfirmPayment}>
-            Proceed to Pay
+            Proceed to Pay ₹{totalAmount.toFixed(2)}
           </Button>
         </DialogFooter>
       </DialogContent>
