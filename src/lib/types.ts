@@ -42,7 +42,7 @@ export type Event = {
   endAt: string;
   department: Department | string;
   createdBy: User | string;
-  payment: { // This now refers to the old, event-specific payment model
+  payment: {
     method: 'none' | 'gateway' | 'qr';
     gatewayProvider?: 'razorpay' | 'stripe';
     price: number;
@@ -87,8 +87,7 @@ export type LoggedInUser = {
   department?: Department | string; 
   picture?: string;
   provider?: string;
-  hasPaidForEvent?: boolean; // Legacy field
-  hasPaidSymposium?: boolean; // New field for one-time fee
+  hasPaidSymposium?: boolean;
   [key: string]: any; 
 };
 
@@ -103,7 +102,7 @@ export type Registration = {
     members: { name: string; email: string; }[];
   };
   status: 'pending' | 'confirmed' | 'cancelled';
-  payment: { // This payment object is now for the free registration record
+  payment: {
     method: 'none' | 'gateway';
     currency: string;
     amount: number;
@@ -130,6 +129,7 @@ export type ApiSuccessResponse<T> = {
   };
   registration?: T;
   payment?: any; // Generic payment object for various responses
+  entries?: any; // For status checks
 };
 
 
@@ -149,3 +149,5 @@ export type ApiErrorResponse = {
       feeInInr: number;
   }
 };
+
+    

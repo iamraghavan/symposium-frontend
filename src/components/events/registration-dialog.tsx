@@ -56,6 +56,7 @@ export function RegistrationDialog({
 }: RegistrationDialogProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasCheckedPayment, setHasCheckedPayment] = useState(false);
 
   const {
     register,
@@ -63,6 +64,7 @@ export function RegistrationDialog({
     control,
     watch,
     reset,
+    getValues,
     formState: { errors },
   } = useForm<RegistrationFormData>({
     resolver: zodResolver(registrationSchema),
@@ -72,10 +74,13 @@ export function RegistrationDialog({
     },
   });
 
-  // Reset form when dialog is closed
   useEffect(() => {
     if (!open) {
       reset({ type: "individual", members: [], teamName: "" });
+      setHasCheckedPayment(false); // Reset payment check on close
+    } else {
+        // When dialog opens, automatically check payment status for the logged-in user
+        checkPaymentStatus();
     }
   }, [open, reset]);
 
@@ -86,11 +91,42 @@ export function RegistrationDialog({
 
   const registrationType = watch("type");
 
+  const checkPaymentStatus = async () => {
+    const formData = getValues();
+    const emailsToCheck = [user.email];
+    if (formData.type === 'team' && formData.members) {
+      formData.members.forEach(member => {
+        if(member.email) emailsToCheck.push(member.email);
+      });
+    }
+
+    try {
+        const response = await api<any>(`/api/v1/symposium-payments/symposium/status?emails=${emailsToCheck.join(',')}`, { authenticated: true });
+        const unpaid = response.entries?.filter((e: any) => !e.hasPaid).map((e: any) => e.email);
+
+        if (unpaid && unpaid.length > 0) {
+            onNeedsPayment(unpaid);
+            return false; // Payment needed
+        }
+        return true; // All paid
+    } catch(e) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not verify payment status.'});
+        return false;
+    }
+  }
+
   const handleRegistrationSubmit = async (data: RegistrationFormData) => {
     setIsSubmitting(true);
     try {
+        const isPaid = await checkPaymentStatus();
+        if (!isPaid) {
+            setIsSubmitting(false);
+            return;
+        }
+
       const payload: any = {
         eventId: event._id,
+        eventName: event.name,
         type: data.type,
       };
 
@@ -103,10 +139,11 @@ export function RegistrationDialog({
         payload.team = {
           name: data.teamName,
           members: data.members || [],
+          size: (data.members?.length || 0) + 1,
         };
       }
 
-      const response = await api('/api/v1/registrations', {
+      await api('/api/v1/registrations', {
         method: 'POST',
         body: payload,
         authenticated: true,
@@ -118,10 +155,10 @@ export function RegistrationDialog({
       const err = error as Error;
       try {
         const parsed = JSON.parse(err.message);
-        // Check for the specific 402 Payment Required error
+        // This handles the case where the backend double-checks and finds someone hasn't paid.
         if (parsed.payment?.neededFor) {
           onNeedsPayment(parsed.payment.neededFor);
-          return; // Stop further error handling
+          return;
         }
       } catch (e) {
         // Not a JSON error we can parse, fall through to generic handling
@@ -138,7 +175,7 @@ export function RegistrationDialog({
         <DialogHeader>
           <DialogTitle className="font-headline text-2xl">Register for {event.name}</DialogTitle>
           <DialogDescription>
-            Confirm your details and choose your registration type. Remember, a one-time symposium fee is required per person.
+            Confirm your details and choose your registration type. A one-time symposium fee of ₹250 is required per person to register for any event.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(handleRegistrationSubmit)}>
@@ -224,7 +261,7 @@ export function RegistrationDialog({
             )}
           </div>
           
-           {user.hasPaidForEvent && (
+           {user.hasPaidSymposium && (
                 <div className="mt-4 pt-4 border-t text-center text-sm text-green-600 font-medium bg-green-50 p-3 rounded-md">
                     Your Symposium Pass is active. This registration is free!
                 </div>
@@ -244,3 +281,5 @@ export function RegistrationDialog({
     </Dialog>
   );
 }
+
+    

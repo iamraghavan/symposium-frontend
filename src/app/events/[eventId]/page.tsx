@@ -89,7 +89,7 @@ export default function EventDetailPage() {
            throw new Error("Event not found in API response.");
         }
       } catch (error) {
-        toast({ variant: 'destructive', title: 'Error', description: (error as Error).message || 'Could not fetch event details.'});
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch event details.'});
         notFound();
       } finally {
         setIsLoading(false);
@@ -106,7 +106,7 @@ export default function EventDetailPage() {
 
     const fetchWinners = async () => {
         try {
-            const response = await api<ApiSuccessResponse<Winner[]>>(`/api/v1/events/${eventId}/winners`);
+            const response = await api<ApiSuccessResponse<{data: Winner[]}>>(`/api/v1/events/${eventId}/winners`);
             if (response.success && response.data) {
                 setWinners(response.data);
             }
@@ -122,17 +122,17 @@ export default function EventDetailPage() {
     fetchWinners();
   }, [eventId, toast, fetchEventData]);
 
- const processRazorpayPayment = useCallback((orderResponse: RazorpayOrderResponse) => {
+ const processRazorpayPayment = useCallback((paymentDetails: RazorpayOrderResponse) => {
      if (!user || !event) return;
 
     const options = {
-        key: orderResponse.keyId,
-        amount: orderResponse.order.amount,
-        currency: orderResponse.order.currency,
+        key: paymentDetails.keyId,
+        amount: paymentDetails.order.amount,
+        currency: paymentDetails.order.currency,
         name: "Symposium Central Pass",
         description: `One-time fee for ${unpaidEmails.length} user(s)`,
         image: 'https://cdn.egspec.org/assets/img/logo-sm.png',
-        order_id: orderResponse.order.id,
+        order_id: paymentDetails.order.id,
         handler: async function (response: any) {
             try {
                 await api('/api/v1/symposium-payments/symposium/verify', {
@@ -145,11 +145,14 @@ export default function EventDetailPage() {
                 
                 toast({ title: 'Payment Successful!', description: 'Your Symposium Pass is now active. Please complete your registration.' });
                 setIsPaymentDialogOpen(false);
-                setIsRegistrationDialogOpen(true); // Re-open registration dialog
                 
-                const updatedUser = { ...user, hasPaidForEvent: true };
+                // Update user state and localStorage to reflect payment
+                const updatedUser = { ...user, hasPaidSymposium: true };
                 localStorage.setItem('loggedInUser', JSON.stringify(updatedUser));
                 setUser(updatedUser);
+
+                // Automatically re-open the registration dialog
+                setIsRegistrationDialogOpen(true);
 
             } catch (error) {
                 toast({ variant: 'destructive', title: 'Payment Verification Failed', description: (error as Error).message || 'Please contact support.'});
@@ -181,10 +184,10 @@ export default function EventDetailPage() {
             body: { emails: unpaidEmails }
         });
 
-        if (response.success && response.data?.payment) {
-            processRazorpayPayment(response.data.payment);
+        if (response.success && response.payment) {
+            processRazorpayPayment(response.payment);
         } else {
-            throw new Error('Could not create payment order.');
+            throw new Error((response as any).message || 'Could not create payment order.');
         }
 
       } catch (error) {
@@ -208,10 +211,7 @@ export default function EventDetailPage() {
   const onRegistrationSuccess = () => {
     setIsRegistrationDialogOpen(false);
     toast({ title: 'Registration Confirmed!', description: 'You have been successfully registered for the event.' });
-    setTimeout(() => {
-        // Maybe just update the state instead of full reload
-        fetchEventData();
-    }, 1500);
+    fetchEventData();
   }
   
   const onRegistrationNeedsPayment = (emails: string[]) => {
@@ -250,6 +250,8 @@ export default function EventDetailPage() {
     }
   }
 
+  const departmentName = (event && typeof event.department === 'object') ? event.department.name : 'Unknown Department';
+
 
   if (isLoading) {
     return (
@@ -275,8 +277,7 @@ export default function EventDetailPage() {
     return notFound();
   }
 
-  const departmentName = typeof event.department === 'object' ? event.department.name : 'Unknown Department';
-  const isSymposiumFeePaid = !!user?.hasPaidForEvent;
+  const isSymposiumFeePaid = !!user?.hasPaidSymposium;
 
   return (
     <>
@@ -569,3 +570,5 @@ export default function EventDetailPage() {
     </>
   );
 }
+
+    
