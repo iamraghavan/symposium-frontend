@@ -111,7 +111,7 @@ export function RegistrationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="font-headline text-2xl">Register for {event.name}</DialogTitle>
           <DialogDescription>
@@ -158,16 +158,16 @@ export function RegistrationDialog({
             </div>
             
             {registrationType === "team" && (
-              <div className="grid grid-cols-1 gap-4 col-span-1 sm:col-span-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-4">
                    <Label htmlFor="teamName" className="text-left sm:text-right">Team Name</Label>
                    <Input id="teamName" {...register("teamName")} className="sm:col-span-3" placeholder="e.g., The Code Crusaders" />
                 </div>
                 
-                <h4 className="font-semibold col-span-1 sm:col-span-4 text-center mt-2">Team Members</h4>
+                <h4 className="font-semibold text-center mt-2">Team Members</h4>
                 
                 {fields.map((item, index) => (
-                  <div key={item.id} className="grid grid-cols-1 sm:grid-cols-10 gap-2 items-start col-span-1 sm:col-span-4">
+                  <div key={item.id} className="grid grid-cols-1 sm:grid-cols-10 gap-2 items-start">
                      <div className="col-span-full sm:col-span-4">
                         <Label htmlFor={`members.${index}.name`} className="sr-only">Name</Label>
                         <Input
@@ -184,13 +184,13 @@ export function RegistrationDialog({
                         />
                         {errors.members?.[index]?.email && <p className="text-xs text-destructive mt-1">{errors.members[index]?.email?.message}</p>}
                     </div>
-                    <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)} className="col-span-full sm:col-span-1">
+                    <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)} className="col-span-full sm:col-span-1 justify-self-center sm:justify-self-auto">
                         <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 ))}
                  {fields.length < 3 && (
-                  <div className="col-span-1 sm:col-span-4 text-center">
+                  <div className="text-center">
                     <Button type="button" variant="outline" onClick={() => append({ name: "", email: "" })}>
                         Add Team Member ({3 - fields.length} remaining)
                     </Button>
