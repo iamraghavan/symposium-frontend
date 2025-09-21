@@ -45,9 +45,10 @@ import { useToast } from "@/hooks/use-toast";
 import type { Event, ApiSuccessResponse, Winner, Department, LoggedInUser, Registration } from '@/lib/types';
 import { Skeleton } from "@/components/ui/skeleton";
 import { QrDialog } from "@/components/payment/qr-dialog";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useGoogleAuth } from "@/components/layout/google-one-tap";
 import { GoogleLogin } from "@react-oauth/google";
+import { RegistrationDialog } from "@/components/events/registration-dialog";
 
 export default function EventDetailPage() {
   const params = useParams();
@@ -60,8 +61,10 @@ export default function EventDetailPage() {
   const [user, setUser] = useState<LoggedInUser | null>(null);
   const [winners, setWinners] = useState<Winner[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isRegistering, setIsRegistering] = useState(false);
   
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [isRegistrationDialogOpen, setIsRegistrationDialogOpen] = useState(false);
+
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isAlreadyRegisteredDialogOpen, setIsAlreadyRegisteredDialogOpen] = useState(false);
@@ -145,53 +148,43 @@ export default function EventDetailPage() {
     rzp.open();
   }
 
-  const handleRegister = async () => {
-     if (!user) {
+  const handleOpenRegistration = () => {
+    if (!user) {
       setIsLoginModalOpen(true);
       return;
     }
-    if (user.provider !== 'google') {
-       toast({ variant: 'destructive', title: 'Registration Failed', description: "Registration is only open for users who signed in with Google." });
+     if (user.provider !== 'google') {
+       toast({ variant: 'destructive', title: 'Registration Unavailable', description: "Registration is only open for users who signed in with Google." });
        return;
     }
-
-    setIsRegistering(true);
-    try {
-      const response = await api<ApiSuccessResponse<Registration>>('/registrations', {
-        method: 'POST',
-        body: { eventId: event?._id, type: 'individual' },
-        authenticated: true,
-      });
-
-      if (response.success && response.data) {
-        const registration = response.data;
-        setCurrentRegistration(registration);
-
-        if (response.hints?.next === 'confirmed') {
-          toast({ title: 'Success', description: 'You have been registered for the event!' });
-          window.location.reload();
-        } else if (response.hints?.next === 'pay_gateway' && response.hints?.razorpayOrderId) {
-            await handleRazorpayPayment(registration, response.hints.razorpayOrderId);
-        } else if (response.hints?.next === 'submit_qr_proof') {
-          setQrDialogOpen(true);
-        } else {
-           toast({ title: 'Registration Pending', description: 'Your registration is pending further action.' });
-        }
-      } else {
-        throw new Error((response as any).message || "Registration failed");
-      }
-    } catch (error) {
-       const errorMessage = (error as Error).message;
-       if (errorMessage === 'You already have a registration for this event.') {
-         setIsAlreadyRegisteredDialogOpen(true);
-       } else {
-         toast({ variant: 'destructive', title: 'Registration Failed', description: errorMessage });
-       }
-    } finally {
-        setIsRegistering(false);
+    setIsRegistrationDialogOpen(true);
+  }
+  
+  const onRegistrationSuccess = (registration: Registration, hints: any) => {
+    setIsRegistrationDialogOpen(false);
+    setCurrentRegistration(registration);
+    if (hints?.next === 'confirmed') {
+      toast({ title: 'Success', description: 'You have been registered for the event!' });
+      window.location.reload();
+    } else if (hints?.next === 'pay_gateway' && hints?.razorpayOrderId) {
+        handleRazorpayPayment(registration, hints.razorpayOrderId);
+    } else if (hints?.next === 'submit_qr_proof') {
+      setQrDialogOpen(true);
+    } else {
+        toast({ title: 'Registration Pending', description: 'Your registration is pending further action.' });
     }
   }
   
+   const onRegistrationError = (error: Error) => {
+    setIsRegistrationDialogOpen(false);
+    if (error.message === 'You already have a registration for this event.') {
+        setIsAlreadyRegisteredDialogOpen(true);
+    } else {
+        toast({ variant: 'destructive', title: 'Registration Failed', description: error.message });
+    }
+  }
+
+
   if (isLoading) {
     return (
       <div className="bg-background">
@@ -302,7 +295,7 @@ export default function EventDetailPage() {
                         <h3 className="font-bold text-lg text-primary">Registration is Open!</h3>
                       </div>
                       <div className="p-4">
-                          <Button size="lg" className="w-full" onClick={handleRegister} disabled={isRegistering}>
+                          <Button size="lg" className="w-full" onClick={handleOpenRegistration} disabled={isRegistering}>
                               <TicketCheck className="mr-2 h-5 w-5"/>
                               {isRegistering ? 'Processing...' : 'Register Now'}
                           </Button>
@@ -439,6 +432,17 @@ export default function EventDetailPage() {
           </Tabs>
         </main>
       </div>
+      
+       {user && event && (
+        <RegistrationDialog
+          open={isRegistrationDialogOpen}
+          onOpenChange={setIsRegistrationDialogOpen}
+          event={event}
+          user={user}
+          onSuccess={onRegistrationSuccess}
+          onError={onRegistrationError}
+        />
+      )}
 
        <Dialog open={isLoginModalOpen} onOpenChange={setIsLoginModalOpen}>
         <DialogContent className="sm:max-w-md">
@@ -482,6 +486,7 @@ export default function EventDetailPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
+             <AlertDialogAction onClick={() => setIsAlreadyRegisteredDialogOpen(false)}>Close</AlertDialogAction>
             <AlertDialogAction onClick={() => router.push('/u/d/registered-events')}>
               Go to Dashboard
             </AlertDialogAction>
@@ -490,5 +495,6 @@ export default function EventDetailPage() {
       </AlertDialog>
     </>
   );
+}
 
     
