@@ -28,14 +28,13 @@ import { isAdmin } from "@/lib/utils";
 export default function RegisteredUsersPage() {
   const router = useRouter();
   const [user, setUser] = useState<LoggedInUser | null>(null);
-  const [formattedDates, setFormattedDates] = useState<Record<string, string>>({});
-
+  
   useEffect(() => {
     const userData = localStorage.getItem("loggedInUser");
     if (userData) {
         const parsedUser = JSON.parse(userData);
-        if (!isAdmin(parsedUser)) {
-          router.push('/');
+        if (!isAdmin(parsedUser) || parsedUser.role !== 'super_admin') {
+          router.push('/u/s/portal/dashboard');
         } else {
           setUser(parsedUser);
         }
@@ -44,23 +43,15 @@ export default function RegisteredUsersPage() {
     }
   }, [router]);
 
-  useEffect(() => {
-    const newFormattedDates: Record<string, string> = {};
-    users.forEach((user) => {
-        newFormattedDates[user.id] = format(parseISO(user.registeredAt), "PPpp");
-    });
-    setFormattedDates(newFormattedDates);
-  }, []);
-
   return (
     <>
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-3xl font-bold tracking-tight font-headline">
-            Registered Users
+            All Users
           </h2>
           <p className="text-muted-foreground">
-            A list of all users who have registered for events.
+            A list of all users in the system.
           </p>
         </div>
       </div>
@@ -70,8 +61,8 @@ export default function RegisteredUsersPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>User</TableHead>
-                <TableHead>College</TableHead>
-                <TableHead>Registered On</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Role</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -83,17 +74,14 @@ export default function RegisteredUsersPage() {
                           <AvatarImage src={regUser.avatarUrl} alt={regUser.name} data-ai-hint="person" />
                           <AvatarFallback>{regUser.name.charAt(0)}</AvatarFallback>
                         </Avatar>
-                        <div>
-                          <p className="font-medium">{regUser.name}</p>
-                          <p className="text-xs text-muted-foreground">{regUser.email}</p>
-                        </div>
+                        <p className="font-medium">{regUser.name}</p>
                       </div>
                     </TableCell>
                     <TableCell>
-                        <Badge variant="outline">{regUser.college}</Badge>
+                        <p className="text-muted-foreground">{regUser.email}</p>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
-                        {formattedDates[regUser.id]}
+                    <TableCell>
+                        <Badge variant="outline">{regUser.role || 'user'}</Badge>
                     </TableCell>
                 </TableRow>
               ))}
