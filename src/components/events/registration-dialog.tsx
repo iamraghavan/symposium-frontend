@@ -110,7 +110,7 @@ export function RegistrationDialog({
     }
   };
   
-  const isPaidEvent = event.payment.price > 0;
+  const isPaidEvent = event.payment.price > 0 && !user.hasPaidForEvent;
   const numberOfParticipants = registrationType === 'team' ? fields.length + 1 : 1;
   const totalPrice = numberOfParticipants * event.payment.price;
 
@@ -219,6 +219,13 @@ export function RegistrationDialog({
                 </div>
             </div>
            )}
+
+            {event.payment.price > 0 && user.hasPaidForEvent && (
+                <div className="mt-4 pt-4 border-t text-center text-sm text-green-600 font-medium bg-green-50 p-3 rounded-md">
+                    Your Symposium Pass is active. This registration is free!
+                </div>
+            )}
+
 
           <DialogFooter className="mt-6">
             <Button variant="outline" type="button" onClick={() => onOpenChange(false)} disabled={isSubmitting}>

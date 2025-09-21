@@ -100,7 +100,8 @@ export default function EventDetailPage() {
     fetchEventData();
   }, [eventId, toast]);
 
-  const handleRazorpayPayment = async (registration: Registration, razorpayOrderId: string, keyId: string) => {
+  const handleRazorpayPayment = async (registration: Registration, razorpayOrderId: string) => {
+     const razorpayKeyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
      if (!user) return;
      if (!keyId) {
         toast({ variant: 'destructive', title: 'Configuration Error', description: 'Razorpay Key ID is not configured.'});
@@ -108,7 +109,7 @@ export default function EventDetailPage() {
      }
 
     const options = {
-        key: keyId,
+        key: razorpayKeyId,
         amount: registration.payment.amount * 100, // amount in the smallest currency unit
         currency: registration.payment.currency,
         name: event?.name,
@@ -126,6 +127,12 @@ export default function EventDetailPage() {
                     },
                     authenticated: true,
                 });
+
+                // Update user in local storage
+                const updatedUser = { ...user, hasPaidForEvent: true };
+                localStorage.setItem('loggedInUser', JSON.stringify(updatedUser));
+                setUser(updatedUser);
+                
                 toast({ title: 'Payment Successful', description: 'Your registration is confirmed!' });
                  window.location.reload();
             } catch (error) {
@@ -160,14 +167,13 @@ export default function EventDetailPage() {
   }
   
   const onRegistrationSuccess = (registration: Registration, hints: any) => {
-    const razorpayKeyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
     setIsRegistrationDialogOpen(false);
     setCurrentRegistration(registration);
     if (hints?.next === 'confirmed') {
       toast({ title: 'Success', description: 'You have been registered for the event!' });
       window.location.reload();
-    } else if (hints?.next === 'pay_gateway' && hints?.razorpayOrderId && razorpayKeyId) {
-        handleRazorpayPayment(registration, hints.razorpayOrderId, razorpayKeyId);
+    } else if (hints?.next === 'pay_gateway' && hints?.razorpayOrderId) {
+        handleRazorpayPayment(registration, hints.razorpayOrderId);
     } else if (hints?.next === 'submit_qr_proof') {
       setQrDialogOpen(true);
     } else {
@@ -211,6 +217,7 @@ export default function EventDetailPage() {
 
   const departmentName = typeof event.department === 'object' ? event.department.name : 'Unknown Department';
   const paymentMethodText = event.payment.method === 'none' ? 'Free' : event.payment.method === 'gateway' ? 'Online Gateway' : 'QR Code';
+  const isFreeEvent = event.payment.price === 0;
 
   return (
     <>
@@ -291,8 +298,13 @@ export default function EventDetailPage() {
                 <div className="lg:col-span-1 space-y-6">
                   <Card className="overflow-hidden">
                     <CardContent className="p-0">
-                      <div className="bg-primary/10 p-4 text-center">
-                        <h3 className="font-bold text-lg text-primary">Registration is Open!</h3>
+                       <div className="bg-primary/10 p-4 text-center">
+                        <h3 className="font-bold text-lg text-primary">
+                          {isFreeEvent ? 'Registration is Free!' : 'Registration is Open!'}
+                        </h3>
+                         {user?.hasPaidForEvent && !isFreeEvent && (
+                            <p className="text-sm text-green-600 font-semibold mt-1">Your Symposium Pass is active!</p>
+                         )}
                       </div>
                       <div className="p-4">
                           <Button size="lg" className="w-full" onClick={handleOpenRegistration} disabled={isRegistering}>
@@ -333,6 +345,7 @@ export default function EventDetailPage() {
                         <div>
                           <h3 className="font-semibold">Registration Fee</h3>
                           <p className="text-muted-foreground">{event.payment.price > 0 ? `${event.payment.currency} ${event.payment.price}` : 'Free'} <span className="text-xs">({paymentMethodText})</span></p>
+                           {user?.hasPaidForEvent && !isFreeEvent && <p className="text-xs text-green-600 font-medium">(Free for you)</p>}
                         </div>
                       </div>
                       <div className="flex items-start">

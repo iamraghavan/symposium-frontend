@@ -87,6 +87,7 @@ export type LoggedInUser = {
   department?: Department | string; 
   picture?: string;
   provider?: string;
+  hasPaidForEvent?: boolean;
   [key: string]: any; 
 };
 
