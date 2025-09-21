@@ -72,6 +72,10 @@ async function api<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
     
     // The response is ok (2xx status code). It should be a success.
     // The backend might not always include success:true, but if the status is ok, we treat it as success.
+    // We will ensure our own success property.
+    if(responseData.success === undefined) {
+      responseData.success = true;
+    }
     return responseData as T;
 
   } catch (error) {

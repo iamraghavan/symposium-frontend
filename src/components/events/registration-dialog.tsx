@@ -105,7 +105,7 @@ export function RegistrationDialog({
         authenticated: true,
       });
       
-      if (response.registration) {
+      if (response.success && response.registration) {
         onSuccess(response.registration, response.hints);
       } else {
         throw new Error((response as any).message || "Registration submission failed");
@@ -119,9 +119,8 @@ export function RegistrationDialog({
   
   const isPaidEvent = event.payment.price > 0 && !user.hasPaidForEvent;
   
-  // For team registrations, the backend calculates the actual amount based on which members haven't paid.
-  // The user pays a single symposium pass fee.
   const numberOfParticipants = registrationType === 'team' ? (fields.length || 0) + 1 : 1;
+  const totalAmount = event.payment.price;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -220,12 +219,12 @@ export function RegistrationDialog({
                 <h4 className="font-semibold text-lg">Payment Details</h4>
                 <div className="flex justify-between items-center text-muted-foreground">
                     <span>One-time Symposium Pass Fee</span>
-                    <span>{event.payment.currency} {event.payment.price.toFixed(2)}</span>
+                    <span>{event.payment.currency} {totalAmount.toFixed(2)}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between items-center font-bold text-xl">
                     <span>Amount Payable</span>
-                    <span>{event.payment.currency} {event.payment.price.toFixed(2)}</span>
+                    <span>{event.payment.currency} {totalAmount.toFixed(2)}</span>
                 </div>
                  <p className="text-xs text-muted-foreground text-center pt-2">Your backend will determine the final amount based on which team members have already paid.</p>
             </div>
