@@ -39,10 +39,20 @@ export type Participant = {
     createdAt: string;
 }
 
-async function makeApiRequest(endpoint: string, apiKey: string, options: RequestInit = {}) {
-    if (!apiKey) {
-        throw new Error("API key is missing.");
+function getApiKey(): string {
+    const userApiKey = cookies().get('apiKey')?.value;
+    const globalApiKey = process.env.API_KEY;
+
+    const key = userApiKey || globalApiKey;
+
+    if (!key) {
+        throw new Error("Authentication details not found. No user or global API key is available.");
     }
+    return key;
+}
+
+async function makeApiRequest(endpoint: string, options: RequestInit = {}) {
+    const apiKey = getApiKey();
 
     const defaultHeaders: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -80,21 +90,19 @@ async function makeApiRequest(endpoint: string, apiKey: string, options: Request
 
 
 export async function getStatisticsOverview(): Promise<StatsOverview | null> {
-    const apiKey = cookies().get('apiKey')?.value;
     const userCookie = cookies().get('loggedInUser')?.value;
-    if (!apiKey || !userCookie) {
-        throw new Error("Authentication details not found.");
-    }
-    const user: LoggedInUser = JSON.parse(userCookie);
     
     let url = '/analytics/statistics/overview';
-    if (user.role === 'department_admin' && user.department) {
-        const departmentId = typeof user.department === 'string' ? user.department : (user.department as any)._id;
-        url += `?departmentId=${departmentId}`;
+    if (userCookie) {
+        const user: LoggedInUser = JSON.parse(userCookie);
+        if (user.role === 'department_admin' && user.department) {
+            const departmentId = typeof user.department === 'string' ? user.department : (user.department as any)._id;
+            url += `?departmentId=${departmentId}`;
+        }
     }
 
     try {
-        const response = await makeApiRequest(url, apiKey);
+        const response = await makeApiRequest(url);
         return response as StatsOverview;
     } catch(e) {
         console.error("Failed to fetch stats overview:", e);
@@ -104,12 +112,8 @@ export async function getStatisticsOverview(): Promise<StatsOverview | null> {
 
 
 export async function getFinanceOverview(): Promise<FinanceOverview | null> {
-    const apiKey = cookies().get('apiKey')?.value;
-     if (!apiKey) {
-        throw new Error("Authentication details not found.");
-    }
     try {
-        const response = await makeApiRequest('/finance/overview?kind=symposium', apiKey);
+        const response = await makeApiRequest('/finance/overview?kind=symposium');
         return response as FinanceOverview;
     } catch(e) {
         console.error("Failed to fetch finance overview:", e);
@@ -118,13 +122,8 @@ export async function getFinanceOverview(): Promise<FinanceOverview | null> {
 }
 
 export async function getRecentParticipants(): Promise<Participant[]> {
-    const apiKey = cookies().get('apiKey')?.value;
-     if (!apiKey) {
-        throw new Error("Authentication details not found.");
-    }
     try {
-        // limit=5&sort=-createdAt
-        const response = await makeApiRequest('/analytics/statistics/participants?limit=5&sort=-createdAt', apiKey);
+        const response = await makeApiRequest('/analytics/statistics/participants?limit=5&sort=-createdAt');
         return (response as ApiSuccessResponse<Participant[]>).data || [];
     } catch(e) {
         console.error("Failed to fetch recent participants:", e);
