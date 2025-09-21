@@ -23,12 +23,21 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { winners as allWinners } from "@/lib/data";
 import { parseISO, format } from 'date-fns';
-import { notFound, useParams } from "next/navigation";
+import { notFound, useParams, useRouter } from "next/navigation";
 import { Calendar, Users, Trophy, Globe, Info, Clock, TicketCheck, ExternalLink, Phone, Mail, Link as LinkIcon, IndianRupee, Building } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import api from "@/lib/api";
@@ -42,6 +51,7 @@ import { GoogleLogin } from "@react-oauth/google";
 
 export default function EventDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const { toast } = useToast();
   const { handleGoogleAuth } = useGoogleAuth();
   const eventId = params.eventId as string;
@@ -54,6 +64,7 @@ export default function EventDetailPage() {
   
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isAlreadyRegisteredDialogOpen, setIsAlreadyRegisteredDialogOpen] = useState(false);
   const [currentRegistration, setCurrentRegistration] = useState<Registration | null>(null);
 
   useEffect(() => {
@@ -67,9 +78,9 @@ export default function EventDetailPage() {
     const fetchEventData = async () => {
       setIsLoading(true);
       try {
-        const response = await api<ApiSuccessResponse<Event>>(`/events/${eventId}`);
+        const response = await api<ApiSuccessResponse<{ event: Event }>>(`/events/${eventId}`);
         if (response.success && response.data) {
-          setEvent(response.data);
+          setEvent(response.data as unknown as Event);
           // This should be replaced with an API call in the future
           setWinners(allWinners.filter(w => w.eventId === (response.data as Event)?._id));
         } else {
@@ -172,7 +183,7 @@ export default function EventDetailPage() {
     } catch (error) {
        const errorMessage = (error as Error).message;
        if (errorMessage === 'You already have a registration for this event.') {
-         toast({ title: 'Already Registered', description: "You have already registered for this event. You can see it in your dashboard." });
+         setIsAlreadyRegisteredDialogOpen(true);
        } else {
          toast({ variant: 'destructive', title: 'Registration Failed', description: errorMessage });
        }
@@ -461,12 +472,23 @@ export default function EventDetailPage() {
             event={event}
           />
       )}
+
+      <AlertDialog open={isAlreadyRegisteredDialogOpen} onOpenChange={setIsAlreadyRegisteredDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Already Registered</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have already registered for this event. You can view your registration status in your dashboard.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => router.push('/u/d/registered-events')}>
+              Go to Dashboard
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
-
-    
-
-
-    
 
     
