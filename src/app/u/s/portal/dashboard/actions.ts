@@ -41,14 +41,11 @@ export type Participant = {
 
 function getApiKey(): string {
     const userApiKey = cookies().get('apiKey')?.value;
-    const globalApiKey = process.env.API_KEY;
 
-    const key = userApiKey || globalApiKey;
-
-    if (!key) {
-        throw new Error("Authentication details not found. No user or global API key is available.");
+    if (!userApiKey) {
+        throw new Error("Authentication details not found. User API key is missing from cookies.");
     }
-    return key;
+    return userApiKey;
 }
 
 async function makeApiRequest(endpoint: string, options: RequestInit = {}) {
