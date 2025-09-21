@@ -141,7 +141,7 @@ export default function EventDetailPage() {
 
             // 2. Verify payment on backend
             try {
-                await api('/verify', {
+                await api('/api/v1/verify', {
                     method: 'POST', authenticated: true, body: {
                         registrationId: registration._id,
                         razorpay_order_id: response.razorpay_order_id,
@@ -291,7 +291,7 @@ export default function EventDetailPage() {
         {/* Hero Section */}
         <section className="relative h-64 md:h-80 w-full">
           <Image
-            src={event.thumbnailUrl || 'https://picsum.photos/seed/event-hero/1200/400'}
+            src={event.thumbnailUrl || `https://picsum.photos/seed/${departmentName.replace(/\s/g, '-')}/1200/400`}
             alt={`${event.name} banner`}
             fill
             priority
