@@ -3,7 +3,7 @@
 
 import type { ApiErrorResponse, ApiSuccessResponse } from './types';
 
-const API_BASE_URL = 'https://symposium-backend.onrender.com/api/v1';
+const API_BASE_URL = 'https://symposium-backend.onrender.com';
 const GLOBAL_API_KEY = 'rjfqrur9L0v2XNzx574DI1Djejii70JP5S';
 
 type ApiOptions = {
@@ -44,9 +44,11 @@ async function api<T extends ApiSuccessResponse<any> | ApiErrorResponse>(endpoin
   if (body) {
     config.body = JSON.stringify(body);
   }
+  
+  const finalEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
 
   try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+    const response = await fetch(`${API_BASE_URL}/api/v1${finalEndpoint}`, config);
 
     const contentType = response.headers.get("content-type");
     if (!contentType || !contentType.includes("application/json")) {

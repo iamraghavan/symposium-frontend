@@ -78,11 +78,11 @@ export function RegistrationDialog({
     if (!open) {
       reset({ type: "individual", members: [], teamName: "" });
       setHasCheckedPayment(false); // Reset payment check on close
-    } else {
-        // When dialog opens, automatically check payment status for the logged-in user
+    } else if (user) {
+        // When dialog opens, check if user has paid.
         checkPaymentStatus();
     }
-  }, [open, reset]);
+  }, [open, reset, user]);
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -92,6 +92,7 @@ export function RegistrationDialog({
   const registrationType = watch("type");
 
   const checkPaymentStatus = async () => {
+    if (!user) return false;
     const formData = getValues();
     const emailsToCheck = [user.email];
     if (formData.type === 'team' && formData.members) {
@@ -101,7 +102,7 @@ export function RegistrationDialog({
     }
 
     try {
-        const response = await api<any>(`/api/v1/symposium-payments/symposium/status?emails=${emailsToCheck.join(',')}`, { authenticated: true });
+        const response = await api<any>(`/symposium-payments/symposium/status?emails=${emailsToCheck.join(',')}`, { authenticated: true });
         const unpaid = response.entries?.filter((e: any) => !e.hasPaid).map((e: any) => e.email);
 
         if (unpaid && unpaid.length > 0) {
@@ -118,11 +119,12 @@ export function RegistrationDialog({
   const handleRegistrationSubmit = async (data: RegistrationFormData) => {
     setIsSubmitting(true);
     try {
-        const isPaid = await checkPaymentStatus();
-        if (!isPaid) {
-            setIsSubmitting(false);
-            return;
-        }
+      // Always double check payment status before submitting
+      const isPaid = await checkPaymentStatus();
+      if (!isPaid) {
+          setIsSubmitting(false);
+          return;
+      }
 
       const payload: any = {
         eventId: event._id,
@@ -143,7 +145,7 @@ export function RegistrationDialog({
         };
       }
 
-      await api('/api/v1/registrations', {
+      await api('/registrations', {
         method: 'POST',
         body: payload,
         authenticated: true,
@@ -281,5 +283,3 @@ export function RegistrationDialog({
     </Dialog>
   );
 }
-
-    
