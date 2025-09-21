@@ -40,12 +40,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { useGoogleAuth } from "@/components/layout/google-one-tap";
 import { GoogleLogin } from "@react-oauth/google";
 
-declare global {
-  interface Window {
-    Razorpay: any;
-  }
-}
-
 export default function EventDetailPage() {
   const params = useParams();
   const { toast } = useToast();
@@ -131,7 +125,7 @@ export default function EventDetailPage() {
             color: '#9D4EDD',
         },
     };
-    const rzp = new window.Razorpay(options);
+    const rzp = new (window as any).Razorpay(options);
     rzp.open();
   }
 
