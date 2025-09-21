@@ -138,6 +138,7 @@ export type ApiSuccessResponse<T> = {
   hints?: {
     next?: string;
     gatewayLink?: string;
+    razorpayOrderId?: string;
   };
 };
 

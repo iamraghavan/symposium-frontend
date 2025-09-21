@@ -40,6 +40,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { useGoogleAuth } from "@/components/layout/google-one-tap";
 import { GoogleLogin } from "@react-oauth/google";
 
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
+
 export default function EventDetailPage() {
   const params = useParams();
   const { toast } = useToast();
@@ -67,11 +73,11 @@ export default function EventDetailPage() {
     const fetchEventData = async () => {
       setIsLoading(true);
       try {
-        const response = await api<ApiSuccessResponse<Event>>(`/events/${eventId}`);
-        if (response.success && response.data) {
-          setEvent(response.data);
+        const response = await api<ApiSuccessResponse<{ event: Event }>>(`/events/${eventId}`);
+        if (response.success && response.data?.event) {
+          setEvent(response.data.event);
           // This should be replaced with an API call in the future
-          setWinners(allWinners.filter(w => w.eventId === (response.data as Event)?._id));
+          setWinners(allWinners.filter(w => w.eventId === (response.data?.event as Event)?._id));
         } else {
            throw new Error((response as any).message || "Event not found");
         }
@@ -85,6 +91,49 @@ export default function EventDetailPage() {
     
     fetchEventData();
   }, [eventId, toast]);
+
+  const handleRazorpayPayment = async (registration: Registration, razorpayOrderId: string) => {
+     if (!user) return;
+
+    const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        amount: registration.payment.amount * 100, // amount in the smallest currency unit
+        currency: registration.payment.currency,
+        name: event?.name,
+        description: `Registration for ${event?.name}`,
+        image: 'https://cdn.egspec.org/assets/img/logo-sm.png',
+        order_id: razorpayOrderId,
+        handler: async function (response: any) {
+            try {
+                await api(`/registrations/${registration._id}/payment/verify`, {
+                    method: 'POST',
+                    body: {
+                        razorpay_order_id: response.razorpay_order_id,
+                        razorpay_payment_id: response.razorpay_payment_id,
+                        razorpay_signature: response.razorpay_signature,
+                    },
+                    authenticated: true,
+                });
+                toast({ title: 'Payment Successful', description: 'Your registration is confirmed!' });
+                 window.location.reload();
+            } catch (error) {
+                toast({ variant: 'destructive', title: 'Payment Verification Failed', description: (error as Error).message });
+            }
+        },
+        prefill: {
+            name: user.name,
+            email: user.email,
+        },
+        notes: {
+            registration_id: registration._id,
+        },
+        theme: {
+            color: '#9D4EDD',
+        },
+    };
+    const rzp = new window.Razorpay(options);
+    rzp.open();
+  }
 
   const handleRegister = async () => {
      if (!user) {
@@ -110,9 +159,9 @@ export default function EventDetailPage() {
 
         if (response.hints?.next === 'confirmed') {
           toast({ title: 'Success', description: 'You have been registered for the event!' });
-        } else if (response.hints?.gatewayLink) {
-          toast({ title: 'Redirecting to Payment', description: 'You will be redirected to complete the payment.' });
-          window.location.href = response.hints.gatewayLink;
+          window.location.reload();
+        } else if (response.hints?.next === 'pay_gateway' && response.hints?.razorpayOrderId) {
+            await handleRazorpayPayment(registration, response.hints.razorpayOrderId);
         } else if (response.hints?.next === 'submit_qr_proof') {
           setQrDialogOpen(true);
         } else {
@@ -240,7 +289,7 @@ export default function EventDetailPage() {
                       <div className="p-4">
                           <Button size="lg" className="w-full" onClick={handleRegister} disabled={isRegistering}>
                               <TicketCheck className="mr-2 h-5 w-5"/>
-                              {isRegistering ? 'Registering...' : 'Register Now'}
+                              {isRegistering ? 'Processing...' : 'Register Now'}
                           </Button>
                       </div>
                     </CardContent>

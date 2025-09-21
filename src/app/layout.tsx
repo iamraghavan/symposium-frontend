@@ -8,6 +8,7 @@ import { Footer } from '@/components/layout/footer';
 import { usePathname } from 'next/navigation';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { GoogleOneTap } from '@/components/layout/google-one-tap';
+import Script from 'next/script';
 
 
 // Even with client-side rendering for layout choices, metadata can be defined
@@ -35,6 +36,7 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased bg-background text-foreground" suppressHydrationWarning={true}>
+        <Script src="https://checkout.razorpay.com/v1/checkout.js" />
         <GoogleOAuthProvider clientId={googleClientId}>
           <GoogleOneTap />
           <div className="flex flex-col min-h-screen">
