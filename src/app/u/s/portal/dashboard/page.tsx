@@ -31,6 +31,8 @@ import {
   Calendar,
   Users,
   KeyRound,
+  DollarSign,
+  Trophy,
 } from "lucide-react";
 import { events, users } from "@/lib/data";
 import { format, parseISO } from "date-fns";
@@ -41,6 +43,7 @@ import { isAdmin } from "@/lib/utils";
 
 
 const totalParticipants = new Set(events.flatMap(event => event.participants.map(p => p.id))).size;
+const totalRevenue = events.reduce((acc, event) => acc + event.participants.length * event.registrationFee, 0);
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -103,6 +106,30 @@ export default function AdminDashboardPage() {
             <p className="text-xs text-muted-foreground">Unique registrations</p>
           </CardContent>
         </Card>
+        {user?.role === 'super_admin' && (
+          <>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold font-headline">${totalRevenue.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">From registration fees</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Prizes Awarded</CardTitle>
+                <Trophy className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold font-headline">$1,500</div>
+                <p className="text-xs text-muted-foreground">Total prize money</p>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
 
        <Card>
