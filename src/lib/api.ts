@@ -9,13 +9,14 @@ const publicRoutes = [
     '/analytics/statistics/overview',
     '/analytics/statistics/participants',
     '/analytics/statistics/events/registration-summary',
-    '/analytics/statistics/departments/', // Using startsWith for dynamic IDs
+    '/analytics/statistics/departments', // Covers /:departmentId/totals as well
     '/analytics/users/analytics/first-week',
     '/finance/overview',
     '/finance/transactions',
     '/finance/revenue-by-department',
-    '/departments', // Also public for fetching list
-    '/events' // Public for listing, details, etc.
+    '/departments',
+    '/events',
+    '/symposium-payments/symposium/status'
 ];
 
 type ApiOptions = {
@@ -41,8 +42,8 @@ async function api<T extends ApiSuccessResponse<any> | ApiErrorResponse>(endpoin
 
   const isPublic = isPublicRoute(finalEndpoint);
 
-  // Only add API key if the route is NOT public
-  if (!isPublic) {
+  // If authenticated is explicitly true, or if it's not a public route, require API key.
+  if (authenticated || !isPublic) {
     let apiKey: string | null = null;
     if (typeof window !== 'undefined') {
       apiKey = localStorage.getItem('userApiKey');
