@@ -38,15 +38,14 @@ export default function EventsPage() {
 
   const [modeFilter, setModeFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
-  const [priceFilter, setPriceFilter] = useState("all");
 
   useEffect(() => {
     async function fetchData() {
         setIsLoading(true);
         try {
             const [deptResponse, eventResponse] = await Promise.all([
-                api<ApiSuccessResponse<{ departments: Department[] }>>('/api/v1/departments?limit=100'),
-                api<ApiSuccessResponse<Event[]>>('/api/v1/events?status=published&limit=100')
+                api<ApiSuccessResponse<{ departments: Department[] }>>('/api/v1/departments?limit=100', { authenticated: true }),
+                api<ApiSuccessResponse<Event[]>>('/api/v1/events?status=published&limit=100', { authenticated: true })
             ]);
             
             const fetchedDepts = deptResponse.data?.departments || [];
@@ -85,12 +84,9 @@ export default function EventsPage() {
         (typeof event.department === 'object' && event.department._id === departmentFilter)
       );
     }
-    if (priceFilter !== 'all') {
-      tempEvents = tempEvents.filter(event => priceFilter === 'free' ? event.payment.price === 0 : event.payment.price > 0);
-    }
     
     setFilteredEvents(tempEvents);
-  }, [allEvents, modeFilter, departmentFilter, priceFilter]);
+  }, [allEvents, modeFilter, departmentFilter]);
 
   const getFormattedDate = (dateString?: string) => {
     if (!dateString) return { date: "N/A", time: "" };
@@ -149,7 +145,7 @@ export default function EventsPage() {
               </span>
             </div>
             <Button variant="default" size="sm">
-                {event.payment?.price === 0 ? 'Free' : `₹${event.payment?.price}`}
+                Free Registration
             </Button>
           </CardFooter>
         </Card>
@@ -205,17 +201,6 @@ export default function EventsPage() {
               {departments.map(dept => (
                 <SelectItem key={dept._id} value={dept._id}>{dept.name}</SelectItem>
               ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={priceFilter} onValueChange={setPriceFilter}>
-            <SelectTrigger className="w-full sm:w-auto flex-1 min-w-[150px]">
-              <SelectValue placeholder="Price" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Prices</SelectItem>
-              <SelectItem value="free">Free</SelectItem>
-              <SelectItem value="paid">Paid</SelectItem>
             </SelectContent>
           </Select>
       </div>
