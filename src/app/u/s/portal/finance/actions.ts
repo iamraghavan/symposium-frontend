@@ -2,7 +2,7 @@
 'use server'
 
 import { cookies } from 'next/headers';
-import type { Payment, ApiSuccessResponse } from '@/lib/types';
+import type { Payment, ApiSuccessResponse, FinanceOverviewData } from '@/lib/types';
 
 const API_BASE_URL = 'https://symposium-backend.onrender.com';
 
@@ -18,12 +18,6 @@ async function makeApiRequest(endpoint: string, options: RequestInit = {}) {
         'Accept': 'application/json',
     };
 
-    // Only add API key if it exists. Let the main `api` utility handle public/private logic.
-    if (apiKey) {
-        defaultHeaders['x-api-key'] = apiKey;
-    }
-
-
     const config: RequestInit = {
         ...options,
         headers: {
@@ -31,6 +25,12 @@ async function makeApiRequest(endpoint: string, options: RequestInit = {}) {
             ...options.headers,
         },
     };
+    
+    // The main `api` utility handles public/private logic. Here we just add key if it exists.
+    if (apiKey) {
+        config.headers = { ...config.headers, 'x-api-key': apiKey };
+    }
+
 
     try {
         const response = await fetch(`${API_BASE_URL}/api/v1${endpoint}`, config);
@@ -51,9 +51,17 @@ async function makeApiRequest(endpoint: string, options: RequestInit = {}) {
     }
 }
 
+export async function getFinanceOverview(): Promise<FinanceOverviewData | null> {
+    try {
+        const response = await makeApiRequest('/finance/overview?kind=symposium');
+        return response as FinanceOverviewData;
+    } catch (e) {
+        console.error("Failed to fetch finance overview:", e);
+        return null;
+    }
+}
+
 export async function getPayments(): Promise<Payment[]> {
-    // The endpoint /symposium-payments might not be public, but /finance/transactions is.
-    // Let's assume you want to hit the public finance endpoint.
     const response = await makeApiRequest('/finance/transactions?populate=user&limit=100', {
         next: { revalidate: 0 } // No caching
     });

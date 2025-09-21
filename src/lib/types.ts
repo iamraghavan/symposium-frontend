@@ -137,6 +137,13 @@ export type Payment = {
     raw?: object;
 };
 
+export type FinanceOverviewData = {
+    grossInr: number;
+    paidCount: number;
+    avgTicketInr: number;
+    byDay: { date: string, amountInr: number, count: number }[];
+}
+
 export type ApiSuccessResponse<T> = {
   success: true;
   token?: string;
