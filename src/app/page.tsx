@@ -105,7 +105,7 @@ export default function HomePage() {
   const EventCard = ({ event }: { event: Event }) => {
      const { date, time } = getFormattedDate(event.startAt);
      const departmentName = typeof event.department === 'object' ? event.department.name : 'N/A';
-     const price = event.payment.price;
+     const price = event.payment?.price;
 
     return (
       <motion.div

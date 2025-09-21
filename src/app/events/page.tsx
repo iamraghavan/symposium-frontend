@@ -149,7 +149,7 @@ export default function EventsPage() {
               </span>
             </div>
             <Button variant="default" size="sm">
-                {event.payment.price === 0 ? 'Free' : `₹${event.payment.price}`}
+                {event.payment?.price === 0 ? 'Free' : `₹${event.payment?.price}`}
             </Button>
           </CardFooter>
         </Card>
