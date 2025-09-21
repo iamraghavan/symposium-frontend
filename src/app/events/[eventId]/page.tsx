@@ -111,7 +111,7 @@ export default function EventDetailPage() {
                 setWinners(response.data);
             }
         } catch (error) {
-            if (error instanceof Error && error.message.includes("Not Found")) {
+            if (error instanceof Error && (error.message.includes("Not Found") || error.message.includes("no winners"))) {
               return;
             }
             console.error("Could not fetch winners:", error);
@@ -135,23 +135,24 @@ export default function EventDetailPage() {
         order_id: paymentDetails.order.id,
         handler: async function (response: any) {
             try {
-                await api('/api/v1/symposium-payments/symposium/verify', {
-                    method: 'POST', authenticated: true, body: {
+                // Use the new local verification route
+                await fetch('/api/symposium/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
                         razorpay_order_id: response.razorpay_order_id,
                         razorpay_payment_id: response.razorpay_payment_id,
                         razorpay_signature: response.razorpay_signature,
-                    }
+                    })
                 });
                 
                 toast({ title: 'Payment Successful!', description: 'Your Symposium Pass is now active. Please complete your registration.' });
                 setIsPaymentDialogOpen(false);
                 
-                // Update user state and localStorage to reflect payment
                 const updatedUser = { ...user, hasPaidSymposium: true };
                 localStorage.setItem('loggedInUser', JSON.stringify(updatedUser));
                 setUser(updatedUser);
 
-                // Automatically re-open the registration dialog
                 setIsRegistrationDialogOpen(true);
 
             } catch (error) {
@@ -178,16 +179,20 @@ export default function EventDetailPage() {
   const handleCreateOrder = useCallback(async () => {
       try {
         toast({ title: 'Creating Payment Order...', description: 'Please wait.' });
-        const response = await api<ApiSuccessResponse<{payment: RazorpayOrderResponse}>>('/api/v1/symposium-payments/symposium/order', {
+        
+        // Call the new local order creation route
+        const response = await fetch('/api/symposium/order', {
             method: 'POST',
-            authenticated: true,
-            body: { emails: unpaidEmails }
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ emails: unpaidEmails })
         });
 
-        if (response.success && response.payment) {
-            processRazorpayPayment(response.payment);
+        const data = await response.json();
+
+        if (response.ok && data.success && data.payment) {
+            processRazorpayPayment(data.payment);
         } else {
-            throw new Error((response as any).message || 'Could not create payment order.');
+            throw new Error(data.message || 'Could not create payment order.');
         }
 
       } catch (error) {
@@ -249,9 +254,8 @@ export default function EventDetailPage() {
       return null;
     }
   }
-
+  
   const departmentName = (event && typeof event.department === 'object') ? event.department.name : 'Unknown Department';
-
 
   if (isLoading) {
     return (
@@ -570,5 +574,3 @@ export default function EventDetailPage() {
     </>
   );
 }
-
-    
