@@ -491,4 +491,5 @@ export default function EventDetailPage() {
     </>
   );
 
+
     
