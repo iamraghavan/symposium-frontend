@@ -42,7 +42,7 @@ export default function HomePage() {
   useEffect(() => {
     const fetchUpcomingEvents = async () => {
       try {
-        const response = await api<ApiSuccessResponse<Event[]>>('/api/v1/events?limit=20&sort=-startAt&upcoming=true', { authenticated: true });
+        const response = await api<ApiSuccessResponse<{data: Event[]}>>('/events?limit=20&sort=-startAt&upcoming=true');
         if (response.success && response.data) {
           const allEvents = response.data;
           setOnlineEvents(allEvents.filter(event => event.mode === 'online'));

@@ -102,7 +102,7 @@ export function RegistrationDialog({
     }
 
     try {
-        const response = await api<any>(`/symposium-payments/symposium/status?emails=${emailsToCheck.join(',')}`, { authenticated: true });
+        const response = await api<any>(`/symposium-payments/symposium/status?emails=${emailsToCheck.join(',')}`);
         const unpaid = response.entries?.filter((e: any) => !e.hasPaid).map((e: any) => e.email);
 
         if (unpaid && unpaid.length > 0) {

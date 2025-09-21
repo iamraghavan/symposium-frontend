@@ -83,7 +83,7 @@ export default function EventDetailPage() {
   const fetchEventData = useCallback(async () => {
       setIsLoading(true);
       try {
-        const response = await api<ApiSuccessResponse<{ event: Event }>>(`/events/${eventId}`, { authenticated: true });
+        const response = await api<ApiSuccessResponse<{ event: Event }>>(`/events/${eventId}`);
         if (response.success && response.data) {
           setEvent(response.data as unknown as Event);
         } else {
@@ -111,7 +111,7 @@ export default function EventDetailPage() {
 
     const fetchWinners = async () => {
         try {
-            const response = await api<ApiSuccessResponse<{data: Winner[]}>>(`/events/${eventId}/winners`, { authenticated: true });
+            const response = await api<ApiSuccessResponse<{data: Winner[]}>>(`/events/${eventId}/winners`);
             if (response.success && response.data) {
                 setWinners(response.data);
             }
@@ -598,5 +598,3 @@ export default function EventDetailPage() {
     </>
   );
 }
-
-    
