@@ -12,7 +12,8 @@ export async function POST(request: NextRequest) {
         razorpay_signature,
         amount,
         currency,
-        emails
+        emails,
+        meta,
     } = await request.json();
 
     if (!userApiKey) {
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
             amount,
             currency,
             emails,
-            meta: { source: 'web-nextjs-proxy' }
+            meta
         })
     });
     
@@ -54,3 +55,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, message: errorMessage }, { status: 500 });
  }
 }
+
+    

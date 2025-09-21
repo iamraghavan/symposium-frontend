@@ -148,7 +148,7 @@ export default function EventDetailPage() {
         handler: async function (response: any) {
             try {
                 // Use the new local update route
-                await fetch('/api/symposium/update', {
+                const updateResponse = await fetch('/api/symposium/update', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -158,9 +158,15 @@ export default function EventDetailPage() {
                         razorpay_signature: response.razorpay_signature,
                         amount: paymentDetails.order.amount,
                         currency: paymentDetails.order.currency,
-                        emails: unpaidEmails
+                        emails: unpaidEmails,
+                        meta: { source: 'web-nextjs-client' }
                     })
                 });
+
+                const updateData = await updateResponse.json();
+                if (!updateResponse.ok || updateData.success === false) {
+                    throw new Error(updateData.message || 'Payment verification failed on the server.');
+                }
                 
                 toast({ title: 'Payment Successful!', description: 'Your Symposium Pass is now active. Please complete your registration.' });
                 setIsPaymentDialogOpen(false);
@@ -592,3 +598,5 @@ export default function EventDetailPage() {
     </>
   );
 }
+
+    
