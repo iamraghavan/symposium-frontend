@@ -67,11 +67,11 @@ export default function EventDetailPage() {
     const fetchEventData = async () => {
       setIsLoading(true);
       try {
-        const response = await api<ApiSuccessResponse<{ event: Event }>>(`/events/${eventId}`);
-        if (response.success && response.data?.event) {
-          setEvent(response.data.event);
+        const response = await api<ApiSuccessResponse<Event>>(`/events/${eventId}`);
+        if (response.success && response.data) {
+          setEvent(response.data);
           // This should be replaced with an API call in the future
-          setWinners(allWinners.filter(w => w.eventId === (response.data?.event as Event)?._id));
+          setWinners(allWinners.filter(w => w.eventId === (response.data as Event)?._id));
         } else {
            throw new Error("Event not found in API response.");
         }
@@ -458,5 +458,8 @@ export default function EventDetailPage() {
       )}
     </>
   );
+
+    
+
 
     
