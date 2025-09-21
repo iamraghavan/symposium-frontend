@@ -1,7 +1,7 @@
 # **App Name**: Symposium Central
 
 ## Core Features:
-<!-- 12012352 -->
+<!-- 12012353 -->
 - Admin Dashboard: Provides an overview of symposium events and user data.
 - Event Management: Create, update, and delete event details, including schedules and descriptions.
 - User Registration Tracking: Manage and view registered users for each event.
