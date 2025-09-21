@@ -117,10 +117,17 @@ export default function EventDetailPage() {
                 setWinners(response.data);
             }
         } catch (error) {
-            if (error instanceof Error && (JSON.parse(error.message).message?.includes("Not Found") || JSON.parse(error.message).message?.includes("no winners"))) {
-              return;
+            if (error instanceof Error) {
+                try {
+                    const parsedError = JSON.parse(error.message);
+                    if (parsedError.message?.includes("Not Found") || parsedError.message?.includes("no winners")) {
+                        return; // It's ok if there are no winners, don't show an error
+                    }
+                } catch(e) {
+                  // Not a parsable JSON error, log it
+                  console.error("Could not fetch winners:", error);
+                }
             }
-            console.error("Could not fetch winners:", error);
         }
     }
     
@@ -141,8 +148,8 @@ export default function EventDetailPage() {
         order_id: paymentDetails.order.id,
         handler: async function (response: any) {
             try {
-                // Use the new local verification route
-                await fetch('/api/symposium/verify', {
+                // Use the new local update route
+                await fetch('/api/symposium/update', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -150,6 +157,9 @@ export default function EventDetailPage() {
                         razorpay_order_id: response.razorpay_order_id,
                         razorpay_payment_id: response.razorpay_payment_id,
                         razorpay_signature: response.razorpay_signature,
+                        amount: paymentDetails.order.amount,
+                        currency: paymentDetails.order.currency,
+                        emails: unpaidEmails
                     })
                 });
                 
@@ -173,7 +183,7 @@ export default function EventDetailPage() {
             email: user.email,
         },
         theme: {
-            color: '#181844', // Theme color
+            color: '#181844',
         },
     };
 

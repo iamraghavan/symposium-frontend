@@ -4,7 +4,6 @@
 import type { ApiErrorResponse, ApiSuccessResponse } from './types';
 
 const API_BASE_URL = 'https://symposium-backend.onrender.com';
-const GLOBAL_API_KEY = 'rjfqrur9L0v2XNzx574DI1Djejii70JP5S';
 
 type ApiOptions = {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -16,19 +15,17 @@ type ApiOptions = {
 async function api<T extends ApiSuccessResponse<any> | ApiErrorResponse>(endpoint: string, options: ApiOptions = {}): Promise<T> {
   const { method = 'GET', body, authenticated = false, headers = {} } = options;
 
-  let apiKey = GLOBAL_API_KEY;
+  let apiKey: string | null = null;
   if (authenticated) {
-    let userApiKey: string | null = null;
     if (typeof window !== 'undefined') {
-      userApiKey = localStorage.getItem('userApiKey');
+      apiKey = localStorage.getItem('userApiKey');
     }
-    if (!userApiKey) {
+    if (!apiKey) {
         const errorMsg = 'API key is missing for an authenticated request.';
         console.error(errorMsg);
         // This makes sure the error is a JSON string so it can be parsed by the caller
         throw new Error(JSON.stringify({ message: errorMsg, success: false }));
     }
-    apiKey = userApiKey;
   }
 
   const config: RequestInit = {
@@ -36,10 +33,13 @@ async function api<T extends ApiSuccessResponse<any> | ApiErrorResponse>(endpoin
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'x-api-key': apiKey,
       ...headers,
     },
   };
+  
+  if (apiKey) {
+      (config.headers as Record<string, string>)['x-api-key'] = apiKey;
+  }
 
   if (body) {
     config.body = JSON.stringify(body);
@@ -53,13 +53,13 @@ async function api<T extends ApiSuccessResponse<any> | ApiErrorResponse>(endpoin
     const contentType = response.headers.get("content-type");
     if (!contentType || !contentType.includes("application/json")) {
         const responseText = await response.text();
-        // For 402, the backend might send a specific error object we need to parse
+        // This handles the specific 402 error from the backend which needs to be parsed
         if (response.status === 402) {
              try {
                 const errorJson = JSON.parse(responseText);
                 throw new Error(JSON.stringify(errorJson));
              } catch(e) {
-                 // Fallback if the 402 body is not JSON
+                 // Fallback if the 402 body is not JSON for some reason
                 throw new TypeError(`Server returned 402 with non-JSON response: ${responseText}`);
              }
         }
@@ -81,7 +81,7 @@ async function api<T extends ApiSuccessResponse<any> | ApiErrorResponse>(endpoin
     return responseData as T;
 
   } catch (error) {
-    console.error(`API call to '${endpoint}' failed:`, error);
+    console.error(`API call to '${finalEndpoint}' failed:`, error);
     if (error instanceof Error) {
         // Re-throw the original error which might be our stringified JSON
         throw error;
