@@ -109,7 +109,18 @@ export default function EventDetailPage() {
                 setWinners(response.data);
             }
         } catch (error) {
-            // Non-critical, so we just log it
+            // Non-critical, so we check if the error is a "Not Found" error and ignore it.
+            if (error instanceof Error) {
+                try {
+                    const parsedError = JSON.parse(error.message);
+                    if (parsedError.message === "Not Found") {
+                        // This is expected if there are no winners, so we don't log it.
+                        return;
+                    }
+                } catch (e) {
+                    // The error was not a JSON string, so we log the original error.
+                }
+            }
             console.error("Could not fetch winners:", error);
         }
     }
@@ -215,10 +226,15 @@ export default function EventDetailPage() {
     setIsRegistrationDialogOpen(true);
   }
   
-  const onRegistrationSuccess = () => {
+  const onRegistrationSuccess = (response: any) => {
     setIsRegistrationDialogOpen(false);
-    toast({ title: 'Registration Confirmed!', description: 'You have been successfully registered for the event.' });
-    setTimeout(() => window.location.reload(), 1500);
+    
+    if (response?.payment?.needsPayment && response.registration) {
+      handlePaymentRequired(response.registration);
+    } else {
+      toast({ title: 'Registration Confirmed!', description: 'You have been successfully registered for the event.' });
+      setTimeout(() => window.location.reload(), 1500);
+    }
   }
   
    const onRegistrationError = (error: Error) => {
@@ -558,5 +574,3 @@ export default function EventDetailPage() {
     </>
   );
 }
-
-    
