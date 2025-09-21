@@ -182,11 +182,14 @@ export default function EventDetailPage() {
   
   const onRegistrationSuccess = (response: ApiSuccessResponse<{ registration: Registration }>) => {
     setIsRegistrationDialogOpen(false);
-    const { registration, hints } = response;
     
-    if (registration && hints?.razorpayOrderId) {
+    // The backend's response structure after merging your change
+    const registrationData = response.registration as Registration;
+    const hints = response.hints;
+
+    if (registrationData && hints?.razorpayOrderId) {
         // Payment is required, trigger Razorpay
-        handleRazorpayPayment(registration, hints.razorpayOrderId, registration.payment.amount);
+        handleRazorpayPayment(registrationData, hints.razorpayOrderId, registrationData.payment.amount);
     } else {
       // No payment needed (already paid or free event)
       toast({ title: 'Registration Confirmed!', description: 'You have been successfully registered for the event.' });
@@ -531,4 +534,3 @@ export default function EventDetailPage() {
   );
 }
 
-    

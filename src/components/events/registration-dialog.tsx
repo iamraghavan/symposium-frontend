@@ -21,7 +21,6 @@ import { useState } from "react";
 import api from "@/lib/api";
 import { Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Separator } from "../ui/separator";
 
 const memberSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -95,7 +94,7 @@ export function RegistrationDialog({
         payload.team = {
           name: data.teamName,
           members: data.members || [],
-          size: data.members?.length || 0,
+          size: data.members?.length || 0, // Correctly calculate team size
         };
       }
 
@@ -239,4 +238,3 @@ export function RegistrationDialog({
   );
 }
 
-    

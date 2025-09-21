@@ -26,7 +26,7 @@ async function api<T extends ApiSuccessResponse<any> | ApiErrorResponse>(endpoin
         const errorMsg = 'API key is missing for an authenticated request.';
         console.error(errorMsg);
         // This makes sure the error is a JSON string so it can be parsed by the caller
-        throw new Error(JSON.stringify({ message: errorMsg }));
+        throw new Error(JSON.stringify({ message: errorMsg, success: false }));
     }
     apiKey = userApiKey;
   }
@@ -55,11 +55,15 @@ async function api<T extends ApiSuccessResponse<any> | ApiErrorResponse>(endpoin
     }
 
     const responseData = await response.json();
-
+    
+    // Treat non-ok responses as errors, but pass the body for parsing
     if (!response.ok) {
-      const apiErrorResponse = responseData as ApiErrorResponse;
-      // We stringify the error to ensure the caller can parse it, especially for special cases like `isNewUser`.
-      throw new Error(JSON.stringify(apiErrorResponse));
+      throw new Error(JSON.stringify(responseData));
+    }
+    
+    // If the response is ok, but the backend explicitly says success: false
+    if (responseData.success === false) {
+      throw new Error(JSON.stringify(responseData));
     }
     
     return responseData as T;
@@ -71,10 +75,8 @@ async function api<T extends ApiSuccessResponse<any> | ApiErrorResponse>(endpoin
         throw error;
     }
     // Fallback for unknown network errors
-    throw new Error(JSON.stringify({ message: 'An unknown network error occurred.' }));
+    throw new Error(JSON.stringify({ message: 'An unknown network error occurred.', success: false }));
   }
 }
 
 export default api;
-
-    
