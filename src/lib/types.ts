@@ -1,5 +1,4 @@
 
-
 export type Department = {
   _id: string;
   id: string; // short id or uuid
@@ -43,7 +42,7 @@ export type Event = {
   endAt: string;
   department: Department | string;
   createdBy: User | string;
-  payment: {
+  payment: { // This now refers to the old, event-specific payment model
     method: 'none' | 'gateway' | 'qr';
     gatewayProvider?: 'razorpay' | 'stripe';
     price: number;
@@ -88,7 +87,8 @@ export type LoggedInUser = {
   department?: Department | string; 
   picture?: string;
   provider?: string;
-  hasPaidForEvent?: boolean;
+  hasPaidForEvent?: boolean; // Legacy field
+  hasPaidSymposium?: boolean; // New field for one-time fee
   [key: string]: any; 
 };
 
@@ -103,20 +103,11 @@ export type Registration = {
     members: { name: string; email: string; }[];
   };
   status: 'pending' | 'confirmed' | 'cancelled';
-  payment: {
-    method: 'none' | 'gateway' | 'qr';
+  payment: { // This payment object is now for the free registration record
+    method: 'none' | 'gateway';
     currency: string;
     amount: number;
-    status: 'pending' | 'paid' | 'failed' | 'refunded';
-    gatewayProvider?: string;
-    gatewayLink?: string;
-    gatewayOrderId?: string;
-    gatewayPaymentId?: string;
-    gatewaySignature?: string;
-    qrReference?: string;
-    qrScreenshotUrl?: string;
-    verifiedAt?: string;
-    verifiedBy?: string;
+    status: 'paid' | 'pending';
   };
   notes?: string;
   eventName: string;
@@ -137,12 +128,8 @@ export type ApiSuccessResponse<T> = {
     limit: number;
     hasMore: boolean;
   };
-  hints?: {
-    next?: 'confirmed' | 'pay_gateway';
-    gatewayLink?: string;
-    razorpayOrderId?: string;
-  };
-  registration?: T; // For create registration response
+  registration?: T;
+  payment?: any; // Generic payment object for various responses
 };
 
 
@@ -156,6 +143,9 @@ export type ApiErrorResponse = {
     name: string;
     email: string;
     picture?: string;
+  },
+  payment?: {
+      neededFor: string[];
+      feeInInr: number;
   }
 };
-

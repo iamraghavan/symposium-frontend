@@ -46,11 +46,21 @@ async function api<T extends ApiSuccessResponse<any> | ApiErrorResponse>(endpoin
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/v1${endpoint}`, config);
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
 
     const contentType = response.headers.get("content-type");
     if (!contentType || !contentType.includes("application/json")) {
         const responseText = await response.text();
+        // For 402, the backend might send a specific error object we need to parse
+        if (response.status === 402) {
+             try {
+                const errorJson = JSON.parse(responseText);
+                throw new Error(JSON.stringify(errorJson));
+             } catch(e) {
+                 // Fallback if the 402 body is not JSON
+                throw new TypeError(`Server returned 402 with non-JSON response: ${responseText}`);
+             }
+        }
         throw new TypeError(`Server returned non-JSON response: ${response.status} ${response.statusText} \nResponse: ${responseText}`);
     }
 

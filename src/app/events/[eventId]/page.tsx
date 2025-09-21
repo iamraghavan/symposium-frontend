@@ -38,7 +38,7 @@ import { Button } from "@/components/ui/button";
 import { parseISO, format } from 'date-fns';
 import { notFound, useParams, useRouter } from "next/navigation";
 import { Calendar, Users, Trophy, Globe, Info, Clock, TicketCheck, ExternalLink, Phone, Mail, Link as LinkIcon, IndianRupee, Building } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import api from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import type { Event, ApiSuccessResponse, Winner, Department, LoggedInUser, Registration } from '@/lib/types';
@@ -47,15 +47,15 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useGoogleAuth } from "@/components/layout/google-one-tap";
 import { GoogleLogin } from "@react-oauth/google";
 import { RegistrationDialog } from "@/components/events/registration-dialog";
+import { SymposiumPaymentDialog } from "@/components/payment/symposium-payment-dialog";
 
-type ApiOrderResponse = {
+
+type RazorpayOrderResponse = {
     keyId: string;
-    payment: {
-      order: {
-        id: string;
-        amount: number;
-        currency: string;
-      }
+    order: {
+      id: string;
+      amount: number;
+      currency: string;
     }
 };
 
@@ -71,24 +71,18 @@ export default function EventDetailPage() {
   const [winners, setWinners] = useState<Winner[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  const [isRegistering, setIsRegistering] = useState(false);
   const [isRegistrationDialogOpen, setIsRegistrationDialogOpen] = useState(false);
-
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isAlreadyRegisteredDialogOpen, setIsAlreadyRegisteredDialogOpen] = useState(false);
+
+  // New state for the symposium payment flow
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [unpaidEmails, setUnpaidEmails] = useState<string[]>([]);
   
-  useEffect(() => {
-    const userData = localStorage.getItem("loggedInUser");
-    if (userData) {
-      setUser(JSON.parse(userData));
-    }
-
-    if (!eventId) return;
-
-    const fetchEventData = async () => {
+  const fetchEventData = useCallback(async () => {
       setIsLoading(true);
       try {
-        const response = await api<ApiSuccessResponse<{ event: Event }>>(`/events/${eventId}`);
+        const response = await api<ApiSuccessResponse<{ event: Event }>>(`/api/v1/events/${eventId}`);
         if (response.success && response.data) {
           setEvent(response.data as unknown as Event);
         } else {
@@ -100,18 +94,24 @@ export default function EventDetailPage() {
       } finally {
         setIsLoading(false);
       }
-    };
+    }, [eventId, toast]);
     
+  useEffect(() => {
+    const userData = localStorage.getItem("loggedInUser");
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+
+    if (!eventId) return;
+
     const fetchWinners = async () => {
         try {
-            const response = await api<ApiSuccessResponse<Winner[]>>(`/events/${eventId}/winners`);
+            const response = await api<ApiSuccessResponse<Winner[]>>(`/api/v1/events/${eventId}/winners`);
             if (response.success && response.data) {
                 setWinners(response.data);
             }
         } catch (error) {
-            // Non-critical, so we check if the error is a "Not Found" error and ignore it.
             if (error instanceof Error && error.message.includes("Not Found")) {
-              // This is expected if there are no winners, so we don't log it.
               return;
             }
             console.error("Could not fetch winners:", error);
@@ -120,44 +120,36 @@ export default function EventDetailPage() {
     
     fetchEventData();
     fetchWinners();
-  }, [eventId, toast]);
+  }, [eventId, toast, fetchEventData]);
 
- const processRazorpayPayment = (orderResponse: ApiOrderResponse, registration: Registration) => {
+ const processRazorpayPayment = useCallback((orderResponse: RazorpayOrderResponse) => {
      if (!user || !event) return;
 
     const options = {
         key: orderResponse.keyId,
-        amount: orderResponse.payment.order.amount,
-        currency: orderResponse.payment.order.currency,
-        name: "Symposium Central",
-        description: `One-time Symposium Pass Fee for ${event.name}`,
+        amount: orderResponse.order.amount,
+        currency: orderResponse.order.currency,
+        name: "Symposium Central Pass",
+        description: `One-time fee for ${unpaidEmails.length} user(s)`,
         image: 'https://cdn.egspec.org/assets/img/logo-sm.png',
-        order_id: orderResponse.payment.order.id,
+        order_id: orderResponse.order.id,
         handler: async function (response: any) {
-            // 1. Acknowledge checkout for analytics (optional)
-            api(`/registrations/${registration._id}/checkout-ack`, {
-                method: 'POST', authenticated: true, body: { orderId: response.razorpay_order_id, paymentId: response.razorpay_payment_id, signature: response.razorpay_signature }
-            }).catch(err => console.error("Checkout-ack failed:", err));
-
-            // 2. Verify payment on backend
             try {
-                await api('/api/v1/verify', {
+                await api('/api/v1/symposium-payments/symposium/verify', {
                     method: 'POST', authenticated: true, body: {
-                        registrationId: registration._id,
                         razorpay_order_id: response.razorpay_order_id,
                         razorpay_payment_id: response.razorpay_payment_id,
                         razorpay_signature: response.razorpay_signature,
                     }
                 });
                 
-                toast({ title: 'Payment Successful!', description: 'Your registration has been confirmed. Reloading...' });
+                toast({ title: 'Payment Successful!', description: 'Your Symposium Pass is now active. Please complete your registration.' });
+                setIsPaymentDialogOpen(false);
+                setIsRegistrationDialogOpen(true); // Re-open registration dialog
                 
-                // Optimistically update user's payment status in localStorage
                 const updatedUser = { ...user, hasPaidForEvent: true };
                 localStorage.setItem('loggedInUser', JSON.stringify(updatedUser));
                 setUser(updatedUser);
-                
-                setTimeout(() => { window.location.reload(); }, 2000);
 
             } catch (error) {
                 toast({ variant: 'destructive', title: 'Payment Verification Failed', description: (error as Error).message || 'Please contact support.'});
@@ -166,11 +158,6 @@ export default function EventDetailPage() {
         prefill: {
             name: user.name,
             email: user.email,
-        },
-        notes: {
-            registration_id: registration._id,
-            user_id: user._id,
-            event_id: event._id,
         },
         theme: {
             color: '#9D4EDD',
@@ -183,28 +170,27 @@ export default function EventDetailPage() {
         toast({ variant: 'destructive', title: 'Payment Failed', description: response.error.description || 'An unknown error occurred.'});
     });
     rzp.open();
-  }
+  }, [user, event, toast, unpaidEmails]);
 
-  const handlePaymentRequired = async (registration: Registration) => {
-      setIsRegistrationDialogOpen(false);
+  const handleCreateOrder = useCallback(async () => {
       try {
-        toast({ title: 'Payment Required', description: 'Creating payment order, please wait...' });
-        const orderResponse = await api<ApiSuccessResponse<ApiOrderResponse>>('/api/v1/order', {
+        toast({ title: 'Creating Payment Order...', description: 'Please wait.' });
+        const response = await api<ApiSuccessResponse<{payment: RazorpayOrderResponse}>>('/api/v1/symposium-payments/symposium/order', {
             method: 'POST',
             authenticated: true,
-            body: { registrationId: registration._id }
+            body: { emails: unpaidEmails }
         });
 
-        if (orderResponse.success && orderResponse.data?.payment.order) {
-            processRazorpayPayment(orderResponse.data as any, registration);
+        if (response.success && response.data?.payment) {
+            processRazorpayPayment(response.data.payment);
         } else {
             throw new Error('Could not create payment order.');
         }
 
       } catch (error) {
-        toast({ variant: 'destructive', title: 'Order Creation Failed', description: (error as Error).message || 'Please try registering again.' });
+        toast({ variant: 'destructive', title: 'Order Creation Failed', description: (error as Error).message || 'Please try again.' });
       }
-  }
+  }, [unpaidEmails, toast, processRazorpayPayment]);
 
 
   const handleOpenRegistration = () => {
@@ -219,28 +205,35 @@ export default function EventDetailPage() {
     setIsRegistrationDialogOpen(true);
   }
   
-  const onRegistrationSuccess = (response: any) => {
+  const onRegistrationSuccess = () => {
     setIsRegistrationDialogOpen(false);
-    
-    if (response?.payment?.needsPayment && response.registration) {
-      handlePaymentRequired(response.registration);
-    } else {
-      toast({ title: 'Registration Confirmed!', description: 'You have been successfully registered for the event.' });
-      setTimeout(() => window.location.reload(), 1500);
-    }
+    toast({ title: 'Registration Confirmed!', description: 'You have been successfully registered for the event.' });
+    setTimeout(() => {
+        // Maybe just update the state instead of full reload
+        fetchEventData();
+    }, 1500);
   }
+  
+  const onRegistrationNeedsPayment = (emails: string[]) => {
+      setIsRegistrationDialogOpen(false);
+      setUnpaidEmails(emails);
+      setIsPaymentDialogOpen(true);
+  };
   
    const onRegistrationError = (error: Error) => {
     setIsRegistrationDialogOpen(false);
     try {
         const parsedError = JSON.parse(error.message);
-        if (parsedError.message && parsedError.message.includes('You already have a registration for this event')) {
+        if (parsedError.message && parsedError.message.includes('already have an active registration')) {
             setIsAlreadyRegisteredDialogOpen(true);
-        } else {
+        } else if (parsedError.payment?.neededFor) {
+            onRegistrationNeedsPayment(parsedError.payment.neededFor);
+        }
+        else {
             toast({ variant: 'destructive', title: 'Registration Failed', description: parsedError.message || 'An unknown error occurred.' });
         }
     } catch(e) {
-        if (error.message.includes('You already have a registration for this event')) {
+        if (error.message.includes('already have an active registration')) {
              setIsAlreadyRegisteredDialogOpen(true);
         } else {
             toast({ variant: 'destructive', title: 'Registration Failed', description: error.message || 'An unknown error occurred.' });
@@ -283,7 +276,7 @@ export default function EventDetailPage() {
   }
 
   const departmentName = typeof event.department === 'object' ? event.department.name : 'Unknown Department';
-  const isFreeEvent = event.payment.price === 0;
+  const isSymposiumFeePaid = !!user?.hasPaidForEvent;
 
   return (
     <>
@@ -366,16 +359,16 @@ export default function EventDetailPage() {
                     <CardContent className="p-0">
                        <div className="bg-primary/10 p-4 text-center">
                         <h3 className="font-bold text-lg text-primary">
-                          {isFreeEvent ? 'Registration is Free!' : user?.hasPaidForEvent ? 'Your Symposium Pass is Active!' : 'Registration is Open!'}
+                          {isSymposiumFeePaid ? 'Your Symposium Pass is Active!' : 'Registration is Open!'}
                         </h3>
-                         {user?.hasPaidForEvent && !isFreeEvent && (
-                            <p className="text-sm text-green-600 font-semibold mt-1">Your next event registrations are free.</p>
+                         {isSymposiumFeePaid && (
+                            <p className="text-sm text-green-600 font-semibold mt-1">You can register for any event for free.</p>
                          )}
                       </div>
                       <div className="p-4">
-                          <Button size="lg" className="w-full" onClick={handleOpenRegistration} disabled={isRegistering}>
+                          <Button size="lg" className="w-full" onClick={handleOpenRegistration}>
                               <TicketCheck className="mr-2 h-5 w-5"/>
-                              {isRegistering ? 'Processing...' : 'Register Now'}
+                              {isSymposiumFeePaid ? 'Register for this Event' : 'Register Now'}
                           </Button>
                       </div>
                     </CardContent>
@@ -409,9 +402,9 @@ export default function EventDetailPage() {
                       <div className="flex items-start">
                         <IndianRupee className="mr-3 h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                         <div>
-                          <h3 className="font-semibold">Registration Fee</h3>
-                          <p className="text-muted-foreground">{event.payment.price > 0 ? `One-time fee of ${event.payment.currency} ${event.payment.price}` : 'Free'}</p>
-                           {user?.hasPaidForEvent && !isFreeEvent && <p className="text-xs text-green-600 font-medium">(Free for you with Symposium Pass)</p>}
+                          <h3 className="font-semibold">Symposium Fee</h3>
+                          <p className="text-muted-foreground">One-time fee of ₹250 to access all events</p>
+                           {isSymposiumFeePaid && <p className="text-xs text-green-600 font-medium">(You have already paid)</p>}
                         </div>
                       </div>
                       <div className="flex items-start">
@@ -520,8 +513,17 @@ export default function EventDetailPage() {
           user={user}
           onSuccess={onRegistrationSuccess}
           onError={onRegistrationError}
-          onPaymentRequired={handlePaymentRequired}
+          onNeedsPayment={onRegistrationNeedsPayment}
         />
+      )}
+      
+      {isPaymentDialogOpen && (
+          <SymposiumPaymentDialog
+            open={isPaymentDialogOpen}
+            onOpenChange={setIsPaymentDialogOpen}
+            unpaidEmails={unpaidEmails}
+            onConfirmPayment={handleCreateOrder}
+          />
       )}
 
        <Dialog open={isLoginModalOpen} onOpenChange={setIsLoginModalOpen}>
@@ -553,7 +555,7 @@ export default function EventDetailPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Already Registered</AlertDialogTitle>
             <AlertDialogDescription>
-              You have already registered for this event. You can view your registration status in your dashboard.
+              You already have an active registration for this event. You can view your registration status in your dashboard.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -567,5 +569,3 @@ export default function EventDetailPage() {
     </>
   );
 }
-
-    

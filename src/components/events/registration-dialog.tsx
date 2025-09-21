@@ -16,15 +16,15 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import type { Event, LoggedInUser, Registration, ApiSuccessResponse } from "@/lib/types";
-import { useState } from "react";
+import type { Event, LoggedInUser } from "@/lib/types";
+import { useState, useEffect } from "react";
 import api from "@/lib/api";
 import { Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const memberSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  email: z.string().email("Invalid email address"),
+  email: z.string().email("Invalid email address").min(1, "Email is required"),
 });
 
 const registrationSchema = z.object({
@@ -42,7 +42,7 @@ type RegistrationDialogProps = {
   user: LoggedInUser;
   onSuccess: () => void;
   onError: (error: Error) => void;
-  onPaymentRequired: (registration: Registration) => void;
+  onNeedsPayment: (unpaidEmails: string[]) => void;
 };
 
 export function RegistrationDialog({
@@ -52,7 +52,7 @@ export function RegistrationDialog({
   user,
   onSuccess,
   onError,
-  onPaymentRequired,
+  onNeedsPayment,
 }: RegistrationDialogProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -62,6 +62,7 @@ export function RegistrationDialog({
     handleSubmit,
     control,
     watch,
+    reset,
     formState: { errors },
   } = useForm<RegistrationFormData>({
     resolver: zodResolver(registrationSchema),
@@ -70,6 +71,13 @@ export function RegistrationDialog({
       members: [],
     },
   });
+
+  // Reset form when dialog is closed
+  useEffect(() => {
+    if (!open) {
+      reset({ type: "individual", members: [], teamName: "" });
+    }
+  }, [open, reset]);
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -83,7 +91,6 @@ export function RegistrationDialog({
     try {
       const payload: any = {
         eventId: event._id,
-        eventName: event.name,
         type: data.type,
       };
 
@@ -96,39 +103,42 @@ export function RegistrationDialog({
         payload.team = {
           name: data.teamName,
           members: data.members || [],
-          size: data.members?.length || 0, // Correctly calculate team size
         };
       }
 
-      const response = await api<any>('/registrations', {
+      const response = await api('/api/v1/registrations', {
         method: 'POST',
         body: payload,
         authenticated: true,
       });
       
-      // Check backend response to see if payment is needed
-      if (response.payment?.needsPayment === true && response.registration) {
-          onPaymentRequired(response.registration);
-      } else {
-          onSuccess();
-      }
+      onSuccess();
 
     } catch (error) {
-      onError(error as Error);
+      const err = error as Error;
+      try {
+        const parsed = JSON.parse(err.message);
+        // Check for the specific 402 Payment Required error
+        if (parsed.payment?.neededFor) {
+          onNeedsPayment(parsed.payment.neededFor);
+          return; // Stop further error handling
+        }
+      } catch (e) {
+        // Not a JSON error we can parse, fall through to generic handling
+      }
+      onError(err);
     } finally {
       setIsSubmitting(false);
     }
   };
   
-  const isPaidEvent = event.payment.price > 0 && !user.hasPaidForEvent;
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="font-headline text-2xl">Register for {event.name}</DialogTitle>
           <DialogDescription>
-            Confirm your details and choose your registration type.
+            Confirm your details and choose your registration type. Remember, a one-time symposium fee is required per person.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(handleRegistrationSubmit)}>
@@ -214,17 +224,7 @@ export function RegistrationDialog({
             )}
           </div>
           
-           {isPaidEvent && (
-            <div className="space-y-2 mt-4 pt-4 border-t">
-                <h4 className="font-semibold text-lg">Payment Details</h4>
-                 <p className="text-sm text-muted-foreground text-center pt-2">
-                    A one-time symposium pass fee of <strong>{event.payment.currency} {event.payment.price}</strong> is required. 
-                    This pass gives you free access to all other events. Your backend will calculate the final amount based on which team members have already paid.
-                 </p>
-            </div>
-           )}
-
-            {event.payment.price > 0 && user.hasPaidForEvent && (
+           {user.hasPaidForEvent && (
                 <div className="mt-4 pt-4 border-t text-center text-sm text-green-600 font-medium bg-green-50 p-3 rounded-md">
                     Your Symposium Pass is active. This registration is free!
                 </div>
@@ -236,7 +236,7 @@ export function RegistrationDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Submitting...' : (isPaidEvent ? 'Proceed to Payment' : 'Confirm Registration')}
+              {isSubmitting ? 'Verifying...' : 'Register for Event'}
             </Button>
           </DialogFooter>
         </form>
@@ -244,5 +244,3 @@ export function RegistrationDialog({
     </Dialog>
   );
 }
-
-    

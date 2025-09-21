@@ -42,7 +42,7 @@ export default function HomePage() {
   useEffect(() => {
     const fetchUpcomingEvents = async () => {
       try {
-        const response = await api<ApiSuccessResponse<Event[]>>('/events?limit=20&sort=-startAt&upcoming=true');
+        const response = await api<ApiSuccessResponse<Event[]>>('/api/v1/events?limit=20&sort=-startAt&upcoming=true');
         if (response.success && response.data) {
           const allEvents = response.data;
           setOnlineEvents(allEvents.filter(event => event.mode === 'online'));
@@ -104,8 +104,7 @@ export default function HomePage() {
   const EventCard = ({ event }: { event: Event }) => {
      const { date, time } = getFormattedDate(event.startAt);
      const departmentName = typeof event.department === 'object' ? event.department.name : 'N/A';
-     const price = event.payment?.price;
-
+     
     return (
       <motion.div
         whileHover={{ scale: 1.03, y: -5 }}
@@ -150,7 +149,7 @@ export default function HomePage() {
               </span>
             </div>
             <Button variant="default" size="sm">
-              {price === 0 ? 'Free' : `$${price}`}
+              Free Registration
             </Button>
           </CardFooter>
         </Card>
@@ -185,7 +184,7 @@ export default function HomePage() {
         className="flex-1">
         <section className="relative h-[80vh] flex items-center justify-center text-center text-white">
           <Image
-            src="https://picsum.photos/seed/symposium/1920/1080"
+            src="https://picsum.photos/seed/symposium-hero/1920/1080"
             alt="A vibrant symposium with a diverse audience"
             fill
             className="object-cover -z-10"
@@ -209,8 +208,8 @@ export default function HomePage() {
                 Join thousands of students, professionals, and enthusiasts for the most anticipated tech and culture symposium of the year.
               </p>
                <div className="mt-8 flex items-center justify-center gap-4">
-                <Button size="lg" variant="secondary">
-                  Register Now
+                <Button size="lg" variant="secondary" asChild>
+                  <Link href="/events">Register Now</Link>
                 </Button>
                 <Button asChild size="lg" variant="ghost" className="text-white hover:bg-white/10 hover:text-white group">
                   <Link href="/events" className="flex items-center gap-2">
@@ -404,7 +403,7 @@ export default function HomePage() {
 
          <section className="relative py-16 md:py-24 bg-primary text-primary-foreground">
           <Image
-            src="https://picsum.photos/seed/crowd/1920/1080"
+            src="https://picsum.photos/seed/crowd-register/1920/1080"
             alt="Crowd at a conference"
             fill
             className="object-cover -z-10"
@@ -420,8 +419,8 @@ export default function HomePage() {
                 Join hundreds of students, professionals, and academics for a multi-day immersion in groundbreaking technology. Register today and take the next step in your career, network with peers, and gain the insights that will shape our future.
               </p>
               <div className="mt-8">
-                <Button size="lg" variant="secondary">
-                  Register Now
+                <Button size="lg" variant="secondary" asChild>
+                  <Link href="/events">Register Now</Link>
                 </Button>
               </div>
           </div>
@@ -429,5 +428,3 @@ export default function HomePage() {
       </motion.main>
   );
 }
-
-    
