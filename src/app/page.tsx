@@ -57,7 +57,7 @@ export default function HomePage() {
         try {
             const [deptResponse, eventResponse] = await Promise.all([
                 api<ApiSuccessResponse<{ departments: Department[] }>>('/departments?limit=100'),
-                api<ApiSuccessResponse<{data: Event[]}>>('/events?status=published&limit=100&upcoming=true')
+                api<ApiSuccessResponse<{data: Event[]}>>('/events?status=published&limit=100')
             ]);
             
             const fetchedDepts = deptResponse.data?.departments || [];
@@ -342,7 +342,7 @@ export default function HomePage() {
                     transition={{ duration: 0.5 }}
                     className="mb-8 text-center"
                 >
-                    <h2 className="text-3xl md:text-4xl font-bold font-headline tracking-tight">Upcoming Events</h2>
+                    <h2 className="text-3xl md:text-4xl font-bold font-headline tracking-tight">Events</h2>
                     <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">Browse, filter, and discover all the exciting events happening. Click on any event to see more details.</p>
                 </motion.div>
 
