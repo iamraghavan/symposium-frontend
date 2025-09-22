@@ -20,12 +20,19 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { format, parseISO } from 'date-fns';
 import { useEffect, useState } from 'react';
-import { Calendar, Users, ArrowRight, ArrowRightCircle, Lightbulb, Network, Code, Users2, Globe, FileText, Ticket } from 'lucide-react';
-import type { Event, ApiSuccessResponse } from '@/lib/types';
+import { Calendar, Users, ArrowRight, ArrowRightCircle, Lightbulb, Network, Code, Users2, Globe, FileText, Ticket, Video } from 'lucide-react';
+import type { Event, ApiSuccessResponse, Department } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { motion } from "framer-motion";
 import api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const GoogleCalendarIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor" {...props}>
@@ -36,24 +43,63 @@ const GoogleCalendarIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 export default function HomePage() {
   const { toast } = useToast();
-  const [onlineEvents, setOnlineEvents] = useState<Event[]>([]);
-  const [offlineEvents, setOfflineEvents] = useState<Event[]>([]);
+  const [allEvents, setAllEvents] = useState<Event[]>([]);
+  const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const [modeFilter, setModeFilter] = useState("all");
+  const [departmentFilter, setDepartmentFilter] = useState("all");
 
   useEffect(() => {
-    const fetchUpcomingEvents = async () => {
-      try {
-        const response = await api<ApiSuccessResponse<{data: Event[]}>>('/events?limit=20&sort=-startAt&upcoming=true');
-        if (response.success && response.data) {
-          const allEvents = response.data;
-          setOnlineEvents(allEvents.filter(event => event.mode === 'online'));
-          setOfflineEvents(allEvents.filter(event => event.mode === 'offline'));
+    async function fetchData() {
+        setIsLoading(true);
+        try {
+            const [deptResponse, eventResponse] = await Promise.all([
+                api<ApiSuccessResponse<{ departments: Department[] }>>('/departments?limit=100'),
+                api<ApiSuccessResponse<{data: Event[]}>>('/events?status=published&limit=100&upcoming=true')
+            ]);
+            
+            const fetchedDepts = deptResponse.data?.departments || [];
+            setDepartments(fetchedDepts);
+
+            if (eventResponse.data) {
+                 const deptMap = new Map(fetchedDepts.map(d => [d._id, d.name]));
+                 const eventsWithDept = eventResponse.data.map(event => ({
+                    ...event,
+                    department: {
+                      _id: event.department as string,
+                      name: deptMap.get(event.department as string) || 'Unknown',
+                    } as any
+                }));
+                setAllEvents(eventsWithDept);
+                setFilteredEvents(eventsWithDept);
+            }
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch data.'});
+            console.error(error);
+        } finally {
+            setIsLoading(false);
         }
-      } catch (error) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch upcoming events.' });
-      }
-    };
-    fetchUpcomingEvents();
+    }
+    fetchData();
   }, [toast]);
+  
+  useEffect(() => {
+    let tempEvents = [...allEvents];
+
+    if (modeFilter !== 'all') {
+      tempEvents = tempEvents.filter(event => event.mode === modeFilter);
+    }
+    if (departmentFilter !== 'all') {
+      tempEvents = tempEvents.filter(event => 
+        (typeof event.department === 'object' && event.department._id === departmentFilter)
+      );
+    }
+    
+    setFilteredEvents(tempEvents);
+  }, [allEvents, modeFilter, departmentFilter]);
+
 
   const getFormattedDate = (dateString?: string) => {
     if (!dateString) return { date: "N/A", time: "" };
@@ -123,7 +169,8 @@ export default function HomePage() {
               data-ai-hint={event.imageHint || 'event placeholder'}
             />
             <Badge className="absolute top-2 right-2" variant={event.mode === 'online' ? 'default' : 'secondary'}>
-                {event.mode === 'online' ? 'Online' : 'Offline'}
+                {event.mode === 'online' ? <Video className='mr-1 h-3 w-3'/> : <Globe className='mr-1 h-3 w-3'/>}
+                {event.mode.charAt(0).toUpperCase() + event.mode.slice(1)}
             </Badge>
           </div>
           <CardHeader>
@@ -157,23 +204,20 @@ export default function HomePage() {
   );
 }
 
-  const ViewAllCard = () => (
-    <motion.div
-        whileHover={{ scale: 1.03, y: -5 }}
-        className="h-full"
-    >
-     <Card className="flex flex-col h-full items-center justify-center bg-muted/50 hover:bg-muted transition-colors">
-      <CardContent className="flex flex-col items-center justify-center text-center p-6">
-        <ArrowRightCircle className="h-12 w-12 text-primary mb-4" />
-        <h3 className="text-xl font-bold font-headline mb-2">Explore More</h3>
-        <p className="text-muted-foreground mb-4">You've seen the highlights. Discover all the events we have to offer.</p>
-        <Button asChild>
-          <Link href="/events">View All Events</Link>
-        </Button>
-      </CardContent>
-    </Card>
-    </motion.div>
-  )
+  const containerVariants = {
+      hidden: { opacity: 0 },
+      visible: {
+          opacity: 1,
+          transition: {
+          staggerChildren: 0.05,
+          },
+      },
+  };
+
+    const itemVariants = {
+        hidden: { y: 20, opacity: 0 },
+        visible: { y: 0, opacity: 1 },
+    };
 
 
   return (
@@ -290,80 +334,75 @@ export default function HomePage() {
           </div>
         </motion.section>
 
-        <section className="py-12 md:py-20 space-y-12">
-          <div className="container px-4 md:px-6">
-             <h2 className="text-3xl font-bold font-headline tracking-tight mb-8 text-center">
-                Upcoming Online Events
-            </h2>
-          </div>
-          <div className='w-full'>
-            <Carousel
-              opts={{
-                  align: "start",
-                  dragFree: true,
-              }}
-              className="w-full"
-              >
-              <CarouselContent className="px-4">
-                  {onlineEvents.slice(0, 5).map((event) => (
-                  <CarouselItem key={event._id} className="md:basis-1/2 lg:basis-1/3">
-                      <div className="p-1 h-full">
-                        <Link href={`/events/${event._id}`}>
-                          <EventCard event={event} />
-                        </Link>
-                      </div>
-                  </CarouselItem>
-                  ))}
-                  <CarouselItem className="md:basis-1/2 lg:basis-1/3">
-                      <div className="p-1 h-full">
-                      <ViewAllCard />
-                      </div>
-                  </CarouselItem>
-              </CarouselContent>
-            </Carousel>
-          </div>
-          {onlineEvents.length === 0 && (
-              <div className="text-center col-span-full py-12 container">
-                  <p className="text-muted-foreground">No online events scheduled at the moment.</p>
-              </div>
-          )}
-          
-           <div className="container px-4 md:px-6">
-             <h2 className="text-3xl font-bold font-headline tracking-tight mb-8 text-center">
-                Upcoming Offline Events
-            </h2>
-           </div>
-            <div className='w-full'>
-              <Carousel
-              opts={{
-                  align: "start",
-                  dragFree: true,
-              }}
-              className="w-full"
-              >
-              <CarouselContent className="px-4">
-                  {offlineEvents.slice(0,5).map((event) => (
-                  <CarouselItem key={event._id} className="md:basis-1/2 lg:basis-1/3">
-                      <div className="p-1 h-full">
-                        <Link href={`/events/${event._id}`}>
-                          <EventCard event={event} />
-                        </Link>
-                      </div>
-                  </CarouselItem>
-                  ))}
-                  <CarouselItem className="md:basis-1/2 lg:basis-1/3">
-                      <div className="p-1 h-full">
-                      <ViewAllCard />
-                      </div>
-                  </CarouselItem>
-              </CarouselContent>
-              </Carousel>
-            </div>
-            {offlineEvents.length === 0 && (
-                <div className="text-center col-span-full py-12 container">
-                    <p className="text-muted-foreground">No offline events scheduled at the moment.</p>
+        <section id="events" className="py-12 md:py-20">
+            <div className="container mx-auto px-4">
+                <motion.div 
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                    className="mb-8 text-center"
+                >
+                    <h2 className="text-3xl md:text-4xl font-bold font-headline tracking-tight">Upcoming Events</h2>
+                    <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">Browse, filter, and discover all the exciting events happening. Click on any event to see more details.</p>
+                </motion.div>
+
+                <div className="flex flex-wrap gap-4 mb-8 p-4 bg-muted rounded-lg justify-center">
+                    <Select value={modeFilter} onValueChange={setModeFilter}>
+                        <SelectTrigger className="w-full sm:w-auto flex-1 min-w-[150px] max-w-xs">
+                        <SelectValue placeholder="Event Mode" />
+                        </SelectTrigger>
+                        <SelectContent>
+                        <SelectItem value="all">All Modes</SelectItem>
+                        <SelectItem value="online">Online</SelectItem>
+                        <SelectItem value="offline">Offline</SelectItem>
+                        </SelectContent>
+                    </Select>
+
+                    <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+                        <SelectTrigger className="w-full sm:w-auto flex-1 min-w-[150px] max-w-xs">
+                        <SelectValue placeholder="Department" />
+                        </SelectTrigger>
+                        <SelectContent>
+                        <SelectItem value="all">All Departments</SelectItem>
+                        {departments.map(dept => (
+                            <SelectItem key={dept._id} value={dept._id}>{dept.name}</SelectItem>
+                        ))}
+                        </SelectContent>
+                    </Select>
                 </div>
-            )}
+      
+                {isLoading ? (
+                    <div className="text-center col-span-full py-12">
+                        <p className="text-muted-foreground">Loading events...</p>
+                    </div>
+                ) : (
+                    <motion.div 
+                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                    variants={containerVariants}
+                    initial="hidden"
+                    animate="visible"
+                    >
+                    {filteredEvents.map((event) => (
+                        <motion.div key={event._id} variants={itemVariants}>
+                            <Link href={`/events/${event._id}`}>
+                            <EventCard event={event} />
+                            </Link>
+                        </motion.div>
+                    ))}
+                    </motion.div>
+                )}
+                {!isLoading && filteredEvents.length === 0 && (
+                    <div className="text-center col-span-full py-12">
+                        <p className="text-muted-foreground">No events match the current filters.</p>
+                    </div>
+                )}
+
+                <div className="text-center mt-12">
+                  <Button asChild size="lg">
+                    <Link href="/events">View All Events <ArrowRight className="ml-2 h-5 w-5" /></Link>
+                  </Button>
+                </div>
+            </div>
         </section>
 
         <motion.section 
