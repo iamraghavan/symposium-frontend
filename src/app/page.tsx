@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import Image from 'next/image';
@@ -211,7 +210,7 @@ export default function HomePage() {
         className="flex-1">
         <section className="relative h-[80vh] flex items-center justify-center text-center text-white">
           <Image
-            src="https://image-static.collegedunia.com/public/reviewPhotos/871794/IMG-20240914-WA0005.jpg"
+            src="https://cdn.egspec.org/assets/img/hero-1.webp"
             alt="A vibrant symposium with a diverse audience"
             fill
             className="object-cover -z-10"
