@@ -36,12 +36,12 @@ export default function EventsPage() {
         setIsLoading(true);
         try {
             const [deptResponse, eventResponse] = await Promise.all([
-                api<ApiSuccessResponse<{ data: Department[] }>>('/departments?limit=100'),
+                api<ApiSuccessResponse<Department[]>>('/departments?limit=100'),
                 api<ApiSuccessResponse<Event[]>>('/events?status=published&limit=100&populate=department,createdBy')
             ]);
             
-            if (deptResponse.success && deptResponse.data?.data) {
-                setDepartments(deptResponse.data.data);
+            if (deptResponse.success && deptResponse.data) {
+                setDepartments(deptResponse.data);
             }
 
             if (eventResponse.success && eventResponse.data) {
