@@ -58,7 +58,7 @@ export default function HomePage() {
         try {
             const [deptResponse, eventResponse] = await Promise.all([
                 api<ApiSuccessResponse<Department[]>>('/departments?limit=100'),
-                api<ApiSuccessResponse<{data: Event[]}>>('/events?status=published&limit=100')
+                api<ApiSuccessResponse<Event[]>>('/events?status=published&limit=100')
             ]);
             
             const fetchedDepts = deptResponse.data || [];
@@ -66,7 +66,7 @@ export default function HomePage() {
 
             if (eventResponse.success && eventResponse.data) {
                  const deptMap = new Map(fetchedDepts.map(d => [d._id, d.name]));
-                 const eventsWithDept = eventResponse.data.data.map(event => ({
+                 const eventsWithDept = eventResponse.data.map(event => ({
                     ...event,
                     department: {
                       _id: event.department as string,
@@ -211,7 +211,7 @@ export default function HomePage() {
         className="flex-1">
         <section className="relative h-[80vh] flex items-center justify-center text-center text-white">
           <Image
-            src="https://cdn.egspec.org/assets/img/hero/2.JPG"
+            src="https://image-static.collegedunia.com/public/reviewPhotos/871794/IMG-20240914-WA0005.jpg"
             alt="A vibrant symposium with a diverse audience"
             fill
             className="object-cover -z-10"
