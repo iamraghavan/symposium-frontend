@@ -2,7 +2,7 @@
 # Symposium Central API Endpoints
 
 This document outlines the backend API endpoints required to support the Symposium Central frontend application.
-
+<!-- 23-09-2025 - 1023 -->
 ## Authentication Endpoints
 
 - **`POST /api/auth/login`**: Authenticates a user (superadmin or department admin) and returns a session token (e.g., JWT).
