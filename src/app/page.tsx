@@ -36,18 +36,15 @@ export default function HomePage() {
     async function fetchData() {
         setIsLoading(true);
         try {
-            // Fetch both departments (for filtering) and events
             const [deptResponse, eventResponse] = await Promise.all([
                 api<ApiSuccessResponse<{ departments: Department[] }>>('/departments?limit=100'),
                 api<ApiSuccessResponse<Event[]>>('/events?status=published&limit=100')
             ]);
             
-            // Set departments for the filter buttons
             if (deptResponse.success && deptResponse.data?.departments) {
                 setDepartments(deptResponse.data.departments);
             }
 
-            // Set events. The department object is already populated from the API.
             if (eventResponse.success && eventResponse.data) {
                 setAllEvents(eventResponse.data);
             }
@@ -120,7 +117,6 @@ export default function HomePage() {
 
   const EventCard = ({ event }: { event: Event }) => {
     const { date, time } = getFormattedDate(event.startAt);
-    // Directly access the department name from the populated event object
     const departmentName = (event.department as Department)?.name || 'Unknown';
      
     return (
@@ -411,3 +407,5 @@ export default function HomePage() {
       </motion.main>
   );
 }
+
+    
