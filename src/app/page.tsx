@@ -57,7 +57,7 @@ export default function HomePage() {
         try {
             const [deptResponse, eventResponse] = await Promise.all([
                 api<ApiSuccessResponse<Department[]>>('/departments?limit=100'),
-                api<ApiSuccessResponse<Event[]>>('/events?status=published&limit=100')
+                api<ApiSuccessResponse<{ data: Event[] }>>('/events?status=published&limit=100')
             ]);
             
             const fetchedDepts = deptResponse.data || [];
@@ -152,13 +152,13 @@ export default function HomePage() {
     const departmentName = typeof event.department === 'object' ? event.department.name : 'N/A';
      
     return (
-        <motion.div
+         <motion.div
             whileHover={{ scale: 1.02, y: -4 }}
             className="h-full"
         >
         <Card
-            key={event._id}
-            className="flex flex-col overflow-hidden h-full shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer bg-background"
+          key={event._id}
+          className="flex flex-col overflow-hidden h-full shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer bg-background"
         >
           <CardHeader>
             <div className="flex justify-between items-start gap-2">
@@ -210,7 +210,7 @@ export default function HomePage() {
         className="flex-1">
         <section className="relative h-[80vh] flex items-center justify-center text-center text-white">
           <Image
-            src="https://cdn.egspec.org/assets/img/hero-1.webp"
+            src="https://image-static.collegedunia.com/public/reviewPhotos/871794/IMG-20240914-WA0005.jpg"
             alt="A vibrant symposium with a diverse audience"
             fill
             className="object-cover -z-10"

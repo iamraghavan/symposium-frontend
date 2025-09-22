@@ -2,7 +2,6 @@
 
 export type Department = {
   _id: string;
-  id: string; // short id or uuid
   code: string;
   name: string;
   shortcode: string;
