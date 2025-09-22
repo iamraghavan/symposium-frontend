@@ -4,6 +4,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   SidebarHeader,
   SidebarContent,
@@ -90,13 +91,7 @@ export function AdminNav() {
     <>
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-2">
-          <AppWindow className="text-primary w-8 h-8" />
-          <div className="flex flex-col">
-            <h2 className="text-lg font-headline font-semibold tracking-tight text-primary-foreground">
-              Symposium
-            </h2>
-            <p className="text-xs text-sidebar-foreground/80">Admin Panel</p>
-          </div>
+          <Image src="/logo.png" alt="EGSPEC Symposium Logo" width={150} height={30} />
         </div>
       </SidebarHeader>
       <SidebarContent className="p-2">
