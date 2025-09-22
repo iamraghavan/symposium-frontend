@@ -294,12 +294,12 @@ export default function EventDetailPage() {
         {/* Hero Section */}
         <section className="relative h-64 md:h-80 w-full">
           <Image
-            src={`https://picsum.photos/seed/${departmentName}/1920/1080`}
+            src="https://image-static.collegedunia.com/public/reviewPhotos/871794/IMG-20240914-WA0005.jpg"
             alt={`${event.name} banner`}
             fill
             priority
             className="object-cover"
-            data-ai-hint="event banner"
+            data-ai-hint="symposium audience"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
           <div className="relative h-full flex flex-col justify-end container mx-auto px-4 md:px-6 pb-8">
@@ -542,3 +542,5 @@ export default function EventDetailPage() {
     </>
   );
 }
+
+    
