@@ -27,6 +27,7 @@ import { googleLogout } from '@react-oauth/google';
 import { useToast } from "@/hooks/use-toast";
 import { isAdmin } from "@/lib/utils";
 import Image from "next/image";
+import { SearchDialog } from "@/components/search-dialog";
 
 
 function eraseCookie(name: string) {   
@@ -38,6 +39,7 @@ export function Header() {
   const { toast } = useToast();
   const [user, setUser] = useState<LoggedInUser | null>(null);
   const [isClient, setIsClient] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   useEffect(() => {
     const userData = localStorage.getItem("loggedInUser");
@@ -45,6 +47,15 @@ export function Header() {
       setUser(JSON.parse(userData));
     }
     setIsClient(true);
+
+    const down = (e: KeyboardEvent) => {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault()
+        setIsSearchOpen((open) => !open)
+      }
+    }
+    document.addEventListener("keydown", down)
+    return () => document.removeEventListener("keydown", down)
   }, []);
 
   const handleLogout = () => {
@@ -76,12 +87,17 @@ export function Header() {
 
               <div className="flex items-center justify-end gap-2 md:gap-4">
                  <div className="relative w-full max-w-sm hidden sm:block">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="search"
-                      placeholder="Search events..."
-                      className="pl-8"
-                    />
+                    <Button
+                      variant="outline"
+                      className="relative w-full justify-start text-sm text-muted-foreground sm:pr-12"
+                      onClick={() => setIsSearchOpen(true)}
+                    >
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4" />
+                      <span className="pl-6">Search events...</span>
+                       <kbd className="pointer-events-none absolute right-1.5 top-1/5 hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
+                        <span className="text-xs">⌘</span>K
+                      </kbd>
+                    </Button>
                   </div>
                 {isClient && user ? (
                    <DropdownMenu>
@@ -216,6 +232,7 @@ export function Header() {
           </div>
         </div>
       </header>
+      <SearchDialog open={isSearchOpen} onOpenChange={setIsSearchOpen} />
     </>
   );
 }
