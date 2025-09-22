@@ -63,7 +63,7 @@ export default function HomePage() {
             const fetchedDepts = deptResponse.data?.departments || [];
             setDepartments(fetchedDepts);
 
-            if (eventResponse.data) {
+            if (eventResponse.success && eventResponse.data) {
                  const deptMap = new Map(fetchedDepts.map(d => [d._id, d.name]));
                  const eventsWithDept = eventResponse.data.map(event => ({
                     ...event,
@@ -148,8 +148,8 @@ export default function HomePage() {
   };
 
   const EventCard = ({ event }: { event: Event }) => {
-     const { date, time } = getFormattedDate(event.startAt);
-     const departmentName = typeof event.department === 'object' ? event.department.name : 'N/A';
+    const { date, time } = getFormattedDate(event.startAt);
+    const departmentName = typeof event.department === 'object' ? event.department.name : 'N/A';
      
     return (
       <motion.div
@@ -158,45 +158,32 @@ export default function HomePage() {
       >
         <Card
           key={event._id}
-          className="flex flex-col overflow-hidden h-full shadow-md transition-shadow duration-300 cursor-pointer"
+          className="flex flex-col overflow-hidden h-full shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer bg-background"
         >
-          <div className="relative h-48 w-full">
-            <Image
-              src={event.thumbnailUrl || 'https://picsum.photos/seed/event/400/250'}
-              alt={event.name}
-              fill
-              className="object-cover"
-              data-ai-hint={event.imageHint || 'event placeholder'}
-            />
-            <Badge className="absolute top-2 right-2" variant={event.mode === 'online' ? 'default' : 'secondary'}>
-                {event.mode === 'online' ? <Video className='mr-1 h-3 w-3'/> : <Globe className='mr-1 h-3 w-3'/>}
-                {event.mode.charAt(0).toUpperCase() + event.mode.slice(1)}
-            </Badge>
-          </div>
           <CardHeader>
-             <CardTitle className="font-headline text-xl mb-1 line-clamp-1">
+            <div className="flex justify-between items-start gap-2">
+                <Badge variant="outline" className="w-fit">{departmentName}</Badge>
+                <Badge variant={event.mode === 'online' ? 'default' : 'secondary'}>
+                    {event.mode === 'online' ? <Video className='mr-1 h-3 w-3'/> : <Globe className='mr-1 h-3 w-3'/>}
+                    {event.mode.charAt(0).toUpperCase() + event.mode.slice(1)}
+                </Badge>
+            </div>
+             <CardTitle className="font-headline text-xl pt-2 line-clamp-1">
                 {event.name}
               </CardTitle>
-             <Badge variant="outline" className="w-fit">{departmentName}</Badge>
-            <CardDescription className="flex items-center gap-2 text-sm pt-1">
-              <Calendar className="h-4 w-4" />
-              {date} at {time}
-            </CardDescription>
           </CardHeader>
           <CardContent className="flex-grow">
-            <p className="text-sm text-muted-foreground line-clamp-2">
+            <p className="text-sm text-muted-foreground line-clamp-2 h-10">
               {event.description}
             </p>
           </CardContent>
-          <CardFooter className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">
-                0 Participants
-              </span>
-            </div>
-            <Button variant="default" size="sm">
-              Free Registration
+          <CardFooter className="flex-col items-start gap-3 pt-4 border-t">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Calendar className="h-4 w-4" />
+                <span>{date} at {time}</span>
+              </div>
+              <Button variant="default" size="sm" className="w-full">
+                Free Registration
             </Button>
           </CardFooter>
         </Card>
@@ -228,7 +215,7 @@ export default function HomePage() {
         className="flex-1">
         <section className="relative h-[80vh] flex items-center justify-center text-center text-white">
           <Image
-            src="https://image-static.collegedunia.com/public/reviewPhotos/871794/IMG-20240914-WA0005.jpg"
+            src="https://image-static.collegedunia.com/public/college_data/images/campusimage/144188200512.JPG"
             alt="A vibrant symposium with a diverse audience"
             fill
             className="object-cover -z-10"
