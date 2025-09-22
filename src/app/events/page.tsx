@@ -14,12 +14,13 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { format, parseISO } from 'date-fns';
 import { useEffect, useState, useMemo } from 'react';
-import { Calendar, Globe, Video, ArrowRight } from 'lucide-react';
+import { Calendar, ArrowRight, Video, Globe } from 'lucide-react';
 import type { Event, Department, ApiSuccessResponse } from '@/lib/types';
 import { motion, AnimatePresence } from "framer-motion";
 import api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function EventsPage() {
   const { toast } = useToast();
@@ -35,12 +36,12 @@ export default function EventsPage() {
         setIsLoading(true);
         try {
             const [deptResponse, eventResponse] = await Promise.all([
-                api<ApiSuccessResponse<{ departments: Department[] }>>('/departments?limit=100'),
-                api<ApiSuccessResponse<Event[]>>('/events?status=published&limit=100')
+                api<ApiSuccessResponse<{ data: Department[] }>>('/departments?limit=100'),
+                api<ApiSuccessResponse<Event[]>>('/events?status=published&limit=100&populate=department,createdBy')
             ]);
             
-            if (deptResponse.success && deptResponse.data?.departments) {
-                setDepartments(deptResponse.data.departments);
+            if (deptResponse.success && deptResponse.data?.data) {
+                setDepartments(deptResponse.data.data);
             }
 
             if (eventResponse.success && eventResponse.data) {
@@ -144,46 +145,35 @@ export default function EventsPage() {
         <p className="text-muted-foreground mt-2">Browse, filter, and discover all the exciting events happening.</p>
       </motion.div>
 
-       <div className="space-y-4 mb-8">
-            <motion.div 
-                className="flex flex-wrap gap-2 p-2 bg-muted rounded-lg justify-center"
-                variants={{ visible: { transition: { staggerChildren: 0.05 } } }}
-                initial="hidden"
-                animate="visible"
-            >
-                <motion.div variants={itemVariants}>
-                    <Button variant={departmentFilter === 'all' ? 'default' : 'ghost'} onClick={() => setDepartmentFilter('all')}>All Departments</Button>
-                </motion.div>
-                {departments.map(dept => (
-                    <motion.div variants={itemVariants} key={dept._id}>
-                        <Button variant={departmentFilter === dept._id ? 'default' : 'ghost'} onClick={() => setDepartmentFilter(dept._id)}>{dept.name}</Button>
-                    </motion.div>
-                ))}
-            </motion.div>
-            <motion.div 
-                className="flex flex-wrap gap-2 p-2 bg-muted rounded-lg justify-center"
-                variants={{ visible: { transition: { staggerChildren: 0.05, delay: 0.2 } } }}
-                initial="hidden"
-                animate="visible"
-            >
-                <motion.div variants={itemVariants}>
-                    <Button variant={modeFilter === 'all' ? 'default' : 'ghost'} size="sm" onClick={() => setModeFilter('all')}>All Modes</Button>
-                </motion.div>
-                 <motion.div variants={itemVariants}>
-                    <Button variant={modeFilter === 'online' ? 'default' : 'ghost'} size="sm" onClick={() => setModeFilter('online')}>Online</Button>
-                </motion.div>
-                 <motion.div variants={itemVariants}>
-                    <Button variant={modeFilter === 'offline' ? 'default' : 'ghost'} size="sm" onClick={() => setModeFilter('offline')}>Offline</Button>
-                </motion.div>
-            </motion.div>
+       <div className="flex flex-col sm:flex-row gap-4 mb-8 p-4 bg-muted/50 rounded-lg">
+          <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+            <SelectTrigger className="w-full sm:w-[240px]">
+              <SelectValue placeholder="Filter by Department" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Departments</SelectItem>
+              {departments.map(dept => (
+                  <SelectItem key={dept._id} value={dept._id}>{dept.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={modeFilter} onValueChange={setModeFilter}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Filter by Mode" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Modes</SelectItem>
+              <SelectItem value="online">Online</SelectItem>
+              <SelectItem value="offline">Offline</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       
       {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(6)].map((_, i) => (
                 <Card key={i} className="flex flex-col overflow-hidden h-full">
-                  <CardHeader><Skeleton className="h-6 w-3/4"/><Skeleton className="h-4 w-1/2 mt-2"/></CardHeader>
-                  <CardContent className="flex-grow"><Skeleton className="h-10 w-full"/></CardContent>
+                  <CardHeader><Skeleton className="h-4 w-2/4"/><Skeleton className="h-6 w-3/4 mt-2"/><Skeleton className="h-4 w-1/2 mt-2"/></CardHeader>
                   <CardFooter><Skeleton className="h-10 w-full"/></CardFooter>
                 </Card>
             ))}

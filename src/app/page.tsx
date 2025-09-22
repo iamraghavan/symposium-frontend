@@ -14,7 +14,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { format, parseISO } from 'date-fns';
 import { useEffect, useState, useMemo } from 'react';
-import { Calendar, Users, ArrowRight, Lightbulb, Network, Code, Users2, Globe, FileText, Video } from 'lucide-react';
+import { Calendar, ArrowRight, Lightbulb, Network, Code, Users2, Globe, FileText, Video } from 'lucide-react';
 import type { Event, ApiSuccessResponse, Department } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { motion, AnimatePresence } from "framer-motion";
@@ -22,6 +22,7 @@ import api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
 export default function HomePage() {
@@ -37,12 +38,12 @@ export default function HomePage() {
         setIsLoading(true);
         try {
             const [deptResponse, eventResponse] = await Promise.all([
-                api<ApiSuccessResponse<{ departments: Department[] }>>('/departments?limit=100'),
-                api<ApiSuccessResponse<Event[]>>('/events?status=published&limit=100')
+                api<ApiSuccessResponse<{ data: Department[] }>>('/departments?limit=100'),
+                api<ApiSuccessResponse<Event[]>>('/events?status=published&limit=100&populate=department,createdBy')
             ]);
             
-            if (deptResponse.success && deptResponse.data?.departments) {
-                setDepartments(deptResponse.data.departments);
+            if (deptResponse.success && deptResponse.data?.data) {
+                setDepartments(deptResponse.data.data);
             }
 
             if (eventResponse.success && eventResponse.data) {
@@ -290,31 +291,25 @@ export default function HomePage() {
                     <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">A glimpse of the exciting events happening at our symposium. Filter by department to find what interests you most.</p>
                 </motion.div>
 
-                 <motion.div 
-                    className="flex flex-wrap gap-2 mb-8 p-2 bg-muted rounded-lg justify-center"
-                    variants={{
-                        visible: { transition: { staggerChildren: 0.05 } }
-                    }}
-                    initial="hidden"
-                    whileInView="visible"
-                    viewport={{ once: true, amount: 0.5 }}
-                >
-                    <motion.div variants={itemVariants}>
-                      <Button variant={departmentFilter === 'all' ? 'default' : 'ghost'} onClick={() => setDepartmentFilter('all')}>All Departments</Button>
-                    </motion.div>
-                    {departments.map(dept => (
-                        <motion.div variants={itemVariants} key={dept._id}>
-                           <Button variant={departmentFilter === dept._id ? 'default' : 'ghost'} onClick={() => setDepartmentFilter(dept._id)}>{dept.name}</Button>
-                        </motion.div>
-                    ))}
-                </motion.div>
+                 <div className="flex justify-center gap-4 mb-8">
+                    <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+                        <SelectTrigger className="w-full max-w-xs">
+                            <SelectValue placeholder="Filter by Department" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Departments</SelectItem>
+                            {departments.map(dept => (
+                                <SelectItem key={dept._id} value={dept._id}>{dept.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
       
                 {isLoading ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {[...Array(3)].map((_, i) => (
                           <Card key={i} className="flex flex-col overflow-hidden h-full">
-                            <CardHeader><Skeleton className="h-6 w-3/4"/><Skeleton className="h-4 w-1/2 mt-2"/></CardHeader>
-                            <CardContent className="flex-grow"><Skeleton className="h-10 w-full"/></CardContent>
+                            <CardHeader><Skeleton className="h-4 w-2/4"/><Skeleton className="h-6 w-3/4 mt-2"/><Skeleton className="h-4 w-1/2 mt-2"/></CardHeader>
                             <CardFooter><Skeleton className="h-10 w-full"/></CardFooter>
                           </Card>
                         ))}
