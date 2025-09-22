@@ -14,7 +14,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { format, parseISO } from 'date-fns';
 import { useEffect, useState, useMemo } from 'react';
-import { Calendar, Globe, Video } from 'lucide-react';
+import { Calendar, Globe, Video, ArrowRight } from 'lucide-react';
 import type { Event, Department, ApiSuccessResponse } from '@/lib/types';
 import { motion, AnimatePresence } from "framer-motion";
 import api from '@/lib/api';
@@ -35,20 +35,16 @@ export default function EventsPage() {
         setIsLoading(true);
         try {
             const [deptResponse, eventResponse] = await Promise.all([
-                api<ApiSuccessResponse<Department[]>>('/departments?limit=100'),
+                api<ApiSuccessResponse<{ departments: Department[] }>>('/departments?limit=100'),
                 api<ApiSuccessResponse<Event[]>>('/events?status=published&limit=100')
             ]);
             
-            const fetchedDepts = deptResponse.data || [];
-            setDepartments(fetchedDepts);
+            if (deptResponse.success && deptResponse.data?.departments) {
+                setDepartments(deptResponse.data.departments);
+            }
 
             if (eventResponse.success && eventResponse.data) {
-                const deptMap = new Map(fetchedDepts.map(d => [d._id, d]));
-                const eventsWithDept: Event[] = eventResponse.data.map(event => ({
-                    ...event,
-                    department: deptMap.get(event.department as string) || { name: 'Unknown', _id: 'unknown' }
-                }));
-                setAllEvents(eventsWithDept);
+                setAllEvents(eventResponse.data);
             }
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch data.'});
@@ -112,7 +108,7 @@ export default function EventsPage() {
                      {event.mode.charAt(0).toUpperCase() + event.mode.slice(1)}
                  </Badge>
                </div>
-               <CardTitle className="font-headline text-lg pt-2 line-clamp-2">
+               <CardTitle className="font-headline text-lg pt-2 line-clamp-2 group-hover:text-primary transition-colors">
                   {event.name}
                 </CardTitle>
                  <CardDescription className="flex items-center gap-2 text-xs pt-1">
@@ -120,9 +116,9 @@ export default function EventsPage() {
                   <span>{date} at {time}</span>
                 </CardDescription>
             </CardHeader>
-            <CardFooter className="flex-col items-start gap-3 pt-4 mt-auto">
+            <CardFooter className="pt-4 mt-auto">
                 <Button variant="default" size="sm" className="w-full">
-                  View Details
+                  View Details <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </CardFooter>
           </Card>
@@ -130,6 +126,11 @@ export default function EventsPage() {
       </motion.div>
     );
   }
+  
+  const itemVariants = {
+      hidden: { y: 20, opacity: 0 },
+      visible: { y: 0, opacity: 1 },
+  };
 
   return (
     <div className="container mx-auto px-4 py-8 md:py-12">
@@ -143,21 +144,39 @@ export default function EventsPage() {
         <p className="text-muted-foreground mt-2">Browse, filter, and discover all the exciting events happening.</p>
       </motion.div>
 
-       <div className="flex flex-col sm:flex-row gap-4 mb-8 p-4 bg-muted rounded-lg">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-semibold mr-2">Department:</span>
-            <Button variant={departmentFilter === 'all' ? 'default' : 'ghost'} size="sm" onClick={() => setDepartmentFilter('all')}>All</Button>
-            {departments.map(dept => (
-                <Button key={dept._id} variant={departmentFilter === dept._id ? 'default' : 'ghost'} size="sm" onClick={() => setDepartmentFilter(dept._id)}>{dept.name}</Button>
-            ))}
-          </div>
-           <div className="flex items-center gap-2 border-t sm:border-t-0 sm:border-l pt-4 sm:pt-0 sm:pl-4">
-            <span className="font-semibold">Mode:</span>
-            <Button variant={modeFilter === 'all' ? 'default' : 'ghost'} size="sm" onClick={() => setModeFilter('all')}>All</Button>
-            <Button variant={modeFilter === 'online' ? 'default' : 'ghost'} size="sm" onClick={() => setModeFilter('online')}>Online</Button>
-            <Button variant={modeFilter === 'offline' ? 'default' : 'ghost'} size="sm" onClick={() => setModeFilter('offline')}>Offline</Button>
-          </div>
-      </div>
+       <div className="space-y-4 mb-8">
+            <motion.div 
+                className="flex flex-wrap gap-2 p-2 bg-muted rounded-lg justify-center"
+                variants={{ visible: { transition: { staggerChildren: 0.05 } } }}
+                initial="hidden"
+                animate="visible"
+            >
+                <motion.div variants={itemVariants}>
+                    <Button variant={departmentFilter === 'all' ? 'default' : 'ghost'} onClick={() => setDepartmentFilter('all')}>All Departments</Button>
+                </motion.div>
+                {departments.map(dept => (
+                    <motion.div variants={itemVariants} key={dept._id}>
+                        <Button variant={departmentFilter === dept._id ? 'default' : 'ghost'} onClick={() => setDepartmentFilter(dept._id)}>{dept.name}</Button>
+                    </motion.div>
+                ))}
+            </motion.div>
+            <motion.div 
+                className="flex flex-wrap gap-2 p-2 bg-muted rounded-lg justify-center"
+                variants={{ visible: { transition: { staggerChildren: 0.05, delay: 0.2 } } }}
+                initial="hidden"
+                animate="visible"
+            >
+                <motion.div variants={itemVariants}>
+                    <Button variant={modeFilter === 'all' ? 'default' : 'ghost'} size="sm" onClick={() => setModeFilter('all')}>All Modes</Button>
+                </motion.div>
+                 <motion.div variants={itemVariants}>
+                    <Button variant={modeFilter === 'online' ? 'default' : 'ghost'} size="sm" onClick={() => setModeFilter('online')}>Online</Button>
+                </motion.div>
+                 <motion.div variants={itemVariants}>
+                    <Button variant={modeFilter === 'offline' ? 'default' : 'ghost'} size="sm" onClick={() => setModeFilter('offline')}>Offline</Button>
+                </motion.div>
+            </motion.div>
+        </div>
       
       {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -189,5 +208,3 @@ export default function EventsPage() {
     </div>
   );
 }
-
-    

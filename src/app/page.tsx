@@ -1,7 +1,6 @@
 
 "use client";
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,20 +14,14 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { format, parseISO } from 'date-fns';
 import { useEffect, useState, useMemo } from 'react';
-import { Calendar, Users, ArrowRight, Lightbulb, Network, Code, Users2, Globe, FileText, Video, Filter } from 'lucide-react';
+import { Calendar, Users, ArrowRight, Lightbulb, Network, Code, Users2, Globe, FileText, Video } from 'lucide-react';
 import type { Event, ApiSuccessResponse, Department } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { motion, AnimatePresence } from "framer-motion";
 import api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-
-
-const GoogleCalendarIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor" {...props}>
-    <path d="M7 11h2v2H7v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/>
-  </svg>
-);
+import Image from 'next/image';
 
 
 export default function HomePage() {
@@ -43,25 +36,25 @@ export default function HomePage() {
     async function fetchData() {
         setIsLoading(true);
         try {
+            // Fetch both departments (for filtering) and events
             const [deptResponse, eventResponse] = await Promise.all([
-                api<ApiSuccessResponse<Department[]>>('/departments?limit=100'),
+                api<ApiSuccessResponse<{ departments: Department[] }>>('/departments?limit=100'),
                 api<ApiSuccessResponse<Event[]>>('/events?status=published&limit=100')
             ]);
             
-            const fetchedDepts = deptResponse.data || [];
-            setDepartments(fetchedDepts);
-
-            if (eventResponse.success && eventResponse.data) {
-                const deptMap = new Map(fetchedDepts.map(d => [d._id, d]));
-                const eventsWithDept: Event[] = eventResponse.data.map(event => ({
-                    ...event,
-                    department: deptMap.get(event.department as string) || { name: 'Unknown', _id: 'unknown' }
-                }));
-                setAllEvents(eventsWithDept);
+            // Set departments for the filter buttons
+            if (deptResponse.success && deptResponse.data?.departments) {
+                setDepartments(deptResponse.data.departments);
             }
+
+            // Set events. The department object is already populated from the API.
+            if (eventResponse.success && eventResponse.data) {
+                setAllEvents(eventResponse.data);
+            }
+
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch data.'});
-            console.error(error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch initial data.'});
+            console.error("Data fetching error:", error);
         } finally {
             setIsLoading(false);
         }
@@ -70,10 +63,11 @@ export default function HomePage() {
   }, [toast]);
   
   const filteredEvents = useMemo(() => {
-    if (departmentFilter === 'all') {
-      return allEvents.slice(0, 6); // Show max 6 featured events
+    let eventsToFilter = allEvents;
+    if (departmentFilter !== 'all') {
+      eventsToFilter = eventsToFilter.filter(event => (event.department as Department)?._id === departmentFilter);
     }
-    return allEvents.filter(event => (event.department as Department)?._id === departmentFilter).slice(0, 6);
+    return eventsToFilter.slice(0, 6); // Show max 6 featured events
   }, [allEvents, departmentFilter]);
 
 
@@ -126,6 +120,7 @@ export default function HomePage() {
 
   const EventCard = ({ event }: { event: Event }) => {
     const { date, time } = getFormattedDate(event.startAt);
+    // Directly access the department name from the populated event object
     const departmentName = (event.department as Department)?.name || 'Unknown';
      
     return (
@@ -147,7 +142,7 @@ export default function HomePage() {
                      {event.mode.charAt(0).toUpperCase() + event.mode.slice(1)}
                  </Badge>
                </div>
-               <CardTitle className="font-headline text-lg pt-2 line-clamp-2">
+               <CardTitle className="font-headline text-lg pt-2 line-clamp-2 group-hover:text-primary transition-colors">
                   {event.name}
                 </CardTitle>
                  <CardDescription className="flex items-center gap-2 text-xs pt-1">
@@ -155,9 +150,9 @@ export default function HomePage() {
                   <span>{date} at {time}</span>
                 </CardDescription>
             </CardHeader>
-            <CardFooter className="flex-col items-start gap-3 pt-4 mt-auto">
+            <CardFooter className="pt-4 mt-auto">
                 <Button variant="default" size="sm" className="w-full">
-                  View Details
+                  View Details <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </CardFooter>
           </Card>
@@ -289,13 +284,14 @@ export default function HomePage() {
         <section id="events" className="py-12 md:py-20">
             <div className="container mx-auto px-4">
                 <motion.div 
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
                     className="mb-8 text-center"
+                     initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, amount: 0.5 }}
+                    variants={itemVariants}
                 >
                     <h2 className="text-3xl md:text-4xl font-bold font-headline tracking-tight">Featured Events</h2>
-                    <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">Discover the exciting events happening at our symposium. Filter by department to find what interests you most.</p>
+                    <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">A glimpse of the exciting events happening at our symposium. Filter by department to find what interests you most.</p>
                 </motion.div>
 
                  <motion.div 
@@ -304,10 +300,11 @@ export default function HomePage() {
                         visible: { transition: { staggerChildren: 0.05 } }
                     }}
                     initial="hidden"
-                    animate="visible"
+                    whileInView="visible"
+                    viewport={{ once: true, amount: 0.5 }}
                 >
                     <motion.div variants={itemVariants}>
-                      <Button variant={departmentFilter === 'all' ? 'default' : 'ghost'} onClick={() => setDepartmentFilter('all')}>All</Button>
+                      <Button variant={departmentFilter === 'all' ? 'default' : 'ghost'} onClick={() => setDepartmentFilter('all')}>All Departments</Button>
                     </motion.div>
                     {departments.map(dept => (
                         <motion.div variants={itemVariants} key={dept._id}>
@@ -318,7 +315,7 @@ export default function HomePage() {
       
                 {isLoading ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {[...Array(6)].map((_, i) => (
+                        {[...Array(3)].map((_, i) => (
                           <Card key={i} className="flex flex-col overflow-hidden h-full">
                             <CardHeader><Skeleton className="h-6 w-3/4"/><Skeleton className="h-4 w-1/2 mt-2"/></CardHeader>
                             <CardContent className="flex-grow"><Skeleton className="h-10 w-full"/></CardContent>
@@ -392,7 +389,7 @@ export default function HomePage() {
             src="https://picsum.photos/seed/crowd-register/1920/1080"
             alt="Crowd at a conference"
             fill
-            className="object-cover -z-10"
+            className="object-cover -z-10 opacity-20"
             data-ai-hint="conference crowd"
           />
            <div className="absolute inset-0 bg-primary/80 -z-10" />
@@ -414,5 +411,3 @@ export default function HomePage() {
       </motion.main>
   );
 }
-
-    

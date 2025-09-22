@@ -90,15 +90,8 @@ export default function EventDetailPage() {
       try {
         const eventResponse = await api<ApiSuccessResponse<{ event: Event }>>(`/events/${eventId}`);
         if (eventResponse.success && eventResponse.data) {
-          const fetchedEvent = eventResponse.data as unknown as Event;
-          
-          if (typeof fetchedEvent.department === 'string') {
-              const departmentResponse = await api<ApiSuccessResponse<Department>>(`/departments/${fetchedEvent.department}`);
-              if (departmentResponse.success && departmentResponse.data) {
-                  fetchedEvent.department = departmentResponse.data;
-              }
-          }
-          setEvent(fetchedEvent);
+          // The event data from the API already contains the populated department object
+          setEvent(eventResponse.data as unknown as Event);
         } else {
            throw new Error("Event not found in API response.");
         }
@@ -542,5 +535,3 @@ export default function EventDetailPage() {
     </>
   );
 }
-
-    
