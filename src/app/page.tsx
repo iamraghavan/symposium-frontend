@@ -184,7 +184,7 @@ export default function HomePage() {
         className="flex-1">
         <section className="relative h-[80vh] flex items-center justify-center text-center text-white">
           <Image
-            src="https://picsum.photos/seed/symposium-hero/1920/1080"
+            src="https://image-static.collegedunia.com/public/reviewPhotos/871794/IMG-20240914-WA0005.jpg"
             alt="A vibrant symposium with a diverse audience"
             fill
             className="object-cover -z-10"
@@ -201,7 +201,7 @@ export default function HomePage() {
           >
               <Badge>#EGSPECISSH-T</Badge>
               <h1 className="text-4xl font-extrabold font-headline md:text-7xl mt-4 tracking-tight">
-                EGSPEC Biggest Event {new Date().getFullYear()}
+                EGSPEC Biggest Event 2025
               </h1>
               
               <p className="mt-4 text-lg md:text-xl text-gray-200 max-w-3xl mx-auto">
