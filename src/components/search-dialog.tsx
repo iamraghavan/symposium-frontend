@@ -84,9 +84,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
               <CommandItem
                 key={event._id}
                 value={event.name}
-                onSelect={() => {
-                  runCommand(() => router.push(`/events/${event._id}`))
-                }}
+                onSelect={() => runCommand(() => router.push(`/events/${event._id}`))}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 <span>{event.name}</span>
