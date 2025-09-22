@@ -46,6 +46,7 @@ export default function HomePage() {
   const [allEvents, setAllEvents] = useState<Event[]>([]);
   const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [deptMap, setDeptMap] = useState<Map<string, string>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
 
   const [modeFilter, setModeFilter] = useState("all");
@@ -62,18 +63,12 @@ export default function HomePage() {
             
             const fetchedDepts = deptResponse.data || [];
             setDepartments(fetchedDepts);
+            const newDeptMap = new Map(fetchedDepts.map(d => [d._id, d.name]));
+            setDeptMap(newDeptMap);
 
             if (eventResponse.success && eventResponse.data) {
-                 const deptMap = new Map(fetchedDepts.map(d => [d._id, d.name]));
-                 const eventsWithDept = eventResponse.data.map(event => ({
-                    ...event,
-                    department: {
-                      _id: event.department as string,
-                      name: deptMap.get(event.department as string) || 'Unknown',
-                    } as any
-                }));
-                setAllEvents(eventsWithDept);
-                setFilteredEvents(eventsWithDept);
+                setAllEvents(eventResponse.data);
+                setFilteredEvents(eventResponse.data);
             }
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch data.'});
@@ -92,9 +87,7 @@ export default function HomePage() {
       tempEvents = tempEvents.filter(event => event.mode === modeFilter);
     }
     if (departmentFilter !== 'all') {
-      tempEvents = tempEvents.filter(event => 
-        (typeof event.department === 'object' && event.department._id === departmentFilter)
-      );
+      tempEvents = tempEvents.filter(event => event.department === departmentFilter);
     }
     
     setFilteredEvents(tempEvents);
@@ -149,10 +142,10 @@ export default function HomePage() {
 
   const EventCard = ({ event }: { event: Event }) => {
     const { date, time } = getFormattedDate(event.startAt);
-    const departmentName = typeof event.department === 'object' ? event.department.name : 'N/A';
+    const departmentName = deptMap.get(event.department as string) || 'Unknown';
      
     return (
-         <motion.div
+        <motion.div
             whileHover={{ scale: 1.02, y: -4 }}
             className="h-full"
         >
@@ -210,7 +203,7 @@ export default function HomePage() {
         className="flex-1">
         <section className="relative h-[80vh] flex items-center justify-center text-center text-white">
           <Image
-            src="https://cdn.egspec.org/assets/img/hero.jpg"
+            src="https://image-static.collegedunia.com/public/reviewPhotos/871794/IMG-20240914-WA0005.jpg"
             alt="A vibrant symposium with a diverse audience"
             fill
             className="object-cover -z-10"
