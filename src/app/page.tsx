@@ -46,7 +46,6 @@ export default function HomePage() {
   const [allEvents, setAllEvents] = useState<Event[]>([]);
   const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
-  const [deptMap, setDeptMap] = useState<Map<string, string>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
 
   const [modeFilter, setModeFilter] = useState("all");
@@ -63,12 +62,15 @@ export default function HomePage() {
             
             const fetchedDepts = deptResponse.data || [];
             setDepartments(fetchedDepts);
-            const newDeptMap = new Map(fetchedDepts.map(d => [d._id, d.name]));
-            setDeptMap(newDeptMap);
 
             if (eventResponse.success && eventResponse.data) {
-                setAllEvents(eventResponse.data);
-                setFilteredEvents(eventResponse.data);
+                 const deptMap = new Map(fetchedDepts.map(d => [d._id, d]));
+                 const eventsWithDept = eventResponse.data.map(event => ({
+                    ...event,
+                    department: deptMap.get(event.department as string) || { name: 'Unknown', _id: 'unknown' }
+                }));
+                setAllEvents(eventsWithDept as Event[]);
+                setFilteredEvents(eventsWithDept as Event[]);
             }
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch data.'});
@@ -87,7 +89,7 @@ export default function HomePage() {
       tempEvents = tempEvents.filter(event => event.mode === modeFilter);
     }
     if (departmentFilter !== 'all') {
-      tempEvents = tempEvents.filter(event => event.department === departmentFilter);
+      tempEvents = tempEvents.filter(event => (event.department as Department)?._id === departmentFilter);
     }
     
     setFilteredEvents(tempEvents);
@@ -142,7 +144,7 @@ export default function HomePage() {
 
   const EventCard = ({ event }: { event: Event }) => {
     const { date, time } = getFormattedDate(event.startAt);
-    const departmentName = deptMap.get(event.department as string) || 'Unknown';
+    const departmentName = (event.department as Department)?.name || 'Unknown';
      
     return (
         <motion.div
