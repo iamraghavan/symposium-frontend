@@ -53,13 +53,10 @@ export default function HomePage() {
 
             if (eventResponse.success && eventResponse.data) {
                 const deptMap = new Map(fetchedDepts.map(d => [d._id, d]));
-                const eventsWithDept: Event[] = eventResponse.data.map(event => {
-                    const department = deptMap.get(event.department as string);
-                    return {
-                        ...event,
-                        department: department || { name: 'Unknown', _id: 'unknown' }
-                    }
-                }) as Event[];
+                const eventsWithDept: Event[] = eventResponse.data.map(event => ({
+                    ...event,
+                    department: deptMap.get(event.department as string) || { name: 'Unknown', _id: 'unknown' }
+                }));
                 setAllEvents(eventsWithDept);
             }
         } catch (error) {
@@ -321,13 +318,13 @@ export default function HomePage() {
       
                 {isLoading ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {[...Array(6)].map((_, i) => 
+                        {[...Array(6)].map((_, i) => (
                           <Card key={i} className="flex flex-col overflow-hidden h-full">
                             <CardHeader><Skeleton className="h-6 w-3/4"/><Skeleton className="h-4 w-1/2 mt-2"/></CardHeader>
                             <CardContent className="flex-grow"><Skeleton className="h-10 w-full"/></CardContent>
                             <CardFooter><Skeleton className="h-10 w-full"/></CardFooter>
                           </Card>
-                        )}
+                        ))}
                     </div>
                 ) : (
                     <motion.div 
@@ -417,3 +414,5 @@ export default function HomePage() {
       </motion.main>
   );
 }
+
+    

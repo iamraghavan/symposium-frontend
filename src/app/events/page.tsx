@@ -44,13 +44,10 @@ export default function EventsPage() {
 
             if (eventResponse.success && eventResponse.data) {
                 const deptMap = new Map(fetchedDepts.map(d => [d._id, d]));
-                const eventsWithDept: Event[] = eventResponse.data.map(event => {
-                    const department = deptMap.get(event.department as string);
-                    return {
-                        ...event,
-                        department: department || { name: 'Unknown', _id: 'unknown' }
-                    }
-                }) as Event[];
+                const eventsWithDept: Event[] = eventResponse.data.map(event => ({
+                    ...event,
+                    department: deptMap.get(event.department as string) || { name: 'Unknown', _id: 'unknown' }
+                }));
                 setAllEvents(eventsWithDept);
             }
         } catch (error) {
@@ -192,3 +189,5 @@ export default function EventsPage() {
     </div>
   );
 }
+
+    
