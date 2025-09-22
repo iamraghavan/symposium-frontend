@@ -130,6 +130,16 @@ export default function HomePage() {
   const EventCard = ({ event }: { event: Event }) => {
     const { date, time } = getFormattedDate(event.startAt);
     const departmentName = (event.department as Department)?.name || 'Unknown';
+    const isValidUrl = (url?: string) => {
+        if (!url) return false;
+        try {
+            const parsedUrl = new URL(url);
+            return parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:';
+        } catch (e) {
+            return false;
+        }
+    }
+    const imageUrl = isValidUrl(event.thumbnailUrl) ? event.thumbnailUrl : 'https://picsum.photos/seed/event-placeholder/400/250';
      
     return (
       <motion.div
@@ -144,7 +154,7 @@ export default function HomePage() {
           <Card className="flex flex-col overflow-hidden h-full shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer bg-card group">
             <div className="relative h-48 w-full">
               <Image
-                  src={event.thumbnailUrl || 'https://picsum.photos/seed/event-placeholder/400/250'}
+                  src={imageUrl!}
                   alt={event.name}
                   fill
                   className="object-cover group-hover:scale-105 transition-transform duration-300"
