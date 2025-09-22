@@ -81,6 +81,12 @@ export default function EventDetailPage() {
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [unpaidEmails, setUnpaidEmails] = useState<string[]>([]);
   
+  const onRegistrationNeedsPayment = (unpaid: string[]) => {
+    setIsRegistrationDialogOpen(false); // Close registration dialog
+    setUnpaidEmails(unpaid);
+    setIsPaymentDialogOpen(true); // Open payment dialog
+  };
+
   const fetchEventData = useCallback(async () => {
       setIsLoading(true);
       try {
@@ -90,7 +96,7 @@ export default function EventDetailPage() {
           setEvent(fetchedEvent);
 
           if (typeof fetchedEvent.department === 'string') {
-              const departmentResponse = await api<ApiSuccessResponse<Department>>(`/departments/${fetchedEvent.department}`);
+              const departmentResponse = await api<ApiSuccessResponse<{data: Department}>>(`/departments/${fetchedEvent.department}`);
               if (departmentResponse.success && departmentResponse.data) {
                   setDepartment(departmentResponse.data);
               }
@@ -120,30 +126,8 @@ export default function EventDetailPage() {
     }
 
     if (!eventId) return;
-
-    const fetchWinners = async () => {
-        try {
-            const response = await api<ApiSuccessResponse<{data: Winner[]}>>(`/events/${eventId}/winners`);
-            if (response.success && response.data) {
-                setWinners(response.data);
-            }
-        } catch (error) {
-            if (error instanceof Error) {
-                try {
-                    const parsedError = JSON.parse(error.message);
-                    if (parsedError.message?.includes("Not Found") || parsedError.message?.includes("no winners")) {
-                        return; // It's ok if there are no winners, don't show an error
-                    }
-                } catch(e) {
-                  // Not a parsable JSON error, log it
-                  console.error("Could not fetch winners:", error);
-                }
-            }
-        }
-    }
     
     fetchEventData();
-    fetchWinners();
   }, [eventId, toast, fetchEventData]);
 
  const processRazorpayPayment = useCallback((paymentDetails: RazorpayOrderResponse) => {
@@ -489,50 +473,13 @@ export default function EventDetailPage() {
                       <CardDescription>Prizes and winners for this event.</CardDescription>
                   </CardHeader>
                   <CardContent>
-                      {winners.length > 0 ? (
-                          <Table>
-                          <TableHeader>
-                              <TableRow>
-                              <TableHead>Position</TableHead>
-                              <TableHead>Winner</TableHead>
-                              <TableHead className="text-right">Prize Amount</TableHead>
-                              </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                              {winners.map((winner) => (
-                              <TableRow key={winner.id}>
-                                  <TableCell>
-                                  <div className="flex items-center gap-2">
-                                      <Trophy className={`h-6 w-6 ${winner.position === 1 ? 'text-yellow-500' : winner.position === 2 ? 'text-gray-400' : 'text-orange-400'}`} />
-                                      <span className="font-bold text-lg">{winner.position}</span>
-                                  </div>
-                                  </TableCell>
-                                  <TableCell>
-                                  <div className="flex items-center gap-3">
-                                      <Avatar>
-                                      <AvatarImage src={winner.user.avatarUrl} alt={winner.user.name} data-ai-hint="person"/>
-                                      <AvatarFallback>{winner.user.name.charAt(0)}</AvatarFallback>
-                                      </Avatar>
-                                      <div>
-                                      <p className="font-medium">{winner.user.name}</p>
-                                      <p className="text-xs text-muted-foreground">{winner.user.college}</p>
-                                      </div>
-                                  </div>
-                                  </TableCell>
-                                  <TableCell className="font-semibold text-right">₹{winner.prizeAmount.toLocaleString()}</TableCell>
-                              </TableRow>
-                              ))}
-                          </TableBody>
-                          </Table>
-                      ) : (
-                          <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm h-60">
-                              <div className="flex flex-col items-center gap-2 text-center">
-                                  <Trophy className="h-10 w-10 text-muted-foreground" />
-                                  <h3 className="text-xl font-bold tracking-tight">Winners Not Announced</h3>
-                                  <p className="text-sm text-muted-foreground">Winners have not been announced for this event yet. Stay tuned!</p>
-                              </div>
+                      <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm h-60">
+                          <div className="flex flex-col items-center gap-2 text-center px-4">
+                              <Trophy className="h-10 w-10 text-muted-foreground" />
+                              <h3 className="text-xl font-bold tracking-tight">Winners Not Announced</h3>
+                              <p className="text-sm text-muted-foreground">Winners for this event have not been announced yet. Please check back later.</p>
                           </div>
-                      )}
+                      </div>
                   </CardContent>
               </Card>
             </TabsContent>
