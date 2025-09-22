@@ -67,6 +67,7 @@ export default function EventDetailPage() {
   const eventId = params.eventId as string;
   
   const [event, setEvent] = useState<Event | null>(null);
+  const [department, setDepartment] = useState<Department | null>(null);
   const [user, setUser] = useState<LoggedInUser | null>(null);
   const [userApiKey, setUserApiKey] = useState<string|null>(null);
   const [winners, setWinners] = useState<Winner[]>([]);
@@ -83,9 +84,20 @@ export default function EventDetailPage() {
   const fetchEventData = useCallback(async () => {
       setIsLoading(true);
       try {
-        const response = await api<ApiSuccessResponse<{ event: Event }>>(`/events/${eventId}`);
-        if (response.success && response.data) {
-          setEvent(response.data as unknown as Event);
+        const eventResponse = await api<ApiSuccessResponse<{ event: Event }>>(`/events/${eventId}`);
+        if (eventResponse.success && eventResponse.data) {
+          const fetchedEvent = eventResponse.data as unknown as Event;
+          setEvent(fetchedEvent);
+
+          if (typeof fetchedEvent.department === 'string') {
+              const departmentResponse = await api<ApiSuccessResponse<{data: Department}>>(`/departments/${fetchedEvent.department}`);
+              if (departmentResponse.success && departmentResponse.data) {
+                  setDepartment(departmentResponse.data);
+              }
+          } else if (typeof fetchedEvent.department === 'object') {
+              setDepartment(fetchedEvent.department);
+          }
+
         } else {
            throw new Error("Event not found in API response.");
         }
@@ -279,7 +291,7 @@ export default function EventDetailPage() {
     }
   }
   
-  const departmentName = (event && typeof event.department === 'object') ? event.department.name : 'Unknown Department';
+  const departmentName = department?.name || 'Unknown Department';
 
   if (isLoading) {
     return (
@@ -598,3 +610,5 @@ export default function EventDetailPage() {
     </>
   );
 }
+
+    
