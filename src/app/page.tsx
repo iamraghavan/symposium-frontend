@@ -12,27 +12,17 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-} from "@/components/ui/carousel";
 import { Badge } from '@/components/ui/badge';
 import { format, parseISO } from 'date-fns';
-import { useEffect, useState } from 'react';
-import { Calendar, Users, ArrowRight, ArrowRightCircle, Lightbulb, Network, Code, Users2, Globe, FileText, Ticket, Video } from 'lucide-react';
+import { useEffect, useState, useMemo } from 'react';
+import { Calendar, Users, ArrowRight, Lightbulb, Network, Code, Users2, Globe, FileText, Video, Filter } from 'lucide-react';
 import type { Event, ApiSuccessResponse, Department } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Skeleton } from '@/components/ui/skeleton';
+
 
 const GoogleCalendarIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor" {...props}>
@@ -44,11 +34,9 @@ const GoogleCalendarIcon = (props: React.SVGProps<SVGSVGElement>) => (
 export default function HomePage() {
   const { toast } = useToast();
   const [allEvents, setAllEvents] = useState<Event[]>([]);
-  const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const [modeFilter, setModeFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
 
   useEffect(() => {
@@ -65,12 +53,14 @@ export default function HomePage() {
 
             if (eventResponse.success && eventResponse.data) {
                  const deptMap = new Map(fetchedDepts.map(d => [d._id, d]));
-                 const eventsWithDept = eventResponse.data.map(event => ({
-                    ...event,
-                    department: deptMap.get(event.department as string) || { name: 'Unknown', _id: 'unknown' }
-                }));
-                setAllEvents(eventsWithDept as Event[]);
-                setFilteredEvents(eventsWithDept as Event[]);
+                 const eventsWithDept: Event[] = eventResponse.data.map(event => {
+                    const department = deptMap.get(event.department as string);
+                    return {
+                        ...event,
+                        department: department || { name: 'Unknown', _id: 'unknown' }
+                    }
+                }) as Event[];
+                setAllEvents(eventsWithDept);
             }
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch data.'});
@@ -82,18 +72,12 @@ export default function HomePage() {
     fetchData();
   }, [toast]);
   
-  useEffect(() => {
-    let tempEvents = [...allEvents];
-
-    if (modeFilter !== 'all') {
-      tempEvents = tempEvents.filter(event => event.mode === modeFilter);
+  const filteredEvents = useMemo(() => {
+    if (departmentFilter === 'all') {
+      return allEvents;
     }
-    if (departmentFilter !== 'all') {
-      tempEvents = tempEvents.filter(event => (event.department as Department)?._id === departmentFilter);
-    }
-    
-    setFilteredEvents(tempEvents);
-  }, [allEvents, modeFilter, departmentFilter]);
+    return allEvents.filter(event => (event.department as Department)?._id === departmentFilter);
+  }, [allEvents, departmentFilter]);
 
 
   const getFormattedDate = (dateString?: string) => {
@@ -139,7 +123,8 @@ export default function HomePage() {
 
   const cardVariants = {
     hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+    exit: { opacity: 0, y: -20, transition: { duration: 0.3 } }
   };
 
   const EventCard = ({ event }: { event: Event }) => {
@@ -147,49 +132,50 @@ export default function HomePage() {
     const departmentName = (event.department as Department)?.name || 'Unknown';
      
     return (
-        <motion.div
-            whileHover={{ scale: 1.02, y: -4 }}
-            className="h-full"
-        >
-        <Card
-          key={event._id}
-          className="flex flex-col overflow-hidden h-full shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer bg-background"
-        >
-          <CardHeader>
-            <div className="flex justify-between items-start gap-2">
-                <Badge variant="outline" className="w-fit">{departmentName}</Badge>
-                <Badge variant={event.mode === 'online' ? 'default' : 'secondary'}>
-                    {event.mode === 'online' ? <Video className='mr-1 h-3 w-3'/> : <Globe className='mr-1 h-3 w-3'/>}
-                    {event.mode.charAt(0).toUpperCase() + event.mode.slice(1)}
-                </Badge>
+      <motion.div
+        layout
+        variants={cardVariants}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
+        className="h-full"
+      >
+        <Link href={`/events/${event._id}`} className="h-full block">
+          <Card className="flex flex-col overflow-hidden h-full shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer bg-card group">
+            <div className="relative h-48 w-full">
+              <Image
+                  src={event.thumbnailUrl || 'https://picsum.photos/seed/event-placeholder/400/250'}
+                  alt={event.name}
+                  fill
+                  className="object-cover group-hover:scale-105 transition-transform duration-300"
+                  data-ai-hint="event placeholder"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+              <Badge variant="secondary" className="absolute top-3 left-3">{departmentName}</Badge>
+              <Badge variant={event.mode === 'online' ? 'default' : 'secondary'} className="absolute top-3 right-3">
+                  {event.mode === 'online' ? <Video className='mr-1 h-3 w-3'/> : <Globe className='mr-1 h-3 w-3'/>}
+                  {event.mode.charAt(0).toUpperCase() + event.mode.slice(1)}
+              </Badge>
             </div>
-             <CardTitle className="font-headline text-xl pt-2 line-clamp-2 flex-grow min-h-[3.5rem]">
-                {event.name}
-              </CardTitle>
-          </CardHeader>
-          <CardFooter className="flex-col items-start gap-3 pt-4 border-t mt-auto">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Calendar className="h-4 w-4" />
-                <span>{date} at {time}</span>
-              </div>
-              <Button variant="default" size="sm" className="w-full">
-                Free Registration
-            </Button>
-          </CardFooter>
-        </Card>
+            <CardHeader className="flex-grow">
+               <CardTitle className="font-headline text-lg pt-2 line-clamp-2">
+                  {event.name}
+                </CardTitle>
+                 <CardDescription className="flex items-center gap-2 text-xs pt-1">
+                  <Calendar className="h-4 w-4" />
+                  <span>{date} at {time}</span>
+                </CardDescription>
+            </CardHeader>
+            <CardFooter className="flex-col items-start gap-3 pt-4 mt-auto">
+                <Button variant="default" size="sm" className="w-full">
+                  View Details
+              </Button>
+            </CardFooter>
+          </Card>
+        </Link>
       </motion.div>
   );
 }
-
-  const containerVariants = {
-      hidden: { opacity: 0 },
-      visible: {
-          opacity: 1,
-          transition: {
-          staggerChildren: 0.05,
-          },
-      },
-  };
 
     const itemVariants = {
         hidden: { y: 20, opacity: 0 },
@@ -319,53 +305,48 @@ export default function HomePage() {
                     transition={{ duration: 0.5 }}
                     className="mb-8 text-center"
                 >
-                    <h2 className="text-3xl md:text-4xl font-bold font-headline tracking-tight">Events</h2>
-                    <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">Browse, filter, and discover all the exciting events happening. Click on any event to see more details.</p>
+                    <h2 className="text-3xl md:text-4xl font-bold font-headline tracking-tight">Featured Events</h2>
+                    <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">Discover the exciting events happening at our symposium. Filter by department to find what interests you most.</p>
                 </motion.div>
 
-                <div className="flex flex-wrap gap-4 mb-8 p-4 bg-muted rounded-lg justify-center">
-                    <Select value={modeFilter} onValueChange={setModeFilter}>
-                        <SelectTrigger className="w-full sm:w-auto flex-1 min-w-[150px] max-w-xs">
-                        <SelectValue placeholder="Event Mode" />
-                        </SelectTrigger>
-                        <SelectContent>
-                        <SelectItem value="all">All Modes</SelectItem>
-                        <SelectItem value="online">Online</SelectItem>
-                        <SelectItem value="offline">Offline</SelectItem>
-                        </SelectContent>
-                    </Select>
-
-                    <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-                        <SelectTrigger className="w-full sm:w-auto flex-1 min-w-[150px] max-w-xs">
-                        <SelectValue placeholder="Department" />
-                        </SelectTrigger>
-                        <SelectContent>
-                        <SelectItem value="all">All Departments</SelectItem>
-                        {departments.map(dept => (
-                            <SelectItem key={dept._id} value={dept._id}>{dept.name}</SelectItem>
-                        ))}
-                        </SelectContent>
-                    </Select>
-                </div>
+                 <motion.div 
+                    className="flex flex-wrap gap-2 mb-8 p-2 bg-muted rounded-lg justify-center"
+                    variants={{
+                        visible: { transition: { staggerChildren: 0.05 } }
+                    }}
+                    initial="hidden"
+                    animate="visible"
+                >
+                    <motion.div variants={itemVariants}>
+                      <Button variant={departmentFilter === 'all' ? 'default' : 'ghost'} onClick={() => setDepartmentFilter('all')}>All</Button>
+                    </motion.div>
+                    {departments.map(dept => (
+                        <motion.div variants={itemVariants} key={dept._id}>
+                           <Button variant={departmentFilter === dept._id ? 'default' : 'ghost'} onClick={() => setDepartmentFilter(dept._id)}>{dept.name}</Button>
+                        </motion.div>
+                    ))}
+                </motion.div>
       
                 {isLoading ? (
-                    <div className="text-center col-span-full py-12">
-                        <p className="text-muted-foreground">Loading events...</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {[...Array(3)].map(i => 
+                          <Card key={i} className="flex flex-col overflow-hidden h-full">
+                            <Skeleton className="h-48 w-full"/>
+                            <CardHeader><Skeleton className="h-6 w-3/4"/><Skeleton className="h-4 w-1/2 mt-2"/></CardHeader>
+                            <CardFooter><Skeleton className="h-10 w-full"/></CardFooter>
+                          </Card>
+                        )}
                     </div>
                 ) : (
                     <motion.div 
-                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-                    variants={containerVariants}
-                    initial="hidden"
-                    animate="visible"
+                      layout
+                      className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
                     >
-                    {filteredEvents.map((event) => (
-                        <motion.div key={event._id} variants={itemVariants}>
-                            <Link href={`/events/${event._id}`}>
-                            <EventCard event={event} />
-                            </Link>
-                        </motion.div>
-                    ))}
+                      <AnimatePresence>
+                        {filteredEvents.map((event) => (
+                            <EventCard key={event._id} event={event} />
+                        ))}
+                      </AnimatePresence>
                     </motion.div>
                 )}
                 {!isLoading && filteredEvents.length === 0 && (
@@ -444,5 +425,3 @@ export default function HomePage() {
       </motion.main>
   );
 }
-
-    

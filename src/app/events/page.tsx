@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import Image from 'next/image';
@@ -15,24 +14,17 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { format, parseISO } from 'date-fns';
-import { useEffect, useState } from 'react';
-import { Calendar, Users, Ticket, Globe, Video } from 'lucide-react';
+import { useEffect, useState, useMemo } from 'react';
+import { Calendar, Globe, Video } from 'lucide-react';
 import type { Event, Department, ApiSuccessResponse } from '@/lib/types';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function EventsPage() {
   const { toast } = useToast();
   const [allEvents, setAllEvents] = useState<Event[]>([]);
-  const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -53,12 +45,14 @@ export default function EventsPage() {
 
             if (eventResponse.success && eventResponse.data) {
                 const deptMap = new Map(fetchedDepts.map(d => [d._id, d]));
-                const eventsWithDept = eventResponse.data.map(event => ({
-                    ...event,
-                    department: deptMap.get(event.department as string) || { name: 'Unknown', _id: 'unknown' }
-                }));
-                setAllEvents(eventsWithDept as Event[]);
-                setFilteredEvents(eventsWithDept as Event[]);
+                const eventsWithDept: Event[] = eventResponse.data.map(event => {
+                    const department = deptMap.get(event.department as string);
+                    return {
+                        ...event,
+                        department: department || { name: 'Unknown', _id: 'unknown' }
+                    }
+                }) as Event[];
+                setAllEvents(eventsWithDept);
             }
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch data.'});
@@ -70,8 +64,8 @@ export default function EventsPage() {
     fetchData();
   }, [toast]);
 
-  useEffect(() => {
-    let tempEvents = [...allEvents];
+  const filteredEvents = useMemo(() => {
+    let tempEvents = allEvents;
 
     if (modeFilter !== 'all') {
       tempEvents = tempEvents.filter(event => event.mode === modeFilter);
@@ -80,8 +74,9 @@ export default function EventsPage() {
       tempEvents = tempEvents.filter(event => (event.department as Department)?._id === departmentFilter);
     }
     
-    setFilteredEvents(tempEvents);
+    return tempEvents;
   }, [allEvents, modeFilter, departmentFilter]);
+
 
   const getFormattedDate = (dateString?: string) => {
     if (!dateString) return { date: "N/A", time: "" };
@@ -92,58 +87,61 @@ export default function EventsPage() {
     };
   };
 
+   const cardVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+    exit: { opacity: 0, y: -20, transition: { duration: 0.3 } }
+  };
+
   const EventCard = ({ event }: { event: Event }) => {
     const { date, time } = getFormattedDate(event.startAt);
     const departmentName = (event.department as Department)?.name || 'Unknown';
+    
     return (
-         <motion.div
-            whileHover={{ scale: 1.02, y: -4 }}
-            className="h-full"
-        >
-        <Card
-          key={event._id}
-          className="flex flex-col overflow-hidden h-full shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer bg-background"
-        >
-          <CardHeader>
-            <div className="flex justify-between items-start gap-2">
-                <Badge variant="outline" className="w-fit">{departmentName}</Badge>
-                <Badge variant={event.mode === 'online' ? 'default' : 'secondary'}>
-                    {event.mode === 'online' ? <Video className='mr-1 h-3 w-3'/> : <Globe className='mr-1 h-3 w-3'/>}
-                    {event.mode.charAt(0).toUpperCase() + event.mode.slice(1)}
-                </Badge>
+      <motion.div
+        layout
+        variants={cardVariants}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
+        className="h-full"
+      >
+        <Link href={`/events/${event._id}`} className="h-full block">
+          <Card className="flex flex-col overflow-hidden h-full shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer bg-card group">
+            <div className="relative h-48 w-full">
+              <Image
+                  src={event.thumbnailUrl || 'https://picsum.photos/seed/event-placeholder/400/250'}
+                  alt={event.name}
+                  fill
+                  className="object-cover group-hover:scale-105 transition-transform duration-300"
+                  data-ai-hint="event placeholder"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+              <Badge variant="secondary" className="absolute top-3 left-3">{departmentName}</Badge>
+              <Badge variant={event.mode === 'online' ? 'default' : 'secondary'} className="absolute top-3 right-3">
+                  {event.mode === 'online' ? <Video className='mr-1 h-3 w-3'/> : <Globe className='mr-1 h-3 w-3'/>}
+                  {event.mode.charAt(0).toUpperCase() + event.mode.slice(1)}
+              </Badge>
             </div>
-             <CardTitle className="font-headline text-xl pt-2 line-clamp-2 flex-grow min-h-[3.5rem]">
-                {event.name}
-              </CardTitle>
-          </CardHeader>
-          <CardFooter className="flex-col items-start gap-3 pt-4 border-t mt-auto">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Calendar className="h-4 w-4" />
-                <span>{date} at {time}</span>
-              </div>
-              <Button variant="default" size="sm" className="w-full">
-                Free Registration
-            </Button>
-          </CardFooter>
-        </Card>
-        </motion.div>
-    )
+            <CardHeader className="flex-grow">
+               <CardTitle className="font-headline text-lg pt-2 line-clamp-2">
+                  {event.name}
+                </CardTitle>
+                 <CardDescription className="flex items-center gap-2 text-xs pt-1">
+                  <Calendar className="h-4 w-4" />
+                  <span>{date} at {time}</span>
+                </CardDescription>
+            </CardHeader>
+            <CardFooter className="flex-col items-start gap-3 pt-4 mt-auto">
+                <Button variant="default" size="sm" className="w-full">
+                  View Details
+              </Button>
+            </CardFooter>
+          </Card>
+        </Link>
+      </motion.div>
+    );
   }
-
-  const containerVariants = {
-      hidden: { opacity: 0 },
-      visible: {
-          opacity: 1,
-          transition: {
-          staggerChildren: 0.05,
-          },
-      },
-  };
-
-  const itemVariants = {
-      hidden: { y: 20, opacity: 0 },
-      visible: { y: 0, opacity: 1 },
-  };
 
   return (
     <div className="container mx-auto px-4 py-8 md:py-12">
@@ -157,49 +155,42 @@ export default function EventsPage() {
         <p className="text-muted-foreground mt-2">Browse, filter, and discover all the exciting events happening.</p>
       </motion.div>
 
-      <div className="flex flex-wrap gap-4 mb-8 p-4 bg-muted rounded-lg">
-          <Select value={modeFilter} onValueChange={setModeFilter}>
-            <SelectTrigger className="w-full sm:w-auto flex-1 min-w-[150px]">
-              <SelectValue placeholder="Event Mode" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Modes</SelectItem>
-              <SelectItem value="online">Online</SelectItem>
-              <SelectItem value="offline">Offline</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-            <SelectTrigger className="w-full sm:w-auto flex-1 min-w-[150px]">
-              <SelectValue placeholder="Department" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Departments</SelectItem>
-              {departments.map(dept => (
-                <SelectItem key={dept._id} value={dept._id}>{dept.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+       <div className="flex flex-col sm:flex-row gap-4 mb-8 p-4 bg-muted rounded-lg">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-semibold mr-2">Department:</span>
+            <Button variant={departmentFilter === 'all' ? 'default' : 'ghost'} size="sm" onClick={() => setDepartmentFilter('all')}>All</Button>
+            {departments.map(dept => (
+                <Button key={dept._id} variant={departmentFilter === dept._id ? 'default' : 'ghost'} size="sm" onClick={() => setDepartmentFilter(dept._id)}>{dept.name}</Button>
+            ))}
+          </div>
+           <div className="flex items-center gap-2 border-t sm:border-t-0 sm:border-l pt-4 sm:pt-0 sm:pl-4">
+            <span className="font-semibold">Mode:</span>
+            <Button variant={modeFilter === 'all' ? 'default' : 'ghost'} size="sm" onClick={() => setModeFilter('all')}>All</Button>
+            <Button variant={modeFilter === 'online' ? 'default' : 'ghost'} size="sm" onClick={() => setModeFilter('online')}>Online</Button>
+            <Button variant={modeFilter === 'offline' ? 'default' : 'ghost'} size="sm" onClick={() => setModeFilter('offline')}>Offline</Button>
+          </div>
       </div>
       
       {isLoading ? (
-          <div className="text-center col-span-full py-12">
-              <p className="text-muted-foreground">Loading events...</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+                <Card key={i} className="flex flex-col overflow-hidden h-full">
+                  <Skeleton className="h-48 w-full"/>
+                  <CardHeader><Skeleton className="h-6 w-3/4"/><Skeleton className="h-4 w-1/2 mt-2"/></CardHeader>
+                  <CardFooter><Skeleton className="h-10 w-full"/></CardFooter>
+                </Card>
+            ))}
           </div>
       ) : (
           <motion.div 
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
+            layout
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
           >
-          {filteredEvents.map((event) => (
-              <motion.div key={event._id} variants={itemVariants}>
-                <Link href={`/events/${event._id}`}>
-                  <EventCard event={event} />
-                </Link>
-              </motion.div>
-          ))}
+            <AnimatePresence>
+              {filteredEvents.map((event) => (
+                  <EventCard key={event._id} event={event} />
+              ))}
+            </AnimatePresence>
           </motion.div>
       )}
       {!isLoading && filteredEvents.length === 0 && (
@@ -210,5 +201,3 @@ export default function EventsPage() {
     </div>
   );
 }
-
-    
