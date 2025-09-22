@@ -130,11 +130,6 @@ export default function HomePage() {
   const EventCard = ({ event }: { event: Event }) => {
     const { date, time } = getFormattedDate(event.startAt);
     const departmentName = (event.department as Department)?.name || 'Unknown';
-    const isValidUrl = (url?: string) => {
-        if (!url) return false;
-        return url.startsWith('http') && /\.(jpeg|jpg|gif|png|webp)$/i.test(url);
-    }
-    const imageUrl = isValidUrl(event.thumbnailUrl) ? event.thumbnailUrl : 'https://picsum.photos/seed/event-placeholder/400/250';
      
     return (
       <motion.div
@@ -147,22 +142,14 @@ export default function HomePage() {
       >
         <Link href={`/events/${event._id}`} className="h-full block">
           <Card className="flex flex-col overflow-hidden h-full shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer bg-card group">
-            <div className="relative h-48 w-full">
-              <Image
-                  src={imageUrl!}
-                  alt={event.name}
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-300"
-                  data-ai-hint="event placeholder"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-              <Badge variant="secondary" className="absolute top-3 left-3">{departmentName}</Badge>
-              <Badge variant={event.mode === 'online' ? 'default' : 'secondary'} className="absolute top-3 right-3">
-                  {event.mode === 'online' ? <Video className='mr-1 h-3 w-3'/> : <Globe className='mr-1 h-3 w-3'/>}
-                  {event.mode.charAt(0).toUpperCase() + event.mode.slice(1)}
-              </Badge>
-            </div>
             <CardHeader className="flex-grow">
+               <div className="flex justify-between items-start gap-2">
+                 <Badge variant="secondary" className="w-fit">{departmentName}</Badge>
+                 <Badge variant={event.mode === 'online' ? 'default' : 'outline'} className="shrink-0">
+                     {event.mode === 'online' ? <Video className='mr-1 h-3 w-3'/> : <Globe className='mr-1 h-3 w-3'/>}
+                     {event.mode.charAt(0).toUpperCase() + event.mode.slice(1)}
+                 </Badge>
+               </div>
                <CardTitle className="font-headline text-lg pt-2 line-clamp-2">
                   {event.name}
                 </CardTitle>
@@ -336,8 +323,8 @@ export default function HomePage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {[...Array(6)].map((_, i) => 
                           <Card key={i} className="flex flex-col overflow-hidden h-full">
-                            <Skeleton className="h-48 w-full"/>
                             <CardHeader><Skeleton className="h-6 w-3/4"/><Skeleton className="h-4 w-1/2 mt-2"/></CardHeader>
+                            <CardContent className="flex-grow"><Skeleton className="h-10 w-full"/></CardContent>
                             <CardFooter><Skeleton className="h-10 w-full"/></CardFooter>
                           </Card>
                         )}
@@ -430,5 +417,3 @@ export default function HomePage() {
       </motion.main>
   );
 }
-
-    
