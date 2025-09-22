@@ -52,8 +52,8 @@ export default function HomePage() {
             setDepartments(fetchedDepts);
 
             if (eventResponse.success && eventResponse.data) {
-                 const deptMap = new Map(fetchedDepts.map(d => [d._id, d]));
-                 const eventsWithDept: Event[] = eventResponse.data.map(event => {
+                const deptMap = new Map(fetchedDepts.map(d => [d._id, d]));
+                const eventsWithDept: Event[] = eventResponse.data.map(event => {
                     const department = deptMap.get(event.department as string);
                     return {
                         ...event,
@@ -74,9 +74,9 @@ export default function HomePage() {
   
   const filteredEvents = useMemo(() => {
     if (departmentFilter === 'all') {
-      return allEvents;
+      return allEvents.slice(0, 6); // Show max 6 featured events
     }
-    return allEvents.filter(event => (event.department as Department)?._id === departmentFilter);
+    return allEvents.filter(event => (event.department as Department)?._id === departmentFilter).slice(0, 6);
   }, [allEvents, departmentFilter]);
 
 
@@ -132,7 +132,6 @@ export default function HomePage() {
     const departmentName = (event.department as Department)?.name || 'Unknown';
     const isValidUrl = (url?: string) => {
         if (!url) return false;
-        // Stricter check for valid image extensions at the end of a URL that starts with http.
         return url.startsWith('http') && /\.(jpeg|jpg|gif|png|webp)$/i.test(url);
     }
     const imageUrl = isValidUrl(event.thumbnailUrl) ? event.thumbnailUrl : 'https://picsum.photos/seed/event-placeholder/400/250';
@@ -335,7 +334,7 @@ export default function HomePage() {
       
                 {isLoading ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {[...Array(3)].map((_, i) => 
+                        {[...Array(6)].map((_, i) => 
                           <Card key={i} className="flex flex-col overflow-hidden h-full">
                             <Skeleton className="h-48 w-full"/>
                             <CardHeader><Skeleton className="h-6 w-3/4"/><Skeleton className="h-4 w-1/2 mt-2"/></CardHeader>
