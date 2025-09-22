@@ -29,8 +29,15 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
   const debouncedQuery = useDebounce(query, 300)
 
   useEffect(() => {
+    if (!open) {
+      setQuery('');
+      setData([]);
+    }
+  }, [open]);
+
+  useEffect(() => {
     async function fetchData() {
-      if (debouncedQuery.length <= 1) {
+      if (debouncedQuery.length < 2) {
         setData([])
         return
       }
@@ -62,13 +69,14 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange}>
       <CommandInput
-        placeholder="Type a command or search..."
+        placeholder="Search for events..."
         value={query}
         onValueChange={setQuery}
       />
       <CommandList>
-        {loading && <CommandEmpty>Loading...</CommandEmpty>}
+        {loading && <CommandEmpty>Loading results...</CommandEmpty>}
         {!loading && !data.length && debouncedQuery.length > 1 && <CommandEmpty>No results found.</CommandEmpty>}
+        {!loading && !data.length && debouncedQuery.length <=1 && <CommandEmpty>Type at least 2 characters to search.</CommandEmpty>}
 
         {data.length > 0 && (
           <CommandGroup heading="Events">
