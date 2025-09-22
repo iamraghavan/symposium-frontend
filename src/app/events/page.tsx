@@ -44,16 +44,16 @@ export default function EventsPage() {
         setIsLoading(true);
         try {
             const [deptResponse, eventResponse] = await Promise.all([
-                api<ApiSuccessResponse<{ departments: Department[] }>>('/departments?limit=100'),
+                api<ApiSuccessResponse<Department[]>>('/departments?limit=100'),
                 api<ApiSuccessResponse<{data: Event[]}>>('/events?status=published&limit=100')
             ]);
             
-            const fetchedDepts = deptResponse.data?.departments || [];
+            const fetchedDepts = deptResponse.data || [];
             setDepartments(fetchedDepts);
 
             if (eventResponse.success && eventResponse.data) {
                  const deptMap = new Map(fetchedDepts.map(d => [d._id, d.name]));
-                 const eventsWithDept = eventResponse.data.map(event => ({
+                 const eventsWithDept = eventResponse.data.data.map(event => ({
                     ...event,
                     department: {
                       _id: event.department as string,
@@ -102,12 +102,12 @@ export default function EventsPage() {
     const departmentName = typeof event.department === 'object' ? event.department.name : 'N/A';
     return (
          <motion.div
-            whileHover={{ scale: 1.03, y: -5 }}
+            whileHover={{ scale: 1.02, y: -4 }}
             className="h-full"
         >
         <Card
           key={event._id}
-          className="flex flex-col overflow-hidden h-full shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer bg-background"
+          className="flex flex-col overflow-hidden h-full shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer bg-background"
         >
           <CardHeader>
             <div className="flex justify-between items-start gap-2">
@@ -121,7 +121,7 @@ export default function EventsPage() {
                 {event.name}
               </CardTitle>
           </CardHeader>
-          <CardFooter className="flex-col items-start gap-3 pt-4 border-t">
+          <CardFooter className="flex-col items-start gap-3 pt-4 border-t mt-auto">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Calendar className="h-4 w-4" />
                 <span>{date} at {time}</span>

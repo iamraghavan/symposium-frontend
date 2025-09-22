@@ -57,16 +57,16 @@ export default function HomePage() {
         setIsLoading(true);
         try {
             const [deptResponse, eventResponse] = await Promise.all([
-                api<ApiSuccessResponse<{ departments: Department[] }>>('/departments?limit=100'),
+                api<ApiSuccessResponse<Department[]>>('/departments?limit=100'),
                 api<ApiSuccessResponse<{data: Event[]}>>('/events?status=published&limit=100')
             ]);
             
-            const fetchedDepts = deptResponse.data?.departments || [];
+            const fetchedDepts = deptResponse.data || [];
             setDepartments(fetchedDepts);
 
             if (eventResponse.success && eventResponse.data) {
                  const deptMap = new Map(fetchedDepts.map(d => [d._id, d.name]));
-                 const eventsWithDept = eventResponse.data.map(event => ({
+                 const eventsWithDept = eventResponse.data.data.map(event => ({
                     ...event,
                     department: {
                       _id: event.department as string,
@@ -153,13 +153,13 @@ export default function HomePage() {
     const departmentName = typeof event.department === 'object' ? event.department.name : 'N/A';
      
     return (
-      <motion.div
-        whileHover={{ scale: 1.03, y: -5 }}
-        className="h-full"
-      >
+        <motion.div
+            whileHover={{ scale: 1.02, y: -4 }}
+            className="h-full"
+        >
         <Card
-          key={event._id}
-          className="flex flex-col overflow-hidden h-full shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer bg-background"
+            key={event._id}
+            className="flex flex-col overflow-hidden h-full shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer bg-background"
         >
           <CardHeader>
             <div className="flex justify-between items-start gap-2">
@@ -173,7 +173,7 @@ export default function HomePage() {
                 {event.name}
               </CardTitle>
           </CardHeader>
-          <CardFooter className="flex-col items-start gap-3 pt-4 border-t">
+          <CardFooter className="flex-col items-start gap-3 pt-4 border-t mt-auto">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Calendar className="h-4 w-4" />
                 <span>{date} at {time}</span>
@@ -211,7 +211,7 @@ export default function HomePage() {
         className="flex-1">
         <section className="relative h-[80vh] flex items-center justify-center text-center text-white">
           <Image
-            src="https://image-static.collegedunia.com/public/reviewPhotos/871794/IMG-20240914-WA0005.jpg"
+            src="https://cdn.egspec.org/assets/img/hero/2.JPG"
             alt="A vibrant symposium with a diverse audience"
             fill
             className="object-cover -z-10"

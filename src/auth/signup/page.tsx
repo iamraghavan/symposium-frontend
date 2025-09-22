@@ -41,7 +41,7 @@ export default function SignupPage() {
   const [googleId, setGoogleId] = useState<string | null>(null);
   
   const [colleges, setColleges] = useState<{ value: string; label: string }[]>([]);
-  const [departments, setDepartments] = useState<{ value: string; label: string }[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [loadingColleges, setLoadingColleges] = useState(true);
   const [loadingDepartments, setLoadingDepartments] = useState(true);
   
@@ -81,11 +81,7 @@ export default function SignupPage() {
         try {
             const response = await api<ApiSuccessResponse<Department[]>>('/departments');
             if(response.success && response.data) {
-                const formattedDepartments = response.data.map(d => ({
-                    value: d._id,
-                    label: d.name,
-                }));
-                setDepartments(formattedDepartments);
+                setDepartments(response.data);
             }
         } catch (error) {
             console.error("Failed to fetch departments:", error);
@@ -208,7 +204,7 @@ export default function SignupPage() {
              <div className="grid gap-2">
                 <Label htmlFor="department">Department</Label>
                 <Combobox 
-                    items={departments}
+                    items={departments.map(d => ({ value: d._id, label: d.name }))}
                     value={departmentValue}
                     onChange={setDepartmentValue}
                     placeholder={loadingDepartments ? "Loading departments..." : "Select department..."}
