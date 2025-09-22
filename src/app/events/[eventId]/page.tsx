@@ -90,7 +90,7 @@ export default function EventDetailPage() {
           setEvent(fetchedEvent);
 
           if (typeof fetchedEvent.department === 'string') {
-              const departmentResponse = await api<ApiSuccessResponse<{data: Department}>>(`/departments/${fetchedEvent.department}`);
+              const departmentResponse = await api<ApiSuccessResponse<Department>>(`/departments/${fetchedEvent.department}`);
               if (departmentResponse.success && departmentResponse.data) {
                   setDepartment(departmentResponse.data);
               }
@@ -330,7 +330,7 @@ export default function EventDetailPage() {
             fill
             priority
             className="object-cover"
-            data-ai-hint={event.imageHint || 'event banner'}
+            data-ai-hint="event banner"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
           <div className="relative h-full flex flex-col justify-end container mx-auto px-4 md:px-6 pb-8">
@@ -611,4 +611,3 @@ export default function EventDetailPage() {
   );
 }
 
-    
