@@ -5,20 +5,6 @@ import type { ApiErrorResponse, ApiSuccessResponse } from './types';
 
 const API_BASE_URL = 'https://symposium-backend.onrender.com';
 
-const publicRoutes = [
-    '/analytics/statistics/overview',
-    '/analytics/statistics/participants',
-    '/analytics/statistics/events/registration-summary',
-    '/analytics/statistics/departments', // Covers /:departmentId/totals as well
-    '/analytics/users/analytics/first-week',
-    '/finance/overview',
-    '/finance/transactions',
-    '/finance/revenue-by-department',
-    '/departments',
-    '/events',
-    '/symposium-payments/symposium/status'
-];
-
 type ApiOptions = {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: Record<string, any>;
@@ -26,12 +12,8 @@ type ApiOptions = {
   headers?: Record<string, string>;
 };
 
-function isPublicRoute(endpoint: string): boolean {
-    return publicRoutes.some(route => endpoint.startsWith(route));
-}
-
 async function api<T extends ApiSuccessResponse<any> | ApiErrorResponse>(endpoint: string, options: ApiOptions = {}): Promise<T> {
-  const { method = 'GET', body, authenticated = false, headers = {} } = options;
+  const { method = 'GET', body, headers = {} } = options;
   const finalEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   
   const finalHeaders: Record<string, string> = {
@@ -40,21 +22,23 @@ async function api<T extends ApiSuccessResponse<any> | ApiErrorResponse>(endpoin
       ...headers,
   };
 
-  const isPublic = isPublicRoute(finalEndpoint);
+  let apiKey: string | null = null;
+  if (typeof window !== 'undefined') {
+    // For authenticated routes, prioritize the user-specific key
+    if (options.authenticated) {
+        apiKey = localStorage.getItem('userApiKey');
+    }
+  }
+  
+  // If no user-specific key is found or needed, use the public one.
+  if (!apiKey) {
+      apiKey = process.env.NEXT_PUBLIC_API_KEY || null;
+  }
 
-  // If authenticated is explicitly true, or if it's not a public route, require API key.
-  if (authenticated || !isPublic) {
-    let apiKey: string | null = null;
-    if (typeof window !== 'undefined') {
-      apiKey = localStorage.getItem('userApiKey');
-    }
-    
-    if (!apiKey) {
-      const errorMsg = "API key is missing for a private route.";
-      console.error(errorMsg, `Endpoint: ${finalEndpoint}`);
-      throw new Error(JSON.stringify({ message: errorMsg, success: false, code: "API_KEY_MISSING" }));
-    }
+  if (apiKey) {
     finalHeaders['x-api-key'] = apiKey;
+  } else {
+    console.warn(`API key is missing for request to: ${finalEndpoint}`);
   }
   
   const config: RequestInit = {
