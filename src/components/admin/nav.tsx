@@ -91,7 +91,7 @@ export function AdminNav() {
     <>
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-2">
-          <Image src="/logo.png" alt="EGSPEC Symposium Logo" width={150} height={30} />
+          <Image src="/assets/logo/EGSPEC_Symposium_header.svg" alt="EGSPEC Symposium Logo" width={150} height={30} />
         </div>
       </SidebarHeader>
       <SidebarContent className="p-2">

@@ -64,7 +64,7 @@ export function Header() {
         <div className="w-full px-4 sm:px-6 md:px-8">
           <div className="flex h-16 items-center justify-between">
             <Link href="/" className="flex items-center gap-2 font-bold">
-              <Image src="/logo.png" alt="EGSPEC Symposium Logo" width={200} height={40} className="h-10 w-auto" />
+              <Image src="/assets/logo/EGSPEC_Symposium_header.svg" alt="EGSPEC Symposium Logo" width={200} height={40} className="h-10 w-auto" />
             </Link>
 
             <div className="flex items-center gap-4">
@@ -148,7 +148,7 @@ export function Header() {
                     <div className="flex flex-col h-full">
                       <div className="flex items-center justify-between p-4 border-b">
                           <Link href="/" className="flex items-center gap-2 font-bold">
-                              <Image src="/logo.png" alt="EGSPEC Symposium Logo" width={150} height={30} />
+                              <Image src="/assets/logo/EGSPEC_Symposium_header.svg" alt="EGSPEC Symposium Logo" width={150} height={30} />
                           </Link>
                           <SheetClose asChild>
                             <Button variant="ghost" size="icon"><span className="sr-only">Close</span></Button>

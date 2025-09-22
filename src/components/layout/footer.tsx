@@ -1,6 +1,7 @@
 
 import Link from "next/link";
-import { AppWindow, ArrowRight, Facebook, Twitter, Youtube, Instagram, Linkedin, MessageCircle } from "lucide-react";
+import { ArrowRight, Facebook, Twitter, Youtube, Instagram, Linkedin, MessageCircle } from "lucide-react";
+import Image from "next/image";
 
 
 const TikTokIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -17,9 +18,7 @@ export function Footer() {
       <div className="container mx-auto px-6 py-12">
         <div className="flex flex-col md:flex-row flex-wrap justify-between items-center gap-6 pb-8 border-b border-gray-700 text-center md:text-left">
             <div className="flex items-center gap-2">
-                <AppWindow className="h-8 w-8 text-primary" />
-                <span className="font-headline text-2xl font-bold text-white">Symposium Central</span>
-                 <span className="font-headline text-2xl text-white hidden sm:inline">The people platform</span>
+                <Image src="/assets/logo/EGSPEC_Symposium_footer.svg" alt="Symposium Central Footer Logo" width={250} height={50} />
             </div>
             <Link href="#" className="text-lg font-semibold text-white hover:text-primary transition-colors flex items-center gap-2">
                 Register to Achive more <ArrowRight className="h-5 w-5" />
