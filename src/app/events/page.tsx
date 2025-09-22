@@ -117,15 +117,10 @@ export default function EventsPage() {
                     {event.mode.charAt(0).toUpperCase() + event.mode.slice(1)}
                 </Badge>
             </div>
-             <CardTitle className="font-headline text-xl pt-2 line-clamp-1">
+             <CardTitle className="font-headline text-xl pt-2 line-clamp-2 flex-grow min-h-[3.5rem]">
                 {event.name}
               </CardTitle>
           </CardHeader>
-          <CardContent className="flex-grow">
-            <p className="text-sm text-muted-foreground line-clamp-2 h-10">
-              {event.description}
-            </p>
-          </CardContent>
           <CardFooter className="flex-col items-start gap-3 pt-4 border-t">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Calendar className="h-4 w-4" />

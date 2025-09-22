@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import Image from 'next/image';
@@ -168,15 +169,10 @@ export default function HomePage() {
                     {event.mode.charAt(0).toUpperCase() + event.mode.slice(1)}
                 </Badge>
             </div>
-             <CardTitle className="font-headline text-xl pt-2 line-clamp-1">
+             <CardTitle className="font-headline text-xl pt-2 line-clamp-2 flex-grow min-h-[3.5rem]">
                 {event.name}
               </CardTitle>
           </CardHeader>
-          <CardContent className="flex-grow">
-            <p className="text-sm text-muted-foreground line-clamp-2 h-10">
-              {event.description}
-            </p>
-          </CardContent>
           <CardFooter className="flex-col items-start gap-3 pt-4 border-t">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Calendar className="h-4 w-4" />
@@ -215,7 +211,7 @@ export default function HomePage() {
         className="flex-1">
         <section className="relative h-[80vh] flex items-center justify-center text-center text-white">
           <Image
-            src="https://image-static.collegedunia.com/public/college_data/images/campusimage/144188200512.JPG"
+            src="https://image-static.collegedunia.com/public/reviewPhotos/871794/IMG-20240914-WA0005.jpg"
             alt="A vibrant symposium with a diverse audience"
             fill
             className="object-cover -z-10"
