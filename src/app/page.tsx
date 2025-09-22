@@ -132,12 +132,8 @@ export default function HomePage() {
     const departmentName = (event.department as Department)?.name || 'Unknown';
     const isValidUrl = (url?: string) => {
         if (!url) return false;
-        try {
-            const parsedUrl = new URL(url);
-            return parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:';
-        } catch (e) {
-            return false;
-        }
+        // Stricter check for valid image extensions at the end of a URL that starts with http.
+        return url.startsWith('http') && /\.(jpeg|jpg|gif|png|webp)$/i.test(url);
     }
     const imageUrl = isValidUrl(event.thumbnailUrl) ? event.thumbnailUrl : 'https://picsum.photos/seed/event-placeholder/400/250';
      
