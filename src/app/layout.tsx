@@ -9,18 +9,14 @@ import { usePathname } from 'next/navigation';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { GoogleOneTap } from '@/components/layout/google-one-tap';
 import Script from 'next/script';
-import { Inter, Space_Grotesk } from 'next/font/google';
+import { Montserrat } from 'next/font/google';
 import { cn } from '@/lib/utils';
 
-const inter = Inter({
+const montserrat = Montserrat({
   subsets: ['latin'],
-  variable: '--font-inter',
+  variable: '--font-montserrat',
 });
 
-const spaceGrotesk = Space_Grotesk({
-  subsets: ['latin'],
-  variable: '--font-space-grotesk',
-});
 
 // Even with client-side rendering for layout choices, metadata can be defined
 // export const metadata: Metadata = {
@@ -44,7 +40,7 @@ export default function RootLayout({
         <meta name="description" content="The central hub for managing your college symposium." />
         <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="beforeInteractive" />
       </head>
-      <body className={cn("font-body antialiased bg-background text-foreground", inter.variable, spaceGrotesk.variable)} suppressHydrationWarning={true}>
+      <body className={cn("font-body antialiased bg-background text-foreground", montserrat.variable)} suppressHydrationWarning={true}>
         <GoogleOAuthProvider clientId={googleClientId}>
           <GoogleOneTap />
           <div className="flex flex-col min-h-screen">
