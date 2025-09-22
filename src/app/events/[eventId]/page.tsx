@@ -67,10 +67,8 @@ export default function EventDetailPage() {
   const eventId = params.eventId as string;
   
   const [event, setEvent] = useState<Event | null>(null);
-  const [department, setDepartment] = useState<Department | null>(null);
   const [user, setUser] = useState<LoggedInUser | null>(null);
   const [userApiKey, setUserApiKey] = useState<string|null>(null);
-  const [winners, setWinners] = useState<Winner[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   const [isRegistrationDialogOpen, setIsRegistrationDialogOpen] = useState(false);
@@ -93,17 +91,14 @@ export default function EventDetailPage() {
         const eventResponse = await api<ApiSuccessResponse<{ event: Event }>>(`/events/${eventId}`);
         if (eventResponse.success && eventResponse.data) {
           const fetchedEvent = eventResponse.data as unknown as Event;
-          setEvent(fetchedEvent);
-
+          
           if (typeof fetchedEvent.department === 'string') {
-              const departmentResponse = await api<ApiSuccessResponse<{data: Department}>>(`/departments/${fetchedEvent.department}`);
+              const departmentResponse = await api<ApiSuccessResponse<Department>>(`/departments/${fetchedEvent.department}`);
               if (departmentResponse.success && departmentResponse.data) {
-                  setDepartment(departmentResponse.data);
+                  fetchedEvent.department = departmentResponse.data;
               }
-          } else if (typeof fetchedEvent.department === 'object') {
-              setDepartment(fetchedEvent.department);
           }
-
+          setEvent(fetchedEvent);
         } else {
            throw new Error("Event not found in API response.");
         }
@@ -269,9 +264,10 @@ export default function EventDetailPage() {
     }
   }
   
-  const departmentName = department?.name || 'Unknown Department';
+  const departmentName = (typeof event?.department === 'object' && event.department.name) || 'Unknown Department';
+  const isSymposiumFeePaid = !!user?.hasPaidSymposium;
 
-  if (isLoading) {
+  if (isLoading || !event) {
     return (
       <div className="bg-background">
         <Skeleton className="h-64 md:h-80 w-full rounded-none" />
@@ -291,11 +287,6 @@ export default function EventDetailPage() {
     )
   }
 
-  if (!event) {
-    return notFound();
-  }
-
-  const isSymposiumFeePaid = !!user?.hasPaidSymposium;
 
   return (
     <>
@@ -303,7 +294,7 @@ export default function EventDetailPage() {
         {/* Hero Section */}
         <section className="relative h-64 md:h-80 w-full">
           <Image
-            src="https://image-static.collegedunia.com/public/reviewPhotos/871794/IMG-20240914-WA0005.jpg"
+            src={`https://picsum.photos/seed/${departmentName}/1920/1080`}
             alt={`${event.name} banner`}
             fill
             priority
@@ -551,5 +542,3 @@ export default function EventDetailPage() {
     </>
   );
 }
-
-    
