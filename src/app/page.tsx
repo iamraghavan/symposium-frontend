@@ -42,8 +42,8 @@ export default function HomePage() {
                 api<ApiSuccessResponse<Event[]>>('/events?status=published&limit=100&populate=department,createdBy')
             ]);
             
-            if (deptResponse.success && deptResponse.data?.data) {
-                setDepartments(deptResponse.data.data);
+            if (deptResponse.success && deptResponse.data) {
+                setDepartments(deptResponse.data);
             }
 
             if (eventResponse.success && eventResponse.data) {
@@ -63,7 +63,7 @@ export default function HomePage() {
   const filteredEvents = useMemo(() => {
     let eventsToFilter = allEvents;
     if (departmentFilter !== 'all') {
-      eventsToFilter = eventsToFilter.filter(event => (event.department as Department)?._id === departmentFilter);
+      eventsToFilter = eventsToFilter.filter(event => event.department?._id === departmentFilter);
     }
     return eventsToFilter.slice(0, 6); // Show max 6 featured events
   }, [allEvents, departmentFilter]);
@@ -118,8 +118,7 @@ export default function HomePage() {
 
   const EventCard = ({ event }: { event: Event }) => {
     const { date, time } = getFormattedDate(event.startAt);
-    const departmentName = (event.department as Department)?.name || 'Unknown';
-     
+    
     return (
       <motion.div
         layout
@@ -133,7 +132,7 @@ export default function HomePage() {
           <Card className="flex flex-col overflow-hidden h-full shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer bg-card group">
             <CardHeader className="flex-grow">
                <div className="flex justify-between items-start gap-2">
-                 <Badge variant="secondary" className="w-fit">{departmentName}</Badge>
+                 <Badge variant="secondary" className="w-fit">{event.department?.name || 'Unknown'}</Badge>
                  <Badge variant={event.mode === 'online' ? 'default' : 'outline'} className="shrink-0">
                      {event.mode === 'online' ? <Video className='mr-1 h-3 w-3'/> : <Globe className='mr-1 h-3 w-3'/>}
                      {event.mode.charAt(0).toUpperCase() + event.mode.slice(1)}
@@ -402,5 +401,3 @@ export default function HomePage() {
       </motion.main>
   );
 }
-
-    

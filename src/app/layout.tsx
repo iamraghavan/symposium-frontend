@@ -9,7 +9,18 @@ import { usePathname } from 'next/navigation';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { GoogleOneTap } from '@/components/layout/google-one-tap';
 import Script from 'next/script';
+import { Inter, Space_Grotesk } from 'next/font/google';
+import { cn } from '@/lib/utils';
 
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+});
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  variable: '--font-space-grotesk',
+});
 
 // Even with client-side rendering for layout choices, metadata can be defined
 // export const metadata: Metadata = {
@@ -31,12 +42,9 @@ export default function RootLayout({
       <head>
         <title>Symposium Central</title>
         <meta name="description" content="The central hub for managing your college symposium." />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
         <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="beforeInteractive" />
       </head>
-      <body className="font-body antialiased bg-background text-foreground" suppressHydrationWarning={true}>
+      <body className={cn("font-body antialiased bg-background text-foreground", inter.variable, spaceGrotesk.variable)} suppressHydrationWarning={true}>
         <GoogleOAuthProvider clientId={googleClientId}>
           <GoogleOneTap />
           <div className="flex flex-col min-h-screen">
