@@ -255,13 +255,7 @@ export default function EventDetailPage() {
     fetchEventData();
   }
   
-  const onRegistrationNeedsPayment = (emails: string[]) => {
-      setIsRegistrationDialogOpen(false);
-      setUnpaidEmails(emails);
-      setIsPaymentDialogOpen(true);
-  };
-  
-   const onRegistrationError = (error: Error) => {
+  const onRegistrationError = (error: Error) => {
     setIsRegistrationDialogOpen(false);
     try {
         const parsedError = JSON.parse(error.message);
@@ -325,7 +319,7 @@ export default function EventDetailPage() {
         {/* Hero Section */}
         <section className="relative h-64 md:h-80 w-full">
           <Image
-            src={event.thumbnailUrl || `https://picsum.photos/seed/${departmentName.replace(/\s/g, '-')}/1200/400`}
+            src="https://image-static.collegedunia.com/public/reviewPhotos/871794/IMG-20240914-WA0005.jpg"
             alt={`${event.name} banner`}
             fill
             priority
@@ -610,4 +604,3 @@ export default function EventDetailPage() {
     </>
   );
 }
-
